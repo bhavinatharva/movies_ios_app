@@ -50,16 +50,19 @@ struct HomeView: View {
                             }
                         }
                         HorizontalListView(header: Constants.StringConstants.trendingMovies,titles:homeViewModel.trendingMovies)
-                        HorizontalListView(header: Constants.StringConstants.trendingTvShows,titles: homeViewModel.trendingMovies)
-//                        HorizontalListView(header: Constants.StringConstants.topRatedMovies)
-                        //                    HorizontalListView(header: Constants.StringConstants.topRatedTvShows)
+                        HorizontalListView(header: Constants.StringConstants.trendingTvShows,titles: homeViewModel.trendingTVShows)
+                        HorizontalListView(header: Constants.StringConstants.topRatedMovies,titles: homeViewModel.topRatedMovies)
+                        HorizontalListView(header: Constants.StringConstants.topRatedTvShows,titles: homeViewModel.topRatedTVShows)
                     }
                 case .error(underlyingError: let error):
                     Text("Error from API : \(error.localizedDescription)")
                 }
                 
             }.task {
-                await homeViewModel.getTrendingMovies()
+                await homeViewModel.getMovies(type:"trending")
+                await homeViewModel.getTVShows(type:"trending")
+                await homeViewModel.getMovies(type:"top_rated")
+                await homeViewModel.getTVShows(type:"top_rated")
             }
         }
     }
