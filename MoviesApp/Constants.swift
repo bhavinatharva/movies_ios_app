@@ -8,7 +8,6 @@
 import Foundation
 
 struct Constants {
-    
     struct ImageConstants {
         static let tabHome = "house"
         static let tabUpcoming = "play.circle"
@@ -20,6 +19,16 @@ struct Constants {
         static let image2 = "https://www.indiewire.com/wp-content/uploads/2019/12/us-1.jpg?w=758"
         static let image3 = "https://images-cdn.ubuy.co.in/68b1b650d9f8d3e89e042c52-star-wars-rogue-one-movie-poster.jpg"
         static let image4 = "https://i.etsystatic.com/37166133/r/il/60f034/4087791906/il_570xN.4087791906_jcbj.jpg"
+        
+        static let posterPathStart = "https://image.tmdb.org/t/p/w500"
+        
+        static func addPosterPth (to titles: inout[TrendingModel]){
+            for index in titles.indices {
+                if let path = titles[index].posterPath {
+                    titles[index].posterPath = posterPathStart + path
+                }
+            }
+        }
     }
     
     struct StringConstants {

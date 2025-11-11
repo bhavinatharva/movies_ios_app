@@ -4,4 +4,4 @@ Youtube URL :
 https://www.youtube.com/watch?v=-VC3hIEL7eQ
 
 
-Last at : 39:48, Next from it
+Last at : 1:46:27, Next from it

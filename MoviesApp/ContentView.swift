@@ -22,6 +22,10 @@ struct ContentView: View {
             Tab(Constants.StringConstants.tabDownloads,systemImage: Constants.ImageConstants.tabDownloads){
                 Text(Constants.StringConstants.tabDownloads)
             }
+        }.onAppear{
+            if let config = ApiConfig.shared {
+                print("ApiConfig.shared.baseUrl", config.baseUrl ?? "Not available")
+            }
         }
     }
 }
