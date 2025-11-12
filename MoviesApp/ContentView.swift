@@ -17,7 +17,7 @@ struct ContentView: View {
                 UpcomingView()
             }
             Tab(Constants.StringConstants.tabSearch,systemImage: Constants.ImageConstants.tabSearch){
-                Text(Constants.StringConstants.tabSearch)
+                SearchView()
             }
             Tab(Constants.StringConstants.tabDownloads,systemImage: Constants.ImageConstants.tabDownloads){
                 Text(Constants.StringConstants.tabDownloads)

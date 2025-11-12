@@ -14,6 +14,9 @@ struct Constants {
         static let tabSearch = "magnifyingglass"
         static let tabDownloads = "arrow.down.to.line"
         
+        static let movie = "movieclapper"
+        static let tv = "tv"
+        
         static let heroBannerMovie = "https://i.ebayimg.com/images/g/55oAAOSw9PlhoDWJ/s-l1200.jpg"
         static let image1 = "https://www.tallengestore.com/cdn/shop/products/Joker_-_Joaquin_Phoenix_-_Hollywood_Action_Movie_Poster_4d1b0644-dd78-42f8-996a-5d0c5bdc21b5.jpg?v=1573629455"
         static let image2 = "https://www.indiewire.com/wp-content/uploads/2019/12/us-1.jpg?w=758"
@@ -44,5 +47,8 @@ struct Constants {
         static let trendingTvShows = "Trending TV Shows"
         static let topRatedMovies = "Top Rated Movies"
         static let topRatedTvShows = "Top Rates TV Shows"
+     
+        static let movieSearch = "Movie Search"
+        static let tvSearch = "TV Search"
     }
 }
