@@ -11,6 +11,9 @@ struct ApiConfig: Decodable {
     var baseUrl : String?
     var apiKey : String?
     var apiToken : String?
+    var youtubeBaseUrl : String?
+    var youtubeApiKey : String?
+    var youtubeSearchUrl : String?
     
     static let shared : ApiConfig? = {
         do {

@@ -11,7 +11,7 @@ struct APIObejct : Decodable {
     var results : [TrendingModel] = []
 }
 
-struct TrendingModel : Decodable, Identifiable {
+struct TrendingModel : Decodable, Identifiable, Hashable {
     var id :Int?
     var title : String?
     var name : String?

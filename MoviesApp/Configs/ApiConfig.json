@@ -1,5 +1,8 @@
 {
     "baseUrl":"https://api.themoviedb.org",
     "apiKey":"ba3a155b4a6721686d3cc91d325bd9af",
-    "apiToken":"eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJiYTNhMTU1YjRhNjcyMTY4NmQzY2M5MWQzMjViZDlhZiIsIm5iZiI6MTc2Mjg1ODQzMC4zMTYsInN1YiI6IjY5MTMxNWJlMmUyZDY1MmJhNjNhMzdlNCIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.U5987gckznFfLoo3-idyq-VZH0xK8mmgDTnGE4qvOrU"
+    "apiToken":"eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJiYTNhMTU1YjRhNjcyMTY4NmQzY2M5MWQzMjViZDlhZiIsIm5iZiI6MTc2Mjg1ODQzMC4zMTYsInN1YiI6IjY5MTMxNWJlMmUyZDY1MmJhNjNhMzdlNCIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.U5987gckznFfLoo3-idyq-VZH0xK8mmgDTnGE4qvOrU",
+    "youtubeBaseUrl":"https://www.youtube.com/embed",
+    "youtubeApiKey":"AIzaSyAh-ilP4Zqh73dX0qcSggiFBf_U6wZ_Qo8",
+    "youtubeSearchUrl":"https://www.googleapis.com/youtube/v3/search"
 }
