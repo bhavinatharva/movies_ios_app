@@ -12,7 +12,7 @@ struct ApiServices {
     let apiKey = ApiConfig.shared?.apiKey
     let apiToken = ApiConfig.shared?.apiToken
     
-    func buildURL(media:String,type:String) throws -> URL?{
+    func buildURL(media:String,type:String,searchPhase :String? = nil) throws -> URL?{
         guard let url = baseUrl else {
             throw NetworkError.missingConfig(underlyingError: NSError(domain: "ApiServices", code: -1, userInfo: [NSLocalizedDescriptionKey: "baseUrl not found"]))
         }
@@ -22,25 +22,32 @@ struct ApiServices {
             path = "3/\(type)/\(media)/day"
         }else if type == "top_rated" || type == "upcoming" {
             path = "3/\(media)/\(type)"
+        }else if type == "search" {
+            path = "3/search/\(media)"
         }else {
             throw NetworkError.urlBuildFailed
         }
+        var urlQueryParams:[URLQueryItem] = []
+        if let searchPhase {
+            urlQueryParams.append(URLQueryItem(name: "query", value: searchPhase))
+        }
         guard let builedURL = URL(string: url)?
             .appending(path :path)
+            .appending(queryItems: urlQueryParams)
         else {
             throw NetworkError.urlBuildFailed
         }
         return builedURL
     }
     
-    func fetchTrendings(for media:String,by type:String) async throws -> [TrendingModel] {
+    func fetchTrendings(for media:String,by type:String,searchBy searchPhase :String? = nil) async throws -> [TrendingModel] {
         
         guard let token = apiToken else {
             throw NetworkError.missingConfig(underlyingError: NSError(domain: "ApiServices", code: -1, userInfo: [NSLocalizedDescriptionKey: "apiToken not found"]))
         }
         
         
-        let trendingsUrl = try buildURL(media: media, type: type)
+        let trendingsUrl = try buildURL(media: media, type: type,searchPhase: searchPhase)
         guard let trendingsUrl = trendingsUrl else {
             throw NetworkError.urlBuildFailed
         }

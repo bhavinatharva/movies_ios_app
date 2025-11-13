@@ -25,6 +25,16 @@ struct MovieDetailView: View {
                     
                     Text(titleName).bold().font(.title2).padding(5)
                     Text(title.overview ?? "").font(.title2).padding(5)
+                    
+                    HStack {
+                        Spacer()
+                        Button {
+                            
+                        } label: {
+                            Text(Constants.StringConstants.btnDownload).ghostButton()
+                        }
+                        Spacer()
+                    }
                 }
             }
         }

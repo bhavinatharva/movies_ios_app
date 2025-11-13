@@ -50,5 +50,8 @@ struct Constants {
      
         static let movieSearch = "Movie Search"
         static let tvSearch = "TV Search"
+        
+        static let search = "Search ..."
+        
     }
 }
