@@ -6,11 +6,13 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct HomeView: View {
     
     var homeViewModel = HomeViewModel()
     @State private var detailNavigationPath = NavigationPath()
+    @Environment(\.modelContext) var modelContext
     
     var body: some View {
         NavigationStack(path: $detailNavigationPath) {
@@ -47,6 +49,8 @@ struct HomeView: View {
                                         .ghostButton()
                                 }
                                 Button {
+                                    modelContext.insert(homeViewModel.heroTitle)
+                                    try? modelContext.save()
                                     
                                 }label: {
                                     Text(Constants.StringConstants.btnDownload)

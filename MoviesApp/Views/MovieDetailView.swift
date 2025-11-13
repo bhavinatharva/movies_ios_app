@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct MovieDetailView: View {
     
@@ -13,6 +14,7 @@ struct MovieDetailView: View {
     var titleName : String  {
         return (title.name ?? title.title) ?? ""
     }
+    @Environment(\.modelContext) var modelContext
     var body: some View {
         GeometryReader {geo in
             ScrollView{
@@ -29,6 +31,11 @@ struct MovieDetailView: View {
                     HStack {
                         Spacer()
                         Button {
+                            let saveTitle = title
+                            saveTitle.title = titleName
+                            
+                            modelContext.insert(saveTitle)
+                            try? modelContext.save()
                             
                         } label: {
                             Text(Constants.StringConstants.btnDownload).ghostButton()

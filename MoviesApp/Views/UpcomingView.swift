@@ -21,7 +21,7 @@ struct UpcomingView: View {
                     ProgressView()
                         .frame(width: geo.size.width,height: geo.size.height)
                 case ApiFetchStatus.success:
-                    VerticalListView(titles:upcomingModel.upcomingMovies)
+                    VerticalListView(titles:upcomingModel.upcomingMovies,canDelete: false)
                     .navigationDestination(for: TrendingModel.self) { title in
                         MovieDetailView(title: title)
                     }

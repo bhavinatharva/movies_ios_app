@@ -20,7 +20,7 @@ struct ContentView: View {
                 SearchView()
             }
             Tab(Constants.StringConstants.tabDownloads,systemImage: Constants.ImageConstants.tabDownloads){
-                Text(Constants.StringConstants.tabDownloads)
+                DownloadView()
             }
         }.onAppear{
             if let config = ApiConfig.shared {
