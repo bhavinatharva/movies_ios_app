@@ -11,7 +11,10 @@ struct ContentView: View {
     var body: some View {
         TabView{
             Tab(Constants.StringConstants.tabHome,systemImage: Constants.ImageConstants.tabHome){
-               HomeView()
+                HomeView()
+            }
+            Tab(Constants.StringConstants.tabActors,systemImage:Constants.ImageConstants.tabPerson){
+                ActorsView()
             }
             Tab(Constants.StringConstants.tabUpcoming,systemImage:Constants.ImageConstants.tabUpcoming){
                 UpcomingView()

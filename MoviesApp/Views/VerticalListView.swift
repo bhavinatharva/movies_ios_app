@@ -32,6 +32,12 @@ struct VerticalListView: View {
                                 .bold()
                             Text(title.overview ?? "")
                                 .font(.system(size:12))
+                            Text(title.adult == true ? "18+" : "All Ages")
+                                .font(.system(size: 12))
+                                .foregroundColor(title.adult == true ? .red : .green)
+                            Spacer()
+                            Text("Release on "+(title.release_date ??   ""))
+                                .font(.system(size:12))
                             
                         }
                     }} placeholder: {

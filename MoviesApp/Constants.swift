@@ -10,6 +10,7 @@ import Foundation
 struct Constants {
     struct ImageConstants {
         static let tabHome = "house"
+        static let tabPerson = "person"
         static let tabUpcoming = "play.circle"
         static let tabSearch = "magnifyingglass"
         static let tabDownloads = "arrow.down.to.line"
@@ -33,10 +34,19 @@ struct Constants {
                 }
             }
         }
+        
+        static func addProfilePath (to titles: inout[ActorModel]){
+            for index in titles.indices {
+                if let path = titles[index].profilePath {
+                    titles[index].profilePath = posterPathStart + path
+                }
+            }
+        }
     }
     
     struct StringConstants {
         static let tabHome = "Home"
+        static let tabActors = "Actors"
         static let tabUpcoming = "Upcoming"
         static let tabSearch = "Search"
         static let tabDownloads="Downloads"
@@ -44,6 +54,8 @@ struct Constants {
         static let btnPlay = "Play"
         static let btnDownload = "Download"
         
+        static let nowPlayingMovies = "Now Playing Movies"
+        static let popularMovies = "Popular Movies"
         static let trendingMovies = "Trending Movies"
         static let trendingTvShows = "Trending TV Shows"
         static let topRatedMovies = "Top Rated Movies"

@@ -12,6 +12,8 @@ class HomeViewModel {
     private(set) var homeStatus = ApiFetchStatus.notstarted
     
     private let apiService = ApiServices()
+    var nowPlayingMovies: [TrendingModel] = []
+    var popularMovies: [TrendingModel] = []
     var trendingMovies: [TrendingModel] = []
     var topRatedMovies: [TrendingModel] = []
     var trendingTVShows: [TrendingModel] = []
@@ -24,11 +26,15 @@ class HomeViewModel {
         
         if trendingMovies.isEmpty {
             do{
+                async let nowPMovies =  apiService.fetchTrendings(for: "movie", by: "now_playing")
+                async let pMovies =  apiService.fetchTrendings(for: "movie", by: "popular")
                 async let tMovies =  apiService.fetchTrendings(for: "movie", by: "trending")
                 async let tTopRatedMovies =  apiService.fetchTrendings(for: "movie", by: "top_rated")
                 async let tTvs = apiService.fetchTrendings(for: "tv", by: "trending")
                 async let tTopRatedTv = apiService.fetchTrendings(for: "tv", by: "top_rated")
                 
+                nowPlayingMovies = try await nowPMovies
+                popularMovies = try await pMovies
                 trendingMovies = try await tMovies
                 trendingTVShows = try await tTvs
                 topRatedMovies = try await tTopRatedMovies

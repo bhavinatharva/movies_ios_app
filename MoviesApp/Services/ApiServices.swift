@@ -20,12 +20,12 @@ struct ApiServices {
         var path:String
         if type == "trending" {
             path = "3/\(type)/\(media)/day"
-        }else if type == "top_rated" || type == "upcoming" {
+        }else if type == "top_rated" || type == "upcoming" || type == "popular"  || type == "now_playing"{
             path = "3/\(media)/\(type)"
         }else if type == "search" {
             path = "3/search/\(media)"
         }else {
-            throw NetworkError.urlBuildFailed
+            throw NetworkError.urlBuildFailed(underlyingError: NSError(domain: "ApiServices", code: -1,userInfo: [NSLocalizedDescriptionKey:"type not matching"]))
         }
         var urlQueryParams:[URLQueryItem] = []
         if let searchPhase {
@@ -35,7 +35,34 @@ struct ApiServices {
             .appending(path :path)
             .appending(queryItems: urlQueryParams)
         else {
-            throw NetworkError.urlBuildFailed
+            throw NetworkError.urlBuildFailed(underlyingError: NSError(domain: "ApiServices", code: -1,userInfo: [NSLocalizedDescriptionKey:"Failed to Build URL"]))
+        }
+        return builedURL
+    }
+    
+    func buildPersonURL(searchPhase :String? = nil) throws -> URL?{
+        guard let url = baseUrl else {
+            throw NetworkError.missingConfig(underlyingError: NSError(domain: "ApiServices", code: -1, userInfo: [NSLocalizedDescriptionKey: "baseUrl not found"]))
+        }
+        
+        var path=""
+        if searchPhase != nil {
+            path = "3/search/person"
+        }else {
+            path = "3/person/popular"
+        }
+        var urlQueryParams:[URLQueryItem] = []
+        if let searchPhase {
+            urlQueryParams.append(URLQueryItem(name: "query", value: searchPhase))
+        }
+        guard var builedURL = URL(string: url)
+        else {
+            throw NetworkError.urlBuildFailed(underlyingError: NSError(domain: "ApiServices", code: -1,userInfo: [NSLocalizedDescriptionKey:"Failed to Build URL"]))
+        }
+        
+        builedURL = builedURL.appending(path :path)
+        if !urlQueryParams.isEmpty {
+            builedURL =     builedURL.appending(queryItems: urlQueryParams)
         }
         return builedURL
     }
@@ -49,7 +76,7 @@ struct ApiServices {
         
         let trendingsUrl = try buildURL(media: media, type: type,searchPhase: searchPhase)
         guard let trendingsUrl = trendingsUrl else {
-            throw NetworkError.urlBuildFailed
+            throw NetworkError.urlBuildFailed(underlyingError: NSError(domain: "ApiServices", code: -1,userInfo: [NSLocalizedDescriptionKey:"Invalid Build URL"]))
         }
         print(trendingsUrl)
         var urlRequest = URLRequest(url: trendingsUrl)
@@ -71,5 +98,41 @@ struct ApiServices {
         var trendings =  try decoder.decode(APIObejct.self, from: data).results
         Constants.ImageConstants.addPosterPth(to: &trendings)
         return trendings
+    }
+    
+    func fetchActors(searchBy searchPhase :String? = nil) async throws -> [ActorModel] {
+        
+        guard let token = apiToken else {
+            throw NetworkError.missingConfig(underlyingError: NSError(domain: "ApiServices", code: -1, userInfo: [NSLocalizedDescriptionKey: "apiToken not found"]))
+        }
+        
+        
+        let trendingsUrl = try buildPersonURL(searchPhase: searchPhase)
+        guard let trendingsUrl = trendingsUrl else {
+            throw NetworkError.urlBuildFailed(underlyingError: NSError(domain: "ApiServices", code: -1,userInfo: [NSLocalizedDescriptionKey:"Invalid Build URL"]))
+        }
+        print("trendingsUrl",trendingsUrl)
+        var urlRequest = URLRequest(url: trendingsUrl)
+        urlRequest.addValue("application/json", forHTTPHeaderField: "Accept")
+        urlRequest.addValue("application/json", forHTTPHeaderField: "Content-type")
+        urlRequest.addValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        let (data,urlResponse) = try await URLSession.shared.data(for: urlRequest)
+        
+        guard let response = urlResponse as? HTTPURLResponse, response .statusCode == 200 else {
+            throw NetworkError.badURLResponse(
+                underlyingError: NSError(
+                    domain: "ApiServices",
+                    code: (urlResponse as? HTTPURLResponse)?.statusCode ?? -1 ,
+                    userInfo: [NSLocalizedDescriptionKey: "Invalid HTTP response"]))
+        }
+        let decoder = JSONDecoder()
+//        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        
+        
+        
+        var actorData = try decoder.decode(ActorAPIObejct.self, from: data)
+        Constants.ImageConstants.addProfilePath(to: &actorData.results)
+        
+        return actorData.results
     }
 }

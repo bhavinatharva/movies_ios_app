@@ -57,6 +57,9 @@ struct HomeView: View {
                                         .ghostButton()
                                 }
                             }
+                            HorizontalListView(header: Constants.StringConstants.nowPlayingMovies,
+                                               titles:homeViewModel.nowPlayingMovies, onSelect: {title in detailNavigationPath.append(title)})
+                            HorizontalListView(header: Constants.StringConstants.popularMovies,titles:homeViewModel.popularMovies, onSelect: {title in detailNavigationPath.append(title)})
                             HorizontalListView(header: Constants.StringConstants.trendingMovies,titles:homeViewModel.trendingMovies, onSelect: {title in detailNavigationPath.append(title)})
                             HorizontalListView(header: Constants.StringConstants.trendingTvShows,titles: homeViewModel.trendingTVShows, onSelect: {title in  detailNavigationPath.append(title)})
                             HorizontalListView(header: Constants.StringConstants.topRatedMovies,titles: homeViewModel.topRatedMovies, onSelect: {title in detailNavigationPath.append(title)})

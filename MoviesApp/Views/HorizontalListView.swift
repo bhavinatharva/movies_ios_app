@@ -18,17 +18,29 @@ struct HorizontalListView: View {
                 LazyHStack{
                     ForEach(titles) { title in
                         
-                        AsyncImage(url: URL(string: title.posterPath ?? ""))
-                        {image in image
-                                .resizable()
-                                .scaledToFit()
-                            .clipShape(RoundedRectangle(cornerRadius: 10))}
-                        placeholder: {
-                            ProgressView()
-                        }
-                        .frame(width: 120,height: 200)
-                        .onTapGesture {
-                            onSelect(title)
+                        ZStack(alignment: .topTrailing) {
+                            AsyncImage(url: URL(string: title.posterPath ?? ""))
+                            {image in image
+                                    .resizable()
+                                    .scaledToFit()
+                                .clipShape(RoundedRectangle(cornerRadius: 10))}
+                            placeholder: {
+                                ProgressView()
+                            }
+                            .frame(width: 120,height: 200)
+                            .onTapGesture {
+                                onSelect(title)
+                            }
+                            if title.adult == true {
+                                Text("18+")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(Color.red)
+                                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                                    .offset(x: -8, y: 8)
+                            }
                         }
                     }}
             }

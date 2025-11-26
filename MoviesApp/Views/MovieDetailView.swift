@@ -19,6 +19,8 @@ struct MovieDetailView: View {
         GeometryReader {geo in
             ScrollView{
                 LazyVStack(alignment: .leading) {
+//                    YoutubePlayer(videoId:  "-VC3hIEL7eQ",showControls: true)
+//                        .aspectRatio(1.3, contentMode: .fit)
                     AsyncImage(url: URL(string: title.posterPath ?? "")) {image in
                         image.resizable().scaledToFit()
                     } placeholder: {
