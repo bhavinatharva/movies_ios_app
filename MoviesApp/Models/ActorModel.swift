@@ -19,13 +19,15 @@ class ActorModel : Decodable, Identifiable, Hashable {
     var knownForDepartment : String?
     var profilePath : String?
     var adult : Bool?
+    var knownFor: [TrendingModel]?
     
-    init(id: Int? = nil, name: String? = nil, knownForDepartment: String? = nil, profilePath: String? = nil,adult:Bool? = false) {
+    init(id: Int? = nil, name: String? = nil, knownForDepartment: String? = nil, profilePath: String? = nil,adult:Bool? = false, knownFor: [TrendingModel]? = nil) {
         self.id = id
         self.name = name
         self.knownForDepartment = knownForDepartment
         self.profilePath = profilePath
         self.adult = adult
+        self.knownFor = knownFor
     }
     
     enum CodingKeys:String, CodingKey {
@@ -34,6 +36,7 @@ class ActorModel : Decodable, Identifiable, Hashable {
         case knownForDepartment = "known_for_department"
         case profilePath = "profile_path"
         case adult
+        case knownFor = "known_for"
     }
     
     required init(from decoder: any Decoder) throws {
@@ -43,6 +46,7 @@ class ActorModel : Decodable, Identifiable, Hashable {
         knownForDepartment = try container.decodeIfPresent(String.self, forKey: .knownForDepartment)
         profilePath = try container.decodeIfPresent(String.self, forKey: .profilePath)
         adult = try container.decodeIfPresent(Bool.self, forKey: .adult)
+        knownFor = try container.decodeIfPresent([TrendingModel].self, forKey: .knownFor)
     }
     
     static var previeTitles = [

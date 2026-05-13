@@ -19,11 +19,10 @@ struct MovieCardView: View {
                     .frame(width: 140, height: 210)
                     .netflixStyleGradient()
             } placeholder: {
-                ZStack {
-                    Color.gray.opacity(0.2)
-                    ProgressView()
-                }
-                .frame(width: 140, height: 210)
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.gray.opacity(0.2))
+                    .frame(width: 140, height: 210)
+                    .shimmer()
             }
             .cardStyle()
             

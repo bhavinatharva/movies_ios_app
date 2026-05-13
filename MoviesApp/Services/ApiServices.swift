@@ -134,6 +134,38 @@ struct ApiServices {
         return changeResponse.results
     }
     
+    func fetchMovieDetail(id: Int) async throws -> MovieDetailModel {
+        guard let token = apiToken else {
+            throw NetworkError.missingConfig(underlyingError: NSError(domain: "ApiServices", code: -1, userInfo: [NSLocalizedDescriptionKey: "apiToken not found"]))
+        }
+        
+        guard let urlString = baseUrl, var url = URL(string: urlString) else {
+            throw NetworkError.urlBuildFailed(underlyingError: NSError(domain: "ApiServices", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid Base URL"]))
+        }
+        
+        url = url.appending(path: "3/movie/\(id)")
+        
+        var urlRequest = URLRequest(url: url)
+        urlRequest.addValue("application/json", forHTTPHeaderField: "Accept")
+        urlRequest.addValue("application/json", forHTTPHeaderField: "Content-type")
+        urlRequest.addValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        
+        let (data, urlResponse) = try await URLSession.shared.data(for: urlRequest)
+        
+        guard let response = urlResponse as? HTTPURLResponse, response.statusCode == 200 else {
+            throw NetworkError.badURLResponse(
+                underlyingError: NSError(
+                    domain: "ApiServices",
+                    code: (urlResponse as? HTTPURLResponse)?.statusCode ?? -1,
+                    userInfo: [NSLocalizedDescriptionKey: "Invalid HTTP response"]))
+        }
+        
+        let decoder = JSONDecoder()
+        // We use our model's custom coding keys
+        let movieDetail = try decoder.decode(MovieDetailModel.self, from: data)
+        return movieDetail
+    }
+    
     func fetchActors(searchBy searchPhase :String? = nil) async throws -> [ActorModel] {
         
         guard let token = apiToken else {

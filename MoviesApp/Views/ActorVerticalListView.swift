@@ -15,75 +15,70 @@ struct ActorVerticalListView: View {
     
     var body: some View {
         List(titles) { title in
-            NavigationLink {
-                // MovieDetailView(title: title)
-            } label: {
-                ActorRowView(title: title)
-            }
-        }
-        .listStyle(PlainListStyle()) // Removes default list styling if needed
-    }
-}
-
-struct ActorRowView: View {
-    let title: ActorModel
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            // Image Section
-            AsyncImage(url: URL(string: title.profilePath ?? "")) { phase in
-                switch phase {
-                case .empty:
-                    ProgressView()
-                        .frame(width: 100, height: 150)
-                case .success(let image):
-                    image
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: 100, height: 150)
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                case .failure:
-                    Image(systemName: "person.circle.fill")
-                        .resizable()
-                        .scaledToFit()
-                        .foregroundColor(.gray)
-                        .frame(width: 100, height: 150)
-                @unknown default:
+            ZStack {
+                NavigationLink {
+                    ActorDetailView(actor: title)
+                } label: {
                     EmptyView()
                 }
+                .opacity(0)
+                
+                HStack(spacing: 16) {
+                    AsyncImage(url: URL(string: title.profilePath ?? "")) { image in
+                        image
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 100, height: 150)
+                            .cardStyle()
+                    } placeholder: {
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.gray.opacity(0.1))
+                            .frame(width: 100, height: 150)
+                            .shimmer()
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(title.name ?? "Unknown")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .lineLimit(2)
+                        
+                        Text(title.knownForDepartment ?? "")
+                            .font(.subheadline)
+                            .foregroundColor(.accentColor)
+                        
+                        if let knownFor = title.knownFor?.prefix(2) {
+                            Text(knownFor.compactMap { $0.title ?? $0.name }.joined(separator: ", "))
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                                .lineLimit(1)
+                        }
+                        
+                        HStack {
+                            if title.adult == true {
+                                Text("18+")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundColor(.red)
+                                    .padding(.horizontal, 4)
+                                    .padding(.vertical, 1)
+                                    .overlay(RoundedRectangle(cornerRadius: 2).stroke(.red, lineWidth: 1))
+                            }
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
             }
-            
-            // Text Content Section
-            VStack(alignment: .leading, spacing: 8) {
-                Text(title.name ?? "Unknown Name")
-                    .font(.headline)
-                    .fontWeight(.bold)
-                    .lineLimit(2)
-                    .foregroundColor(.primary)
-                
-                Text(title.knownForDepartment ?? "Unknown Department")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                
-                Text(title.adult == true ? "18+" : "All Ages")
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundColor(title.adult == true ? .red : .green)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(
-                        Capsule()
-                            .fill((title.adult == true ? Color.red : Color.green).opacity(0.1))
-                    )
-                
-                Spacer()
-            }
-            .padding(.vertical, 8)
-            
-            Spacer()
+            .listRowBackground(Color.black)
+            .listRowSeparator(.visible, edges: .bottom)
+            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
         }
-        .frame(height: 140) // Fixed height for consistent rows
-        .padding(.vertical, 4)
+        .listStyle(.plain)
+        .background(Color.black)
     }
 }
 

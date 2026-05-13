@@ -32,8 +32,10 @@ struct MovieHeroHeaderView: View {
                         )
                     }
             } placeholder: {
-                Color.black.opacity(0.8)
+                Rectangle()
+                    .fill(Color.gray.opacity(0.1))
                     .frame(height: 550)
+                    .shimmer()
             }
             
             VStack(spacing: 16) {

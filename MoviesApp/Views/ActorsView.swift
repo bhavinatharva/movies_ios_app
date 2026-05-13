@@ -12,9 +12,10 @@ struct ActorsView: View {
     
     var actorViewModel = ActorsViewModel()
     @State private var searchText = ""
+    @State private var navigationPath = NavigationPath()
     
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navigationPath) {
             ZStack {
                 Color.black.ignoresSafeArea()
                 
@@ -26,13 +27,15 @@ struct ActorsView: View {
                     ScrollView {
                         VStack(spacing: 24) {
                             if searchText.isEmpty {
-                                ActorHeroHeaderView(actor: actorViewModel.popularActors.first)
+                                ActorHeroHeaderView(actor: actorViewModel.popularActors.first) { actor in
+                                    navigationPath.append(actor)
+                                }
                                 
                                 ActorHorizontalListView(
                                     header: "Popular Actors",
                                     actors: actorViewModel.popularActors,
                                     onSelect: { actor in
-                                        // Handle selection
+                                        navigationPath.append(actor)
                                     }
                                 )
                                 
@@ -40,7 +43,7 @@ struct ActorsView: View {
                                     header: "Trending This Week",
                                     actors: actorViewModel.trendingActors,
                                     onSelect: { actor in
-                                        // Handle selection
+                                        navigationPath.append(actor)
                                     }
                                 )
                                 
@@ -48,7 +51,7 @@ struct ActorsView: View {
                                     header: "Known For",
                                     actors: actorViewModel.actorsData.shuffled(),
                                     onSelect: { actor in
-                                        // Handle selection
+                                        navigationPath.append(actor)
                                     }
                                 )
                             } else {
@@ -69,6 +72,12 @@ struct ActorsView: View {
                     .foregroundColor(.white)
                 }
             }
+            .navigationDestination(for: ActorModel.self) { actor in
+                ActorDetailView(actor: actor)
+            }
+            .navigationDestination(for: TrendingModel.self) { movie in
+                MovieDetailView(title: movie)
+            }
             .task {
                 await actorViewModel.getActors(searchPhase: "")
             }
@@ -86,5 +95,5 @@ struct ActorsView: View {
 }
 
 #Preview {
-    UpcomingView()
+    ActorsView()
 }

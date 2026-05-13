@@ -9,6 +9,7 @@ import SwiftUI
 
 struct ActorHeroHeaderView: View {
     let actor: ActorModel?
+    var onSelect: (ActorModel) -> Void = { _ in }
     
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -31,8 +32,10 @@ struct ActorHeroHeaderView: View {
                             )
                         }
                 } placeholder: {
-                    Color.black.opacity(0.8)
+                    Rectangle()
+                        .fill(Color.gray.opacity(0.1))
                         .frame(height: 450)
+                        .shimmer()
                 }
             } else {
                 Color.black.opacity(0.8)
@@ -63,7 +66,11 @@ struct ActorHeroHeaderView: View {
                 }
                 
                 HStack(spacing: 20) {
-                    Button(action: {}) {
+                    Button(action: {
+                        if let actor = actor {
+                            onSelect(actor)
+                        }
+                    }) {
                         HStack {
                             Image(systemName: "play.fill")
                             Text("Details")

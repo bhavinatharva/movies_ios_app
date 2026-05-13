@@ -31,12 +31,10 @@ struct VerticalListView: View {
                             .frame(width: 100, height: 150)
                             .cardStyle()
                     } placeholder: {
-                        ZStack {
-                            Color.gray.opacity(0.1)
-                            ProgressView()
-                        }
-                        .frame(width: 100, height: 150)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color.gray.opacity(0.1))
+                            .frame(width: 100, height: 150)
+                            .shimmer()
                     }
                     
                     VStack(alignment: .leading, spacing: 8) {
