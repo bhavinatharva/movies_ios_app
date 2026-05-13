@@ -16,7 +16,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "128"
             endingLineNumber = "128"
-            landmarkName = "fetchActors(searchBy:)"
+            landmarkName = "fetchRecentMovieChanges()"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>

@@ -24,6 +24,8 @@ struct ApiServices {
             path = "3/\(media)/\(type)"
         }else if type == "search" {
             path = "3/search/\(media)"
+        }else if type == "changes" {
+            path = "3/\(media)/\(type)"
         }else {
             throw NetworkError.urlBuildFailed(underlyingError: NSError(domain: "ApiServices", code: -1,userInfo: [NSLocalizedDescriptionKey:"type not matching"]))
         }
@@ -98,6 +100,38 @@ struct ApiServices {
         var trendings =  try decoder.decode(APIObejct.self, from: data).results
         Constants.ImageConstants.addPosterPth(to: &trendings)
         return trendings
+    }
+    
+    func fetchRecentMovieChanges() async throws -> [MovieChange] {
+        guard let token = apiToken else {
+            throw NetworkError.missingConfig(underlyingError: NSError(domain: "ApiServices", code: -1, userInfo: [NSLocalizedDescriptionKey: "apiToken not found"]))
+        }
+        
+        let url = try buildURL(media: "movie", type: "changes")
+        guard let url = url else {
+            throw NetworkError.urlBuildFailed(underlyingError: NSError(domain: "ApiServices", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid Build URL"]))
+        }
+        
+        var urlRequest = URLRequest(url: url)
+        urlRequest.addValue("application/json", forHTTPHeaderField: "Accept")
+        urlRequest.addValue("application/json", forHTTPHeaderField: "Content-type")
+        urlRequest.addValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        
+        let (data, urlResponse) = try await URLSession.shared.data(for: urlRequest)
+        
+        guard let response = urlResponse as? HTTPURLResponse, response.statusCode == 200 else {
+            throw NetworkError.badURLResponse(
+                underlyingError: NSError(
+                    domain: "ApiServices",
+                    code: (urlResponse as? HTTPURLResponse)?.statusCode ?? -1,
+                    userInfo: [NSLocalizedDescriptionKey: "Invalid HTTP response"]))
+        }
+        
+        let decoder = JSONDecoder()
+        // No snake case conversion needed for the results array itself, 
+        // but MovieChangeResponse has total_pages etc.
+        let changeResponse = try decoder.decode(MovieChangeResponse.self, from: data)
+        return changeResponse.results
     }
     
     func fetchActors(searchBy searchPhase :String? = nil) async throws -> [ActorModel] {

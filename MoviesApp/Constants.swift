@@ -18,6 +18,7 @@ struct Constants {
         static let movie = "movieclapper"
         static let tv = "tv"
         static let trash = "trash"
+        static let tabRecent = "clock.arrow.circlepath"
         
         static let heroBannerMovie = "https://i.ebayimg.com/images/g/55oAAOSw9PlhoDWJ/s-l1200.jpg"
         static let image1 = "https://www.tallengestore.com/cdn/shop/products/Joker_-_Joaquin_Phoenix_-_Hollywood_Action_Movie_Poster_4d1b0644-dd78-42f8-996a-5d0c5bdc21b5.jpg?v=1573629455"
@@ -50,6 +51,7 @@ struct Constants {
         static let tabUpcoming = "Upcoming"
         static let tabSearch = "Search"
         static let tabDownloads="Downloads"
+        static let tabRecent = "Recent"
         
         static let btnPlay = "Play"
         static let btnDownload = "Download"

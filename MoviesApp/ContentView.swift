@@ -22,6 +22,9 @@ struct ContentView: View {
             Tab(Constants.StringConstants.tabSearch,systemImage: Constants.ImageConstants.tabSearch){
                 SearchView()
             }
+            Tab(Constants.StringConstants.tabRecent, systemImage: Constants.ImageConstants.tabRecent) {
+                RecentMoviesView()
+            }
             Tab(Constants.StringConstants.tabDownloads,systemImage: Constants.ImageConstants.tabDownloads){
                 DownloadView()
             }
