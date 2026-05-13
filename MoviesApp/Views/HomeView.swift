@@ -6,48 +6,90 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct HomeView: View {
-    var heroBannerTitle = Constants.ImageConstants.heroBannerMovie
+    
+    var homeViewModel = HomeViewModel()
+    @State private var detailNavigationPath = NavigationPath()
+    @Environment(\.modelContext) var modelContext
     
     var body: some View {
-        GeometryReader { geo in
-            ScrollView {
-                LazyVStack {
-                    AsyncImage(url: URL(string: heroBannerTitle)) {
-                        image in
-                        image
-                            .resizable()
-                            .scaledToFit().overlay{
-                                LinearGradient (
-                                    stops: [
-                                        Gradient.Stop(color: .clear, location: 0.8),
-                                        Gradient.Stop(color: .gradient, location: 1)
-                                    ],
-                                    startPoint: .top, endPoint: .bottom)
-                            }
-                    } placeholder: {
-                        ProgressView()
-                    }.frame(width: geo.size.width,height: geo.size.height*0.85)
-                    HStack {
-                        Button {
+        NavigationStack(path: $detailNavigationPath) {
+            ZStack {
+                Color.black.ignoresSafeArea()
+                
+                switch homeViewModel.homeStatus {
+                case .notstarted, .loading:
+                    ProgressView()
+                        .tint(.white)
+                case .success:
+                    ScrollView {
+                        VStack(spacing: 24) {
+                            MovieHeroHeaderView(
+                                movie: homeViewModel.heroTitle,
+                                onPlay: {
+                                    detailNavigationPath.append(homeViewModel.heroTitle)
+                                },
+                                onAddToList: {
+                                    modelContext.insert(homeViewModel.heroTitle)
+                                    try? modelContext.save()
+                                }
+                            )
                             
-                        }label: {
-                            Text(Constants.StringConstants.btnPlay)
-                                .ghostButton()
-                        }
-                        Button {
+                            MovieHorizontalListView(
+                                header: Constants.StringConstants.nowPlayingMovies,
+                                movies: homeViewModel.nowPlayingMovies,
+                                onSelect: { title in detailNavigationPath.append(title) }
+                            )
                             
-                        }label: {
-                            Text(Constants.StringConstants.btnDownload)
-                                .ghostButton()
+                            MovieHorizontalListView(
+                                header: Constants.StringConstants.popularMovies,
+                                movies: homeViewModel.popularMovies,
+                                onSelect: { title in detailNavigationPath.append(title) }
+                            )
+                            
+                            MovieHorizontalListView(
+                                header: Constants.StringConstants.trendingMovies,
+                                movies: homeViewModel.trendingMovies,
+                                onSelect: { title in detailNavigationPath.append(title) }
+                            )
+                            
+                            MovieHorizontalListView(
+                                header: Constants.StringConstants.trendingTvShows,
+                                movies: homeViewModel.trendingTVShows,
+                                onSelect: { title in detailNavigationPath.append(title) }
+                            )
+                            
+                            MovieHorizontalListView(
+                                header: Constants.StringConstants.topRatedMovies,
+                                movies: homeViewModel.topRatedMovies,
+                                onSelect: { title in detailNavigationPath.append(title) }
+                            )
+                            
+                            MovieHorizontalListView(
+                                header: Constants.StringConstants.topRatedTvShows,
+                                movies: homeViewModel.topRatedTVShows,
+                                onSelect: { title in detailNavigationPath.append(title) }
+                            )
                         }
                     }
-                    HorizontalListView(header: Constants.StringConstants.trendingMovies)
-                    HorizontalListView(header: Constants.StringConstants.trendingTvShows)
-                    HorizontalListView(header: Constants.StringConstants.topRatedMovies)
-                    HorizontalListView(header: Constants.StringConstants.topRatedTvShows)
+                    .ignoresSafeArea(edges: .top)
+                    
+                case .error(let error):
+                    ContentUnavailableView(
+                        "Connection Error",
+                        systemImage: "wifi.exclamationmark",
+                        description: Text(error.localizedDescription)
+                    )
+                    .foregroundColor(.white)
                 }
+            }
+            .task {
+                await homeViewModel.getTitles()
+            }
+            .navigationDestination(for: TrendingModel.self) { title in
+                MovieDetailView(title: title)
             }
         }
     }

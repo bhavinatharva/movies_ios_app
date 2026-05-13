@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 @main
 struct MoviesAppApp: App {
@@ -13,5 +14,6 @@ struct MoviesAppApp: App {
         WindowGroup {
             ContentView()
         }
+        .modelContainer(for :TrendingModel.self)
     }
 }

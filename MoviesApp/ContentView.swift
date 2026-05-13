@@ -11,16 +11,26 @@ struct ContentView: View {
     var body: some View {
         TabView{
             Tab(Constants.StringConstants.tabHome,systemImage: Constants.ImageConstants.tabHome){
-               HomeView()
+                HomeView()
+            }
+            Tab(Constants.StringConstants.tabActors,systemImage:Constants.ImageConstants.tabPerson){
+                ActorsView()
             }
             Tab(Constants.StringConstants.tabUpcoming,systemImage:Constants.ImageConstants.tabUpcoming){
-                Text(Constants.StringConstants.tabUpcoming)
+                UpcomingView()
             }
             Tab(Constants.StringConstants.tabSearch,systemImage: Constants.ImageConstants.tabSearch){
-                Text(Constants.StringConstants.tabSearch)
+                SearchView()
+            }
+            Tab(Constants.StringConstants.tabRecent, systemImage: Constants.ImageConstants.tabRecent) {
+                RecentMoviesView()
             }
             Tab(Constants.StringConstants.tabDownloads,systemImage: Constants.ImageConstants.tabDownloads){
-                Text(Constants.StringConstants.tabDownloads)
+                DownloadView()
+            }
+        }.onAppear{
+            if let config = ApiConfig.shared {
+                print("ApiConfig.shared.baseUrl", config.baseUrl ?? "Not available")
             }
         }
     }
