@@ -13,23 +13,26 @@ struct UpcomingView: View {
     
     var body: some View {
         NavigationStack {
-            GeometryReader { geo in
+            ZStack {
+                Color.black.ignoresSafeArea()
+                
                 switch upcomingModel.upcomingStatus {
-                case ApiFetchStatus.notstarted:
-                    EmptyView()
-                case ApiFetchStatus.loading:
+                case ApiFetchStatus.notstarted, .loading:
                     ProgressView()
-                        .frame(width: geo.size.width,height: geo.size.height)
+                        .tint(.white)
                 case ApiFetchStatus.success:
                     VerticalListView(titles:upcomingModel.upcomingMovies,canDelete: false)
-                    .navigationDestination(for: TrendingModel.self) { title in
-                        MovieDetailView(title: title)
-                    }
+                        .navigationDestination(for: TrendingModel.self) { title in
+                            MovieDetailView(title: title)
+                        }
         
                 case ApiFetchStatus.error(underlyingError: let error):
-                    Text("Error from API : \(error.localizedDescription)")
+                    ContentUnavailableView("Connection Error", systemImage: "wifi.exclamationmark", description: Text(error.localizedDescription))
+                        .foregroundColor(.white)
                 }
-            }.task {
+            }
+            .navigationTitle(Constants.StringConstants.tabUpcoming)
+            .task {
                 await upcomingModel.getUpcomingsMovies()
             }
         }

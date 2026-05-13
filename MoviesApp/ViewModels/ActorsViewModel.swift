@@ -14,27 +14,29 @@ class ActorsViewModel {
     
     private let apiService = ApiServices()
     var actorsData: [ActorModel] = []
+    var popularActors: [ActorModel] = []
+    var trendingActors: [ActorModel] = []
     
     
     func getActors(searchPhase : String) async {
         actorStatus=ApiFetchStatus.loading
         
-        if actorsData.isEmpty {
-            do{
-                print("searchPhase",searchPhase)
-                if searchPhase.isEmpty {
-                    actorsData = try await apiService.fetchActors(searchBy: nil)
-                }else {
-                    actorsData = try await apiService.fetchActors(searchBy: searchPhase)
-                }
-            
-                actorStatus = ApiFetchStatus.success
+        do{
+            if searchPhase.isEmpty {
+                actorsData = try await apiService.fetchActors(searchBy: nil)
+                // Simple partitioning for UI variety
+                popularActors = Array(actorsData.prefix(10))
+                trendingActors = Array(actorsData.suffix(max(0, actorsData.count - 10)))
+            }else {
+                actorsData = try await apiService.fetchActors(searchBy: searchPhase)
+                popularActors = actorsData
+                trendingActors = []
             }
-            catch {
-                actorStatus=ApiFetchStatus.error(underlyingError: error)
-            }
-        }else {
+        
             actorStatus = ApiFetchStatus.success
+        }
+        catch {
+            actorStatus=ApiFetchStatus.error(underlyingError: error)
         }
     }
     

@@ -12,14 +12,21 @@ struct DownloadView: View {
     @Query var savedTitled : [TrendingModel]
     var body: some View {
         NavigationStack {
-            if savedTitled.isEmpty {
-                Text("No Downloads")
-                    .font(.title3)
-                    .padding()
-                    .bold()
-            }else {
-                VerticalListView(titles: savedTitled,canDelete: true)
+            ZStack {
+                Color.black.ignoresSafeArea()
+                
+                if savedTitled.isEmpty {
+                    ContentUnavailableView(
+                        "No Downloads",
+                        systemImage: "arrow.down.circle",
+                        description: Text("Movies and TV shows you download will appear here.")
+                    )
+                    .foregroundColor(.white)
+                } else {
+                    VerticalListView(titles: savedTitled, canDelete: true)
+                }
             }
+            .navigationTitle(Constants.StringConstants.tabDownloads)
         }
     }
 }

@@ -15,49 +15,80 @@ struct VerticalListView: View {
     
     var body: some View {
         List(titles) { title in
-            NavigationLink {
-                MovieDetailView(title: title)
-            } label: {
-                AsyncImage(url: URL(string: title.posterPath ?? "")) {image in
-                    HStack {
+            ZStack {
+                NavigationLink {
+                    MovieDetailView(title: title)
+                } label: {
+                    EmptyView()
+                }
+                .opacity(0)
+                
+                HStack(spacing: 16) {
+                    AsyncImage(url: URL(string: title.posterPath ?? "")) { image in
                         image
                             .resizable()
-                            .scaledToFit()
-                            .clipShape(.rect(cornerRadius: 10))
-                            .padding(5)
-                        
-                        VStack {
-                            Text((title.name ?? title.title) ?? "")
-                                .font(.system(size:14))
-                                .bold()
-                            Text(title.overview ?? "")
-                                .font(.system(size:12))
-                            Text(title.adult == true ? "18+" : "All Ages")
-                                .font(.system(size: 12))
-                                .foregroundColor(title.adult == true ? .red : .green)
-                            Spacer()
-                            Text("Release on "+(title.release_date ??   ""))
-                                .font(.system(size:12))
-                            
+                            .scaledToFill()
+                            .frame(width: 100, height: 150)
+                            .cardStyle()
+                    } placeholder: {
+                        ZStack {
+                            Color.gray.opacity(0.1)
+                            ProgressView()
                         }
-                    }} placeholder: {
-                        ProgressView()
+                        .frame(width: 100, height: 150)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
-                    .frame(height: 150)
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text((title.name ?? title.title) ?? "Unknown")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .lineLimit(2)
+                        
+                        Text(title.overview ?? "")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                            .lineLimit(3)
+                        
+                        HStack {
+                            if title.adult == true {
+                                Text("18+")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundColor(.red)
+                                    .padding(.horizontal, 4)
+                                    .padding(.vertical, 1)
+                                    .overlay(RoundedRectangle(cornerRadius: 2).stroke(.red, lineWidth: 1))
+                            }
+                            
+                            Text(title.release_date ?? "")
+                                .font(.system(size: 10))
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                    Image(systemName: "play.circle")
+                        .font(.title2)
+                        .foregroundColor(.white)
+                }
             }
+            .listRowBackground(Color.black)
+            .listRowSeparator(.visible, edges: .bottom)
+            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
             .swipeActions(edge: .trailing) {
                 if canDelete {
-                    Button {
+                    Button(role: .destructive) {
                         modelContext.delete(title)
                         try? modelContext.save()
                     } label: {
-                        Image(systemName: Constants.ImageConstants.trash)
-                            .tint(.red)
-                        
+                        Label("Delete", systemImage: Constants.ImageConstants.trash)
                     }
                 }
             }
         }
+        .listStyle(.plain)
+        .background(Color.black)
     }
 }
 

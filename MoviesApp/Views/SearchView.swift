@@ -15,28 +15,25 @@ struct SearchView: View {
     
     var body: some View {
         NavigationStack(path: $navigationPath) {
-            ScrollView{
-                if let error = searchViewModel.errorMessage {
-                    Text("Error \(error)")
-                        .foregroundColor(.red)
-                        .padding()
-                        .background(.ultraThinMaterial)
-                        .clipShape(.rect(cornerRadius: 10))
-                }
+            ZStack {
+                Color.black.ignoresSafeArea()
                 
-                LazyVGrid(columns: [GridItem(),GridItem(),GridItem()]) {
-                    ForEach(searchViewModel.searchingMovies) { title in
-                        AsyncImage(url: URL(string: title.posterPath ?? "")){ image in
-                            image.resizable().scaledToFit().clipShape(.rect(cornerRadius: 10))
-                        } placeholder: {
-                            ProgressView()
-                        }
-                        .frame(width: 120,height: 200)
-                        .onTapGesture {
-                            navigationPath.append(title)
-                        }
-                        
+                ScrollView {
+                    if let error = searchViewModel.errorMessage {
+                        ContentUnavailableView("Search Error", systemImage: "exclamationmark.magnifyingglass", description: Text(error))
+                            .foregroundColor(.white)
                     }
+                    
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 20) {
+                        ForEach(searchViewModel.searchingMovies) { title in
+                            MovieCardView(movie: title)
+                                .onTapGesture {
+                                    navigationPath.append(title)
+                                }
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 16)
                 }
             }
             .navigationTitle(searchByMovies ? Constants.StringConstants.movieSearch : Constants.StringConstants.tvSearch)
