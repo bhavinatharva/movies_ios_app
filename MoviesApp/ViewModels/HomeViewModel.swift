@@ -10,47 +10,29 @@ import Foundation
 @Observable
 class HomeViewModel {
     private(set) var homeStatus = ApiFetchStatus.notstarted
+    private let iptvService = IPTVService.shared
     
-    private let apiService = ApiServices()
-    var nowPlayingMovies: [TrendingModel] = []
-    var popularMovies: [TrendingModel] = []
-    var trendingMovies: [TrendingModel] = []
-    var topRatedMovies: [TrendingModel] = []
-    var trendingTVShows: [TrendingModel] = []
-    var topRatedTVShows: [TrendingModel] = []
+    var liveChannels: [IPTVChannel] = []
+    var categorizedChannels: [String: [IPTVChannel]] = [:]
     
-    var heroTitle :TrendingModel = TrendingModel.previeTitles[0]
-    
-    func getTitles() async {
-        homeStatus=ApiFetchStatus.loading
+    func getTitles(url: String) async {
+        guard let m3uUrl = URL(string: url) else {
+            homeStatus = .error(underlyingError: NSError(domain: "HomeViewModel", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"]))
+            return
+        }
         
-        if trendingMovies.isEmpty {
-            do{
-                async let nowPMovies =  apiService.fetchTrendings(for: "movie", by: "now_playing")
-                async let pMovies =  apiService.fetchTrendings(for: "movie", by: "popular")
-                async let tMovies =  apiService.fetchTrendings(for: "movie", by: "trending")
-                async let tTopRatedMovies =  apiService.fetchTrendings(for: "movie", by: "top_rated")
-                async let tTvs = apiService.fetchTrendings(for: "tv", by: "trending")
-                async let tTopRatedTv = apiService.fetchTrendings(for: "tv", by: "top_rated")
-                
-                nowPlayingMovies = try await nowPMovies
-                popularMovies = try await pMovies
-                trendingMovies = try await tMovies
-                trendingTVShows = try await tTvs
-                topRatedMovies = try await tTopRatedMovies
-                topRatedTVShows = try await tTopRatedTv
-                homeStatus = ApiFetchStatus.success
-                
-                if let title = trendingMovies.randomElement(){
-                    heroTitle = title
-                }
-            }
-            catch {
-                homeStatus=ApiFetchStatus.error(underlyingError: error)
-            }
-        }else {
-            homeStatus = ApiFetchStatus.success
+        homeStatus = .loading
+        
+        do {
+            let fetchedChannels = try await iptvService.fetchM3U(url: m3uUrl)
+            self.liveChannels = fetchedChannels
+            
+            // Group channels by category
+            self.categorizedChannels = Dictionary(grouping: fetchedChannels) { $0.category ?? "General" }
+            
+            homeStatus = .success
+        } catch {
+            homeStatus = .error(underlyingError: error)
         }
     }
-    
 }

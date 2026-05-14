@@ -9,87 +9,116 @@ import SwiftUI
 import SwiftData
 
 struct HomeView: View {
-    
-    var homeViewModel = HomeViewModel()
+    @State private var homeViewModel = HomeViewModel()
     @State private var detailNavigationPath = NavigationPath()
-    @Environment(\.modelContext) var modelContext
+    @AppStorage("iptv_url") private var iptvUrl = "https://iptv-org.github.io/iptv/index.m3u"
+    @State private var isShowingSettings = false
+    @State private var isShowingSearch = false
     
     var body: some View {
         NavigationStack(path: $detailNavigationPath) {
             ZStack {
                 Color.black.ignoresSafeArea()
                 
-                switch homeViewModel.homeStatus {
-                case .notstarted, .loading:
-                    ProgressView()
-                        .tint(.white)
-                case .success:
-                    ScrollView {
-                        VStack(spacing: 24) {
-                            MovieHeroHeaderView(
-                                movie: homeViewModel.heroTitle,
-                                onPlay: {
-                                    detailNavigationPath.append(homeViewModel.heroTitle)
-                                },
-                                onAddToList: {
-                                    modelContext.insert(homeViewModel.heroTitle)
-                                    try? modelContext.save()
-                                }
-                            )
-                            
-                            MovieHorizontalListView(
-                                header: Constants.StringConstants.nowPlayingMovies,
-                                movies: homeViewModel.nowPlayingMovies,
-                                onSelect: { title in detailNavigationPath.append(title) }
-                            )
-                            
-                            MovieHorizontalListView(
-                                header: Constants.StringConstants.popularMovies,
-                                movies: homeViewModel.popularMovies,
-                                onSelect: { title in detailNavigationPath.append(title) }
-                            )
-                            
-                            MovieHorizontalListView(
-                                header: Constants.StringConstants.trendingMovies,
-                                movies: homeViewModel.trendingMovies,
-                                onSelect: { title in detailNavigationPath.append(title) }
-                            )
-                            
-                            MovieHorizontalListView(
-                                header: Constants.StringConstants.trendingTvShows,
-                                movies: homeViewModel.trendingTVShows,
-                                onSelect: { title in detailNavigationPath.append(title) }
-                            )
-                            
-                            MovieHorizontalListView(
-                                header: Constants.StringConstants.topRatedMovies,
-                                movies: homeViewModel.topRatedMovies,
-                                onSelect: { title in detailNavigationPath.append(title) }
-                            )
-                            
-                            MovieHorizontalListView(
-                                header: Constants.StringConstants.topRatedTvShows,
-                                movies: homeViewModel.topRatedTVShows,
-                                onSelect: { title in detailNavigationPath.append(title) }
-                            )
+                VStack(spacing: 0) {
+                    // Custom Header with Search and Recent
+                    HStack(spacing: 15) {
+                        // Search Bar Placeholder
+                        HStack {
+                            Image(systemName: "magnifyingglass")
+                                .foregroundColor(.gray)
+                            Text("Search Channels...")
+                                .foregroundColor(.gray)
+                            Spacer()
+                        }
+                        .padding(10)
+                        .background(Color.gray.opacity(0.2))
+                        .cornerRadius(8)
+                        .onTapGesture {
+                            isShowingSearch = true
+                        }
+                        
+                        // Recent Button
+                        Button(action: {
+                            detailNavigationPath.append("recent")
+                        }) {
+                            Image(systemName: "clock.arrow.circlepath")
+                                .font(.title2)
+                                .foregroundColor(.white)
+                                .padding(8)
+                                .background(Color.gray.opacity(0.2))
+                                .cornerRadius(8)
                         }
                     }
-                    .ignoresSafeArea(edges: .top)
+                    .padding()
                     
-                case .error(let error):
-                    ContentUnavailableView(
-                        "Connection Error",
-                        systemImage: "wifi.exclamationmark",
-                        description: Text(error.localizedDescription)
-                    )
-                    .foregroundColor(.white)
+                    switch homeViewModel.homeStatus {
+                    case .notstarted, .loading:
+                        Spacer()
+                        ProgressView().tint(.white)
+                        Spacer()
+                    case .success:
+                        ScrollView {
+                            VStack(spacing: 24) {
+                                // Dynamic Rails from Categories
+                                ForEach(homeViewModel.categorizedChannels.keys.sorted(), id: \.self) { category in
+                                    if let channels = homeViewModel.categorizedChannels[category] {
+                                        UnifiedMediaListView(
+                                            header: category,
+                                            items: channels.map { $0.toUnified },
+                                            onSelect: { item in
+                                                detailNavigationPath.append(item)
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                            .padding(.top, 10)
+                        }
+                        
+                    case .error(let error):
+                        ContentUnavailableView(
+                            "Connection Error",
+                            systemImage: "wifi.exclamationmark",
+                            description: Text(error.localizedDescription)
+                        )
+                        .foregroundColor(.white)
+                    }
                 }
             }
-            .task {
-                await homeViewModel.getTitles()
+            .navigationTitle("IPTV Player")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(action: { isShowingSettings = true }) {
+                        Image(systemName: "gearshape")
+                            .foregroundColor(.white)
+                    }
+                }
             }
-            .navigationDestination(for: TrendingModel.self) { title in
-                MovieDetailView(title: title)
+            .sheet(isPresented: $isShowingSettings) {
+                SettingsView()
+                    .onDisappear {
+                        Task { await homeViewModel.getTitles(url: iptvUrl) }
+                    }
+            }
+            .sheet(isPresented: $isShowingSearch) {
+                SearchView() // Assuming SearchView exists and can be refactored
+            }
+            .task {
+                await homeViewModel.getTitles(url: iptvUrl)
+            }
+            .navigationDestination(for: UnifiedMediaItem.self) { item in
+                if item.source == .iptv, let url = item.streamUrl {
+                    StreamingPlayerView(url: url, title: item.title)
+                } else {
+                    MovieDetailView(title: TrendingModel.previeTitles[0]) // Placeholder fallback
+                }
+            }
+            .navigationDestination(for: String.self) { value in
+                if value == "recent" {
+                    RecentMoviesView()
+                }
             }
         }
     }
