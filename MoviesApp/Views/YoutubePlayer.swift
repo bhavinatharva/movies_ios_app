@@ -9,7 +9,7 @@ import SwiftUI
 import WebKit
 
 struct YoutubePlayer: UIViewRepresentable {
-    let videoId: String
+    let videoIds: [String]
     let showControls: Bool
     
     func makeUIView(context: Context) -> WKWebView {
@@ -25,6 +25,12 @@ struct YoutubePlayer: UIViewRepresentable {
     }
     
     func updateUIView(_ uiView: WKWebView, context: Context) {
+        guard let firstId = videoIds.first else { return }
+        
+        // Prevent redundant reloads
+        if uiView.url?.absoluteString.contains(firstId) == true { return }
+        
+        let playlist = videoIds.joined(separator: ",")
         let htmlString = """
                <!DOCTYPE html>
                <html>
@@ -38,12 +44,12 @@ struct YoutubePlayer: UIViewRepresentable {
                </head>
                <body>
                    <div class="container">
-                       <iframe src="https://www.youtube.com/embed/\(videoId)?autoplay=1&controls=\(showControls ? 1 : 0)&rel=0&modestbranding=1&playsinline=1" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+                       <iframe src="https://www.youtube.com/embed/\(firstId)?autoplay=1&controls=\(showControls ? 1 : 0)&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&origin=https://www.youtube.com&playlist=\(playlist)&loop=1" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
                    </div>
                </body>
                </html>
                """
         
-        uiView.loadHTMLString(htmlString, baseURL: nil)
+        uiView.loadHTMLString(htmlString, baseURL: URL(string: "https://www.youtube.com"))
     }
 }

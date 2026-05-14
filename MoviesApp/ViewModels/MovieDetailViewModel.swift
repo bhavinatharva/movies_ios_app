@@ -16,6 +16,10 @@ class MovieDetailViewModel {
     var movieDetail: MovieDetailModel?
     var videos: [VideoModel] = []
     
+    var videoIds: [String] {
+        videos.filter { $0.site == "YouTube" }.compactMap { $0.key }
+    }
+    
     var trailerKey: String? {
         videos.first { $0.type == "Trailer" && $0.site == "YouTube" }?.key ?? videos.first?.key
     }

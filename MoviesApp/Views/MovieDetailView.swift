@@ -48,8 +48,8 @@ struct MovieDetailView: View {
                 VStack(alignment: .leading, spacing: 20) {
                     // Hero Backdrop or Player
                     ZStack(alignment: .topTrailing) {
-                        if isPlaying, let key = viewModel.trailerKey {
-                            YoutubePlayer(videoId: key, showControls: true)
+                        if isPlaying, !viewModel.videoIds.isEmpty {
+                            YoutubePlayer(videoIds: viewModel.videoIds, showControls: true)
                                 .frame(width: geo.size.width, height: geo.size.width / 1.77)
                                 .overlay(alignment: .topTrailing) {
                                     Button(action: { isPlaying = false }) {
@@ -148,7 +148,7 @@ struct MovieDetailView: View {
                     // Action Buttons
                     HStack(spacing: 16) {
                         Button(action: {
-                            if viewModel.trailerKey != nil {
+                            if !viewModel.videoIds.isEmpty {
                                 isPlaying.toggle()
                             }
                         }) {
