@@ -13,7 +13,7 @@ struct MovieDetailView: View {
     let title : TrendingModel
     @State private var viewModel = MovieDetailViewModel()
     @Environment(\.modelContext) var modelContext
-    @State private var isPlaying = false
+    @State private var selectedVideo: VideoModel? = nil
     
     var body: some View {
         ZStack {
@@ -46,86 +46,70 @@ struct MovieDetailView: View {
         GeometryReader { geo in
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    // Hero Backdrop or Player
-                    ZStack(alignment: .topTrailing) {
-                        if isPlaying, !viewModel.videoIds.isEmpty {
-                            YoutubePlayer(videoIds: viewModel.videoIds, showControls: true)
-                                .frame(width: geo.size.width, height: geo.size.width / 1.77)
-                                .overlay(alignment: .topTrailing) {
-                                    Button(action: { isPlaying = false }) {
-                                        Image(systemName: "xmark.circle.fill")
-                                            .font(.title)
-                                            .foregroundColor(.white.opacity(0.7))
-                                            .padding()
-                                    }
+                    // Hero Backdrop
+                    ZStack(alignment: .bottomLeading) {
+                        AsyncImage(url: URL(string: Constants.ImageConstants.posterPathStart + (movie.backdropPath ?? movie.posterPath ?? ""))) { image in
+                            image
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: geo.size.width, height: 450)
+                                .clipped()
+                                .overlay {
+                                    LinearGradient(
+                                        stops: [
+                                            Gradient.Stop(color: .clear, location: 0.6),
+                                            Gradient.Stop(color: .black, location: 1.0)
+                                        ],
+                                        startPoint: .top,
+                                        endPoint: .bottom
+                                    )
                                 }
-                        } else {
-                            ZStack(alignment: .bottomLeading) {
-                                AsyncImage(url: URL(string: Constants.ImageConstants.posterPathStart + (movie.backdropPath ?? movie.posterPath ?? ""))) { image in
-                                    image
-                                        .resizable()
-                                        .scaledToFill()
-                                        .frame(width: geo.size.width, height: 450)
-                                        .clipped()
-                                        .overlay {
-                                            LinearGradient(
-                                                stops: [
-                                                    Gradient.Stop(color: .clear, location: 0.6),
-                                                    Gradient.Stop(color: .black, location: 1.0)
-                                                ],
-                                                startPoint: .top,
-                                                endPoint: .bottom
-                                            )
-                                        }
-                                } placeholder: {
-                                    RoundedRectangle(cornerRadius: 0)
-                                        .fill(Color.gray.opacity(0.1))
-                                        .frame(height: 450)
-                                        .shimmer()
+                        } placeholder: {
+                            RoundedRectangle(cornerRadius: 0)
+                                .fill(Color.gray.opacity(0.1))
+                                .frame(height: 450)
+                                .shimmer()
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(movie.title ?? "")
+                                .font(.system(size: 32, weight: .black))
+                                .foregroundColor(.white)
+                            
+                            HStack(spacing: 12) {
+                                if movie.adult == true {
+                                    Text("18+")
+                                        .font(.caption2)
+                                        .fontWeight(.bold)
+                                        .padding(4)
+                                        .background(Color.red)
+                                        .cornerRadius(2)
                                 }
                                 
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Text(movie.title ?? "")
-                                        .font(.system(size: 32, weight: .black))
-                                        .foregroundColor(.white)
-                                    
-                                    HStack(spacing: 12) {
-                                        if movie.adult == true {
-                                            Text("18+")
-                                                .font(.caption2)
-                                                .fontWeight(.bold)
-                                                .padding(4)
-                                                .background(Color.red)
-                                                .cornerRadius(2)
-                                        }
-                                        
-                                        Text(movie.releaseDate ?? "")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                        
-                                        if let runtime = movie.runtime {
-                                            Text("\(runtime) min")
-                                                .font(.caption)
-                                                .foregroundColor(.secondary)
-                                        }
-                                        
-                                        if let rating = movie.voteAverage {
-                                            HStack(spacing: 4) {
-                                                Image(systemName: "star.fill")
-                                                    .foregroundColor(.yellow)
-                                                Text(String(format: "%.1f", rating))
-                                                    .foregroundColor(.white)
-                                            }
-                                            .font(.caption)
-                                        }
-                                    }
+                                Text(movie.releaseDate ?? "")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                
+                                if let runtime = movie.runtime {
+                                    Text("\(runtime) min")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
                                 }
-                                .padding(20)
+                                
+                                if let rating = movie.voteAverage {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "star.fill")
+                                            .foregroundColor(.yellow)
+                                        Text(String(format: "%.1f", rating))
+                                            .foregroundColor(.white)
+                                    }
+                                    .font(.caption)
+                                }
                             }
                         }
+                        .padding(20)
                     }
-                    .frame(height: isPlaying ? geo.size.width / 1.77 : 450)
-                    .animation(.spring(), value: isPlaying)
+                    .frame(height: 450)
                     
                     // Genres
                     if let genres = movie.genres {
@@ -148,13 +132,13 @@ struct MovieDetailView: View {
                     // Action Buttons
                     HStack(spacing: 16) {
                         Button(action: {
-                            if !viewModel.videoIds.isEmpty {
-                                isPlaying.toggle()
+                            if let firstVideo = viewModel.videos.first {
+                                selectedVideo = firstVideo
                             }
                         }) {
                             HStack {
-                                Image(systemName: isPlaying ? "pause.fill" : "play.fill")
-                                Text(isPlaying ? "Pause" : "Play")
+                                Image(systemName: "play.fill")
+                                Text("Play")
                             }
                             .font(.headline)
                             .frame(maxWidth: .infinity)
@@ -181,6 +165,30 @@ struct MovieDetailView: View {
                         }
                     }
                     .padding(.horizontal, 20)
+                    
+                    // Video List Section
+                    if !viewModel.videos.isEmpty {
+                        VStack(alignment: .leading, spacing: 15) {
+                            Text("Videos & Trailers")
+                                .font(.title3)
+                                .fontWeight(.bold)
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 20)
+                            
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 16) {
+                                    ForEach(viewModel.videos) { video in
+                                        VideoCardView(video: video)
+                                            .onTapGesture {
+                                                selectedVideo = video
+                                            }
+                                    }
+                                }
+                                .padding(.horizontal, 20)
+                            }
+                        }
+                        .padding(.top, 10)
+                    }
                     
                     // Overview
                     VStack(alignment: .leading, spacing: 12) {
@@ -209,10 +217,26 @@ struct MovieDetailView: View {
                         movies: TrendingModel.previeTitles.shuffled(),
                         onSelect: { _ in }
                     )
-                    .padding(.top, 20)
-                }
+                .padding(.top, 20)
             }
             .ignoresSafeArea(edges: .top)
+            .fullScreenCover(item: $selectedVideo) { video in
+                ZStack(alignment: .topTrailing) {
+                    Color.black.ignoresSafeArea()
+                    
+                    if let key = video.key {
+                        YoutubePlayer(videoIds: [key], showControls: true)
+                            .aspectRatio(1.77, contentMode: .fit)
+                    }
+                    
+                    Button(action: { selectedVideo = nil }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title)
+                            .foregroundColor(.white.opacity(0.7))
+                            .padding()
+                    }
+                }
+            }
         }
     }
 }
