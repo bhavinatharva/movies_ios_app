@@ -14,16 +14,26 @@ class MovieDetailViewModel {
     private let apiService = ApiServices()
     
     var movieDetail: MovieDetailModel?
+    var videos: [VideoModel] = []
+    
+    var trailerKey: String? {
+        videos.first { $0.type == "Trailer" && $0.site == "YouTube" }?.key ?? videos.first?.key
+    }
     
     func getMovieDetail(id: Int) async {
         status = .loading
         do {
-            let detail = try await apiService.fetchMovieDetail(id: id)
+            async let detailFetch = apiService.fetchMovieDetail(id: id)
+            async let videosFetch = apiService.fetchMovieVideos(id: id)
+            
+            let (detail, videos) = try await (detailFetch, videosFetch)
+            
             self.movieDetail = detail
+            self.videos = videos
             self.status = .success
         } catch {
             self.status = .error(underlyingError: error)
-            print("Error fetching movie detail: \(error)")
+            print("Error fetching movie detail or videos: \(error)")
         }
     }
 }

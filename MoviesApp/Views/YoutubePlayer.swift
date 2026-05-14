@@ -8,62 +8,42 @@
 import SwiftUI
 import WebKit
 
-struct YoutubePlayer :UIViewRepresentable {
-    let webview = WKWebView()
-    let videoId : String
-    let showControls : Bool
-    let youtubeBaseUrl = ApiConfig.shared?.youtubeBaseUrl
+struct YoutubePlayer: UIViewRepresentable {
+    let videoId: String
+    let showControls: Bool
     
-    func makeUIView(context : Context ) -> some UIView {
-        webview.configuration.allowsInlineMediaPlayback = true
-        webview.configuration.mediaTypesRequiringUserActionForPlayback = []
-        webview.scrollView.isScrollEnabled = false
-        webview.isOpaque = false
-        webview.backgroundColor = .black
-        return webview
+    func makeUIView(context: Context) -> WKWebView {
+        let configuration = WKWebViewConfiguration()
+        configuration.allowsInlineMediaPlayback = true
+        configuration.mediaTypesRequiringUserActionForPlayback = []
+        
+        let webView = WKWebView(frame: .zero, configuration: configuration)
+        webView.scrollView.isScrollEnabled = false
+        webView.isOpaque = false
+        webView.backgroundColor = .black
+        return webView
     }
     
-    func updateUIView(_ uiView :UIViewType, context :Context)  {
-        guard let baseYoutubeURL = youtubeBaseUrl,
-              let baseURL = URL(string: baseYoutubeURL)else {return}
-        let fullURL = baseURL.appending(path: videoId)
-        print("fullURL \(fullURL)")
-        let controlsParam = showControls ? "1" : "0"
-        
+    func updateUIView(_ uiView: WKWebView, context: Context) {
         let htmlString = """
                <!DOCTYPE html>
                <html>
                <head>
                    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
                    <style>
-                       body {
-                           margin: 0;
-                           padding: 0;
-                           background-color: black;
-                           display: flex;
-                           justify-content: center;
-                           align-items: center;
-                           height: 100vh;
-                       }
-                       .container {
-                           width: 100%;
-                           height: 100%;
-                       }
-                       iframe {
-                           width: 100%;
-                           height: 100%;
-                           border: none;
-                       }
+                       body { margin: 0; padding: 0; background-color: black; overflow: hidden; }
+                       .container { position: relative; padding-bottom: 56.25%; height: 0; }
+                       .container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
                    </style>
                </head>
                <body>
                    <div class="container">
-                       <iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/-VC3hIEL7eQ?si=B_FEdNEJTSY0ADf2&amp;start=8240" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                       <iframe src="https://www.youtube.com/embed/\(videoId)?autoplay=1&controls=\(showControls ? 1 : 0)&rel=0&modestbranding=1&playsinline=1" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
                    </div>
                </body>
                </html>
                """
         
-        webview.loadHTMLString(htmlString, baseURL: nil)
+        uiView.loadHTMLString(htmlString, baseURL: nil)
     }
 }
