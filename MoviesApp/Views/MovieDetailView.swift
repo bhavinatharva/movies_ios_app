@@ -217,30 +217,36 @@ struct MovieDetailView: View {
                         movies: TrendingModel.previeTitles.shuffled(),
                         onSelect: { _ in }
                     )
-                .padding(.top, 20)
-            }
-            .ignoresSafeArea(edges: .top)
-            .fullScreenCover(item: $selectedVideo) { video in
-                ZStack(alignment: .topTrailing) {
-                    Color.black.ignoresSafeArea()
-                    
-                    if let key = video.key {
-                        YoutubePlayer(videoIds: [key], showControls: true)
-                            .aspectRatio(1.77, contentMode: .fit)
-                    }
-                    
-                    Button(action: { selectedVideo = nil }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.title)
-                            .foregroundColor(.white.opacity(0.7))
-                            .padding()
+                    .padding(.top, 20)
+                }
+                .ignoresSafeArea(edges: .top)
+                .fullScreenCover(item: $selectedVideo) { video in
+                    ZStack(alignment: .topTrailing) {
+                        Color.black.ignoresSafeArea()
+                        
+                        if let key = video.key {
+                            YoutubePlayer(videoIds: [key], showControls: true)
+                                .aspectRatio(1.77, contentMode: .fit)
+                        }
+                        
+                        Button(action: { selectedVideo = nil }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.title)
+                                .foregroundColor(.white.opacity(0.7))
+                                .padding()
+                        }
                     }
                 }
             }
         }
     }
-}
-
-#Preview {
-    MovieDetailView(title: TrendingModel.previeTitles[0])
+    
+    struct MovieDetailView_Previews: PreviewProvider {
+        static var previews: some View {
+            NavigationStack {
+                MovieDetailView(title: TrendingModel.previeTitles[0])
+                    .modelContainer(for: TrendingModel.self, inMemory: true)
+            }
+        }
+    }
 }
