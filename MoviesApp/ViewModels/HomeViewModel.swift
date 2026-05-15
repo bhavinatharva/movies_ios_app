@@ -11,28 +11,43 @@ import Foundation
 class HomeViewModel {
     private(set) var homeStatus = ApiFetchStatus.notstarted
     private let iptvService = IPTVService.shared
+    private let playlistManager = PlaylistManager.shared
     
     var liveChannels: [IPTVChannel] = []
     var categorizedChannels: [String: [IPTVChannel]] = [:]
     
-    func getTitles(url: String) async {
-        guard let m3uUrl = URL(string: url) else {
-            homeStatus = .error(underlyingError: NSError(domain: "HomeViewModel", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"]))
+    func refreshContent() async {
+        guard let defaultPlaylist = playlistManager.fetchDefaultPlaylist() else {
+            homeStatus = .notstarted
             return
         }
         
-        homeStatus = .loading
+        // 1. Try loading from Realm Cache first (Instant UI)
+        let cached = playlistManager.getCachedChannels(forUrl: defaultPlaylist.url)
+        if !cached.isEmpty {
+            self.liveChannels = cached
+            self.categorizedChannels = Dictionary(grouping: cached) { $0.category ?? "General" }
+            self.homeStatus = .success
+        } else {
+            self.homeStatus = .loading
+        }
         
+        // 2. Refresh from Network (Sync)
         do {
+            guard let m3uUrl = URL(string: defaultPlaylist.url) else { return }
             let fetchedChannels = try await iptvService.fetchM3U(url: m3uUrl)
+            
+            // 3. Update Realm Cache
+            playlistManager.cacheChannels(fetchedChannels, forUrl: defaultPlaylist.url)
+            
+            // 4. Update UI
             self.liveChannels = fetchedChannels
-            
-            // Group channels by category
             self.categorizedChannels = Dictionary(grouping: fetchedChannels) { $0.category ?? "General" }
-            
-            homeStatus = .success
+            self.homeStatus = .success
         } catch {
-            homeStatus = .error(underlyingError: error)
+            if self.liveChannels.isEmpty {
+                homeStatus = .error(underlyingError: error)
+            }
         }
     }
 }

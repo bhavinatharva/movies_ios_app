@@ -21,68 +21,24 @@ struct HomeView: View {
                 Color.black.ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                    // Custom Header with Search and Recent
-                    HStack(spacing: 15) {
-                        // Search Bar Placeholder
-                        HStack {
-                            Image(systemName: "magnifyingglass")
-                                .foregroundColor(.gray)
-                            Text("Search Channels...")
-                                .foregroundColor(.gray)
-                            Spacer()
-                        }
-                        .padding(10)
-                        .background(Color.gray.opacity(0.2))
-                        .cornerRadius(8)
-                        .onTapGesture {
-                            isShowingSearch = true
-                        }
-                        
-                        // Recent Button
-                        Button(action: {
-                            detailNavigationPath.append("recent")
-                        }) {
-                            Image(systemName: "clock.arrow.circlepath")
-                                .font(.title2)
-                                .foregroundColor(.white)
-                                .padding(8)
-                                .background(Color.gray.opacity(0.2))
-                                .cornerRadius(8)
-                        }
-                    }
-                    .padding()
+                    // Custom Header
+                    headerView
                     
                     switch homeViewModel.homeStatus {
-                    case .notstarted, .loading:
-                        Spacer()
-                        ProgressView().tint(.white)
-                        Spacer()
-                    case .success:
-                        ScrollView {
-                            VStack(spacing: 24) {
-                                // Dynamic Rails from Categories
-                                ForEach(homeViewModel.categorizedChannels.keys.sorted(), id: \.self) { category in
-                                    if let channels = homeViewModel.categorizedChannels[category] {
-                                        UnifiedMediaListView(
-                                            header: category,
-                                            items: channels.map { $0.toUnified },
-                                            onSelect: { item in
-                                                detailNavigationPath.append(item)
-                                            }
-                                        )
-                                    }
-                                }
-                            }
-                            .padding(.top, 10)
+                    case .notstarted:
+                        noPlaylistView
+                    case .loading:
+                        if homeViewModel.liveChannels.isEmpty {
+                            Spacer()
+                            ProgressView().tint(.white)
+                            Spacer()
+                        } else {
+                            contentView
                         }
-                        
+                    case .success:
+                        contentView
                     case .error(let error):
-                        ContentUnavailableView(
-                            "Connection Error",
-                            systemImage: "wifi.exclamationmark",
-                            description: Text(error.localizedDescription)
-                        )
-                        .foregroundColor(.white)
+                        errorView(error)
                     }
                 }
             }
@@ -99,14 +55,14 @@ struct HomeView: View {
             .sheet(isPresented: $isShowingSettings) {
                 SettingsView()
                     .onDisappear {
-                        Task { await homeViewModel.getTitles(url: iptvUrl) }
+                        Task { await homeViewModel.refreshContent() }
                     }
             }
             .sheet(isPresented: $isShowingSearch) {
-                SearchView() // Assuming SearchView exists and can be refactored
+                SearchView()
             }
             .task {
-                await homeViewModel.getTitles(url: iptvUrl)
+                await homeViewModel.refreshContent()
             }
             .navigationDestination(for: UnifiedMediaItem.self) { item in
                 if item.source == .iptv, let url = item.streamUrl {
@@ -121,6 +77,75 @@ struct HomeView: View {
                 }
             }
         }
+    }
+    
+    // MARK: - Helper Views
+    
+    private var headerView: some View {
+        HStack(spacing: 15) {
+            HStack {
+                Image(systemName: "magnifyingglass")
+                    .foregroundColor(.gray)
+                Text("Search Channels...")
+                    .foregroundColor(.gray)
+                Spacer()
+            }
+            .padding(10)
+            .background(Color.gray.opacity(0.2))
+            .cornerRadius(8)
+            .onTapGesture {
+                isShowingSearch = true
+            }
+            
+            Button(action: {
+                detailNavigationPath.append("recent")
+            }) {
+                Image(systemName: "clock.arrow.circlepath")
+                    .font(.title2)
+                    .foregroundColor(.white)
+                    .padding(8)
+                    .background(Color.gray.opacity(0.2))
+                    .cornerRadius(8)
+            }
+        }
+        .padding()
+    }
+    
+    private var contentView: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                ForEach(homeViewModel.categorizedChannels.keys.sorted(), id: \.self) { category in
+                    if let channels = homeViewModel.categorizedChannels[category] {
+                        UnifiedMediaListView(
+                            header: category,
+                            items: channels.map { $0.toUnified },
+                            onSelect: { item in
+                                detailNavigationPath.append(item)
+                            }
+                        )
+                    }
+                }
+            }
+            .padding(.top, 10)
+        }
+    }
+    
+    private var noPlaylistView: some View {
+        ContentUnavailableView(
+            "No Playlist",
+            systemImage: "tv.slash",
+            description: Text("Please add an IPTV playlist in settings to start watching.")
+        )
+        .foregroundColor(.white)
+    }
+    
+    private func errorView(_ error: Error) -> some View {
+        ContentUnavailableView(
+            "Connection Error",
+            systemImage: "wifi.exclamationmark",
+            description: Text(error.localizedDescription)
+        )
+        .foregroundColor(.white)
     }
 }
 
