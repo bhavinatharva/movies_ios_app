@@ -11,7 +11,7 @@ struct RecentMoviesView: View {
     @State private var viewModel = RecentMoviesViewModel()
     
     var body: some View {
-        NavigationStack {
+
             ZStack {
                 Color.black.ignoresSafeArea()
                 
@@ -67,7 +67,7 @@ struct RecentMoviesView: View {
             .refreshable {
                 await viewModel.getRecentChanges()
             }
-        }
+
     }
 }
 

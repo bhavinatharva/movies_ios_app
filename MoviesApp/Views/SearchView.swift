@@ -10,7 +10,7 @@ import SwiftUI
 struct SearchView: View {
     @State private var searchByMovies = true
     @State private var searchText = ""
-    private var searchViewModel = SearchViewModel()
+    @State private var searchViewModel = SearchViewModel()
     @State private var navigationPath = NavigationPath()
     
     var body: some View {
