@@ -7,6 +7,7 @@ import SwiftUI
 
 struct HomeView: View {
     @AppStorage("has_default_playlist") private var hasDefaultPlaylist = false
+    @AppStorage("active_playlist_url") private var activePlaylistUrl = ""
     @State private var viewModel = HomeViewModel()
     @State private var detailNavigationPath = NavigationPath()
     @State private var selectedPlayableItem: UnifiedMediaItem?
@@ -57,7 +58,7 @@ struct HomeView: View {
                 }
             }
             .navigationBarHidden(true)
-            .task {
+            .task(id: activePlaylistUrl) {
                 if hasDefaultPlaylist {
                     await viewModel.refreshContent()
                 }

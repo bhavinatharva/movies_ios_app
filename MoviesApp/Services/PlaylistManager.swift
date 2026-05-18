@@ -41,6 +41,11 @@ class PlaylistManager {
         let playlist = Playlist(name: name, url: url, isDefault: isFirst)
         playlists.append(playlist)
         savePlaylists(playlists)
+        
+        if isFirst {
+            UserDefaults.standard.set(url, forKey: "active_playlist_url")
+            UserDefaults.standard.set(true, forKey: "has_default_playlist")
+        }
     }
     
     func setDefault(_ playlist: Playlist) {
@@ -49,12 +54,25 @@ class PlaylistManager {
             playlists[i].isDefault = (playlists[i].id == playlist.id)
         }
         savePlaylists(playlists)
+        UserDefaults.standard.set(playlist.url, forKey: "active_playlist_url")
     }
     
     func deletePlaylist(_ playlist: Playlist) {
         var playlists = fetchAllPlaylists()
+        let wasDefault = playlists.first(where: { $0.id == playlist.id })?.isDefault ?? false
         playlists.removeAll { $0.id == playlist.id }
+        
+        if wasDefault && !playlists.isEmpty {
+            playlists[0].isDefault = true
+            UserDefaults.standard.set(playlists[0].url, forKey: "active_playlist_url")
+        }
+        
         savePlaylists(playlists)
+        
+        if playlists.isEmpty {
+            UserDefaults.standard.set("", forKey: "active_playlist_url")
+            UserDefaults.standard.set(false, forKey: "has_default_playlist")
+        }
         
         // Delete associated cached channels
         UserDefaults.standard.removeObject(forKey: channelsCachePrefix + playlist.url)

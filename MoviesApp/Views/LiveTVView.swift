@@ -7,6 +7,7 @@ import SwiftUI
 
 struct LiveTVView: View {
     @AppStorage("has_default_playlist") private var hasDefaultPlaylist = false
+    @AppStorage("active_playlist_url") private var activePlaylistUrl = ""
     @State private var viewModel = LiveTVViewModel()
     @State private var selectedChannel: IPTVChannel?
     
@@ -92,8 +93,8 @@ struct LiveTVView: View {
             }
             .navigationTitle(Constants.StringConstants.tabLiveTV)
             .navigationBarTitleDisplayMode(.inline)
-            .task {
-                if hasDefaultPlaylist && viewModel.categories.isEmpty {
+            .task(id: activePlaylistUrl) {
+                if hasDefaultPlaylist {
                     await viewModel.loadData()
                 }
             }
