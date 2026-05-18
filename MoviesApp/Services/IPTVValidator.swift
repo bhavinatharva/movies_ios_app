@@ -36,6 +36,10 @@ struct IPTVValidator {
         
         let lowercased = trimmed.lowercased()
         
+        if lowercased.hasPrefix("file://") {
+            return .m3uPlaylist
+        }
+        
         // 1. Ensure scheme is normalized
         var testUrlString = trimmed
         if !lowercased.hasPrefix("http://") && !lowercased.hasPrefix("https://") {
@@ -102,11 +106,22 @@ struct IPTVValidator {
         
         // Support protocol-less inputs (e.g. vipiptv161.com:8080/get.php...) by prepending http://
         let lowercased = sanitized.lowercased()
-        if !lowercased.hasPrefix("http://") && !lowercased.hasPrefix("https://") {
+        if lowercased.hasPrefix("file://") {
+            // It's a local file URL
+        } else if !lowercased.hasPrefix("http://") && !lowercased.hasPrefix("https://") {
             sanitized = "http://" + sanitized
         }
         
-        guard let url = URL(string: sanitized), url.host != nil else {
+        guard let url = URL(string: sanitized) else {
+            return ValidationResult(
+                isValid: false,
+                type: .unknown,
+                sanitizedUrl: nil,
+                errorMessage: "Invalid URL format."
+            )
+        }
+        
+        if url.scheme?.lowercased() != "file" && url.host == nil {
             return ValidationResult(
                 isValid: false,
                 type: .unknown,
@@ -116,12 +131,12 @@ struct IPTVValidator {
         }
         
         // Supported protocol check: Reject unsupported protocols (non-http/https)
-        guard let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https" else {
+        guard let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https" || scheme == "file" else {
             return ValidationResult(
                 isValid: false,
                 type: .unknown,
                 sanitizedUrl: nil,
-                errorMessage: "Unsupported protocol. Please use http:// or https://."
+                errorMessage: "Unsupported protocol. Please use http://, https:// or file://."
             )
         }
         

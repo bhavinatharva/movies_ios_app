@@ -36,14 +36,42 @@ class PlaylistManager {
     }
     
     func addPlaylist(name: String, url: String) {
+        var finalUrl = url
+        
+        // Intercept massive data URLs or raw playlist text to save them to a file instead of UserDefaults
+        if url.lowercased().hasPrefix("data:") || url.contains("\n") || url.count > 1024 {
+            let filename = "local_playlist_\(UUID().uuidString).m3u"
+            if let docsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
+                let fileUrl = docsDirectory.appendingPathComponent(filename)
+                
+                var playlistData: Data? = nil
+                if url.lowercased().hasPrefix("data:"), let parsedUrl = URL(string: url) {
+                    playlistData = try? Data(contentsOf: parsedUrl)
+                }
+                
+                if playlistData == nil {
+                    playlistData = url.data(using: .utf8)
+                }
+                
+                if let data = playlistData {
+                    do {
+                        try data.write(to: fileUrl)
+                        finalUrl = fileUrl.absoluteString
+                    } catch {
+                        print("Failed to save local playlist file: \(error)")
+                    }
+                }
+            }
+        }
+        
         var playlists = fetchAllPlaylists()
         let isFirst = playlists.isEmpty
-        let playlist = Playlist(name: name, url: url, isDefault: isFirst)
+        let playlist = Playlist(name: name, url: finalUrl, isDefault: isFirst)
         playlists.append(playlist)
         savePlaylists(playlists)
         
         if isFirst {
-            UserDefaults.standard.set(url, forKey: "active_playlist_url")
+            UserDefaults.standard.set(finalUrl, forKey: "active_playlist_url")
             UserDefaults.standard.set(true, forKey: "has_default_playlist")
         }
     }
