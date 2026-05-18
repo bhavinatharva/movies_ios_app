@@ -19,6 +19,9 @@ class SeriesViewModel {
     var topRated: [UnifiedMediaItem] = []
     var recentlyAdded: [UnifiedMediaItem] = []
     
+    var seriesByGenre: [String: [UnifiedMediaItem]] = [:]
+    var loadingGenres: Set<String> = []
+    
     var isLoading = false
     var isLoadingSeries = false
     var errorMessage: String?
@@ -85,6 +88,9 @@ class SeriesViewModel {
             
             await MainActor.run {
                 self.categories = cats
+                for cat in cats {
+                    self.seriesByGenre[cat.id] = catsMap[cat.id] ?? []
+                }
                 if let firstCat = cats.first {
                     self.selectedCategory = firstCat
                     self.series = catsMap[firstCat.id] ?? []
@@ -146,11 +152,48 @@ class SeriesViewModel {
             let unifiedSeries = fetchedSeries.map { UnifiedMediaItem(from: $0) }
             await MainActor.run {
                 self.series = unifiedSeries
+                self.seriesByGenre[categoryId] = unifiedSeries
                 self.isLoadingSeries = false
             }
         } catch {
             await MainActor.run {
                 self.isLoadingSeries = false
+            }
+        }
+    }
+    
+    func loadSeriesIfNeeded(for categoryId: String) async {
+        // If local M3U playlist, it is already cached
+        guard authManager.credentials != nil else {
+            let dataManager = IPTVDataManager.shared
+            let localSeries = dataManager.series.filter { ($0.genres?.first ?? "General") == categoryId }
+            await MainActor.run {
+                self.seriesByGenre[categoryId] = localSeries
+            }
+            return
+        }
+        
+        // If already loaded or currently loading, skip
+        if seriesByGenre[categoryId] != nil || loadingGenres.contains(categoryId) {
+            return
+        }
+        
+        await MainActor.run {
+            _ = self.loadingGenres.insert(categoryId)
+        }
+        
+        guard let creds = authManager.credentials else { return }
+        
+        do {
+            let fetchedSeries = try await iptvService.fetchSeries(creds: creds, categoryId: categoryId)
+            let unifiedSeries = fetchedSeries.map { UnifiedMediaItem(from: $0) }
+            _ = await MainActor.run {
+                self.seriesByGenre[categoryId] = unifiedSeries
+                self.loadingGenres.remove(categoryId)
+            }
+        } catch {
+            _ = await MainActor.run {
+                self.loadingGenres.remove(categoryId)
             }
         }
     }

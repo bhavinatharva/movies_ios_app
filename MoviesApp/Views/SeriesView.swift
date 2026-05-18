@@ -44,7 +44,7 @@ struct SeriesView: View {
                         ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(error))
                     } else {
                         ScrollView {
-                            LazyVStack(spacing: 24) {
+                            LazyVStack(spacing: 28) {
                                 if viewModel.searchText.isEmpty {
                                     // 1. Featured Hero Series
                                     if let hero = viewModel.heroSeries {
@@ -74,32 +74,8 @@ struct SeriesView: View {
                                             }
                                         )
                                     }
-                                }
-                                
-                                // 4. Genre Filters
-                                ScrollView(.horizontal, showsIndicators: false) {
-                                    HStack(spacing: 12) {
-                                        ForEach(viewModel.categories) { category in
-                                            Button(action: {
-                                                viewModel.selectCategory(category)
-                                            }) {
-                                                Text(category.name)
-                                                    .font(.subheadline)
-                                                    .fontWeight(.bold)
-                                                    .padding(.horizontal, 16)
-                                                    .padding(.vertical, 8)
-                                                    .background(viewModel.selectedCategory?.id == category.id ? Color.accentColor : Color.appCardBackground)
-                                                    .foregroundColor(viewModel.selectedCategory?.id == category.id ? .white : .primary)
-                                                    .cornerRadius(20)
-                                            }
-                                        }
-                                    }
-                                    .padding(.horizontal)
-                                }
-                                .padding(.vertical, 8)
-                                
-                                if viewModel.searchText.isEmpty {
-                                    // 5. Trending Series
+                                    
+                                    // 4. Trending Series
                                     if !viewModel.trendingSeries.isEmpty {
                                         UnifiedMediaListView(
                                             header: "Trending Series",
@@ -110,7 +86,7 @@ struct SeriesView: View {
                                         )
                                     }
                                     
-                                    // 6. Popular Series
+                                    // 5. Popular Series
                                     if !viewModel.popularSeries.isEmpty {
                                         UnifiedMediaListView(
                                             header: "Popular Series",
@@ -121,7 +97,7 @@ struct SeriesView: View {
                                         )
                                     }
                                     
-                                    // 7. Recommended For You
+                                    // 6. Recommended For You
                                     if !viewModel.recommended.isEmpty {
                                         UnifiedMediaListView(
                                             header: "Recommended For You",
@@ -132,7 +108,7 @@ struct SeriesView: View {
                                         )
                                     }
                                     
-                                    // 8. Top Rated
+                                    // 7. Top Rated
                                     if !viewModel.topRated.isEmpty {
                                         UnifiedMediaListView(
                                             header: "Top Rated Series",
@@ -142,31 +118,33 @@ struct SeriesView: View {
                                             }
                                         )
                                     }
-                                }
-                                
-                                // 9. Full Browse Grid
-                                VStack(alignment: .leading, spacing: 12) {
-                                    Text(viewModel.selectedCategory?.name ?? "Browse Series")
-                                        .font(.title3)
-                                        .fontWeight(.bold)
-                                        .foregroundColor(.white)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                        .padding(.horizontal)
                                     
-                                    if viewModel.isLoadingSeries {
-                                        ProgressView("Loading series...")
-                                            .frame(maxWidth: .infinity)
-                                            .padding(.vertical, 24)
-                                    } else {
+                                    // 8. Vertical Genre Sections with Horizontal Sliders
+                                    ForEach(viewModel.categories) { category in
+                                        SeriesGenreRowView(category: category, viewModel: viewModel) { series in
+                                            selectedDetailSeries = series
+                                        }
+                                    }
+                                } else {
+                                    // Search results grid view
+                                    VStack(alignment: .leading, spacing: 16) {
+                                        Text("Search Results")
+                                            .font(.title3)
+                                            .fontWeight(.bold)
+                                            .foregroundColor(.white)
+                                            .padding(.horizontal)
+                                        
                                         LazyVGrid(columns: columns, spacing: 16) {
                                             ForEach(viewModel.filteredSeries) { series in
-                                                NavigationLink(destination: SeriesDetailView(series: series)) {
-                                                    UnifiedMediaCardView(item: series, width: nil)
-                                                }
+                                                UnifiedMediaCardView(item: series, width: nil)
+                                                    .onTapGesture {
+                                                        selectedDetailSeries = series
+                                                    }
                                             }
                                         }
                                         .padding(.horizontal)
                                     }
+                                    .padding(.top, 12)
                                 }
                             }
                             .padding(.bottom, 30) // Clear tab bar space
@@ -183,6 +161,53 @@ struct SeriesView: View {
             .task {
                 if viewModel.categories.isEmpty {
                     await viewModel.loadCategories()
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Lazy Loading Genre Row View for Series
+struct SeriesGenreRowView: View {
+    let category: XtreamCategory
+    var viewModel: SeriesViewModel
+    let onSelect: (UnifiedMediaItem) -> Void
+    
+    var body: some View {
+        Group {
+            if let items = viewModel.seriesByGenre[category.id] {
+                if !items.isEmpty {
+                    UnifiedMediaListView(
+                        header: category.name,
+                        items: items,
+                        onSelect: onSelect
+                    )
+                }
+            } else {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(category.name)
+                        .font(.title3)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                        .padding(.horizontal)
+                    
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 16) {
+                            ForEach(0..<4, id: \.self) { _ in
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color.appCardBackground)
+                                    .frame(width: 140, height: 186.6)
+                                    .overlay(
+                                        ProgressView()
+                                            .tint(.gray)
+                                    )
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
+                }
+                .task {
+                    await viewModel.loadSeriesIfNeeded(for: category.id)
                 }
             }
         }
