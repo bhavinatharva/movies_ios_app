@@ -8,38 +8,56 @@ import SwiftUI
 
 @Observable
 class LiveTVViewModel {
-    var categories: [String] = []
     var allChannels: [IPTVChannel] = []
     var filteredChannels: [IPTVChannel] = []
-    var selectedCategory: String?
+    var categories: [String] = []
+    var selectedCategory: String = "All"
+    var searchQuery: String = ""
+    
+    var activeChannelForMiniPlayer: IPTVChannel?
+    var selectedChannelForFullScreen: IPTVChannel?
     
     var isLoading = false
     var errorMessage: String?
     
     private let playlistManager = PlaylistManager.shared
     
+    var favorites: [IPTVChannel] {
+        let favIds = UserDataManager.shared.favorites
+        return allChannels.filter { favIds.contains($0.toUnified.id) }
+    }
+    
+    var recentlyWatched: [IPTVChannel] {
+        let historyIds = UserDataManager.shared.recentlyWatched.filter { $0.mediaType == .liveTV }.map { $0.id }
+        return allChannels.filter { historyIds.contains($0.toUnified.id) }
+    }
+    
+    var trendingChannels: [IPTVChannel] {
+        Array(allChannels.prefix(10))
+    }
+    
     func loadData() async {
         await MainActor.run {
-            isLoading = true
-            errorMessage = nil
+            self.isLoading = true
+            self.errorMessage = nil
         }
         
-        guard let defaultPlaylist = playlistManager.fetchDefaultPlaylist() else {
-            await MainActor.run {
-                isLoading = false
-            }
-            return
+        // Wait a tiny bit if IPTVDataManager is still loading
+        if case .loading = IPTVDataManager.shared.homeStatus {
+            try? await Task.sleep(for: .milliseconds(300))
         }
         
-        let cached = playlistManager.getCachedChannels(forUrl: defaultPlaylist.url)
+        let channels = IPTVDataManager.shared.liveChannels
         
         await MainActor.run {
-            self.allChannels = cached
-            self.categories = Array(Set(cached.compactMap { $0.category })).sorted()
-            if let firstCat = self.categories.first {
-                self.selectCategory(firstCat)
-            } else {
-                self.filteredChannels = cached
+            self.allChannels = channels
+            let uniqueCategories = Array(Set(channels.compactMap { $0.category })).sorted()
+            self.categories = ["All"] + uniqueCategories
+            self.filterChannels()
+            
+            // Auto-play the first channel in the mini player if none selected yet
+            if self.activeChannelForMiniPlayer == nil, let first = channels.first {
+                self.activeChannelForMiniPlayer = first
             }
             self.isLoading = false
         }
@@ -47,6 +65,17 @@ class LiveTVViewModel {
     
     func selectCategory(_ category: String) {
         selectedCategory = category
-        filteredChannels = allChannels.filter { $0.category == category }
+        filterChannels()
+    }
+    
+    func filterChannels() {
+        var result = allChannels
+        if selectedCategory != "All" {
+            result = result.filter { $0.category == selectedCategory }
+        }
+        if !searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            result = result.filter { $0.name.localizedCaseInsensitiveContains(searchQuery) }
+        }
+        filteredChannels = result
     }
 }

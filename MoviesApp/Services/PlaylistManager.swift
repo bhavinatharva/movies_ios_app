@@ -75,20 +75,33 @@ class PlaylistManager {
         }
         
         // Delete associated cached channels
-        UserDefaults.standard.removeObject(forKey: channelsCachePrefix + playlist.url)
+        if let fileUrl = getCacheFileUrl(forUrl: playlist.url) {
+            try? FileManager.default.removeItem(at: fileUrl)
+        }
     }
     
     // MARK: - Channel Caching
     
+    private func getCacheFileUrl(forUrl url: String) -> URL? {
+        guard let cachesDirectory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
+            return nil
+        }
+        let safeFilename = url.components(separatedBy: CharacterSet.alphanumerics.inverted).joined() + ".json"
+        return cachesDirectory.appendingPathComponent(safeFilename)
+    }
+    
     func cacheChannels(_ channels: [IPTVChannel], forUrl url: String) {
         let cachedChannels = channels.map { CachedChannel(playlistUrl: url, channel: $0) }
-        if let data = try? JSONEncoder().encode(cachedChannels) {
-            UserDefaults.standard.set(data, forKey: channelsCachePrefix + url)
+        guard let data = try? JSONEncoder().encode(cachedChannels),
+              let fileUrl = getCacheFileUrl(forUrl: url) else {
+            return
         }
+        try? data.write(to: fileUrl)
     }
     
     func getCachedChannels(forUrl url: String) -> [IPTVChannel] {
-        guard let data = UserDefaults.standard.data(forKey: channelsCachePrefix + url),
+        guard let fileUrl = getCacheFileUrl(forUrl: url),
+              let data = try? Data(contentsOf: fileUrl),
               let cached = try? JSONDecoder().decode([CachedChannel].self, from: data) else {
             return []
         }
