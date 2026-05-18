@@ -136,7 +136,7 @@ struct HomeView: View {
                     }
                 }
                 
-                // 2. Continue Watching / Recently Watched
+                // 2. Continue Watching
                 if !viewModel.continueWatching.isEmpty {
                     UnifiedMediaListView(
                         header: "Continue Watching",
@@ -148,17 +148,116 @@ struct HomeView: View {
                     )
                 }
                 
-                // 3. Categories Carousels
+                // 3. Live Channels
+                if !viewModel.liveChannels.isEmpty {
+                    UnifiedMediaListView(
+                        header: "Live Channels",
+                        items: Array(viewModel.liveChannels.prefix(15)).map { $0.toUnified },
+                        onSelect: { item in
+                            UserDataManager.shared.addToHistory(item)
+                            selectedPlayableItem = item
+                        }
+                    )
+                }
+                
+                // 4. Trending Movies
+                if !viewModel.trendingMovies.isEmpty {
+                    UnifiedMediaListView(
+                        header: "Trending Movies",
+                        items: viewModel.trendingMovies,
+                        onSelect: { item in
+                            UserDataManager.shared.addToHistory(item)
+                            selectedPlayableItem = item
+                        }
+                    )
+                }
+                
+                // 5. Top 10
+                if !viewModel.top10Movies.isEmpty {
+                    UnifiedMediaListView(
+                        header: "Top 10 Movies",
+                        items: viewModel.top10Movies,
+                        onSelect: { item in
+                            UserDataManager.shared.addToHistory(item)
+                            selectedPlayableItem = item
+                        }
+                    )
+                }
+                
+                // 6. Recently Added
+                if !viewModel.recentlyAdded.isEmpty {
+                    UnifiedMediaListView(
+                        header: "Recently Added",
+                        items: viewModel.recentlyAdded,
+                        onSelect: { item in
+                            UserDataManager.shared.addToHistory(item)
+                            selectedPlayableItem = item
+                        }
+                    )
+                }
+                
+                // 7. Sports Live Now
+                if !viewModel.sportsLiveNow.isEmpty {
+                    UnifiedMediaListView(
+                        header: "Sports Live Now",
+                        items: viewModel.sportsLiveNow,
+                        onSelect: { item in
+                            UserDataManager.shared.addToHistory(item)
+                            selectedPlayableItem = item
+                        }
+                    )
+                }
+                
+                // 8. Recommended For You
+                if !viewModel.recommended.isEmpty {
+                    UnifiedMediaListView(
+                        header: "Recommended For You",
+                        items: viewModel.recommended,
+                        onSelect: { item in
+                            UserDataManager.shared.addToHistory(item)
+                            selectedPlayableItem = item
+                        }
+                    )
+                }
+                
+                // 9. Series Continue Watching
+                if !viewModel.seriesContinueWatching.isEmpty {
+                    UnifiedMediaListView(
+                        header: "Series Continue Watching",
+                        items: viewModel.seriesContinueWatching,
+                        onSelect: { item in
+                            UserDataManager.shared.addToHistory(item)
+                            selectedPlayableItem = item
+                        }
+                    )
+                }
+                
+                // 10. Favorites
+                if !viewModel.favorites.isEmpty {
+                    UnifiedMediaListView(
+                        header: "My Favorites",
+                        items: viewModel.favorites,
+                        onSelect: { item in
+                            UserDataManager.shared.addToHistory(item)
+                            selectedPlayableItem = item
+                        }
+                    )
+                }
+                
+                // 11. Genres / Categories
                 ForEach(viewModel.categorizedChannels.keys.sorted(), id: \.self) { category in
-                    if let channels = viewModel.categorizedChannels[category] {
-                        UnifiedMediaListView(
-                            header: category,
-                            items: channels.map { $0.toUnified },
-                            onSelect: { item in
-                                UserDataManager.shared.addToHistory(item)
-                                selectedPlayableItem = item
-                            }
-                        )
+                    let catLower = category.lowercased()
+                    if catLower != "sports" && catLower != "sport" { // Avoid duplicate sports sections
+                        if let channels = viewModel.categorizedChannels[category] {
+                            UnifiedMediaListView(
+                                header: category,
+                                items: channels.map { $0.toUnified },
+                                onSelect: { item in
+                                    UserDataManager.shared.addToHistory(item)
+                                    selectedPlayableItem = item
+                                }
+                            )
+                        }
                     }
                 }
             }
