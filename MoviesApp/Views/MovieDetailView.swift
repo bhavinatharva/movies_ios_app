@@ -14,6 +14,7 @@ struct MovieDetailView: View {
     @State private var viewModel = MovieDetailViewModel()
     @Environment(\.modelContext) var modelContext
     @State private var selectedVideo: VideoModel? = nil
+    @State private var selectedPlayableItem: UnifiedMediaItem? = nil
     
     var body: some View {
         ZStack {
@@ -129,37 +130,58 @@ struct MovieDetailView: View {
                     
                     // Action Buttons
                     HStack(spacing: 16) {
-                        Button(action: {
-                            if let firstVideo = viewModel.videos.first {
-                                selectedVideo = firstVideo
+                        if let playableMovie = iptvPlayableMovie(movie: movie) {
+                            Button(action: {
+                                UserDataManager.shared.addToHistory(playableMovie)
+                                selectedPlayableItem = playableMovie
+                            }) {
+                                HStack {
+                                    Image(systemName: "play.fill")
+                                    Text("Play Movie")
+                                }
+                                .font(.headline)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(Color.accentColor)
+                                .foregroundColor(.white)
+                                .cornerRadius(8)
                             }
-                        }) {
-                            HStack {
-                                Image(systemName: "play.fill")
-                                Text("Play")
+                            
+                            if !viewModel.videos.isEmpty {
+                                Button(action: {
+                                    if let firstVideo = viewModel.videos.first {
+                                        selectedVideo = firstVideo
+                                    }
+                                }) {
+                                    HStack {
+                                        Image(systemName: "film")
+                                        Text("Trailer")
+                                    }
+                                    .font(.headline)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                                    .background(Color.white.opacity(0.2))
+                                    .foregroundColor(.white)
+                                    .cornerRadius(8)
+                                }
                             }
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background(Color.white)
-                            .foregroundColor(.black)
-                            .cornerRadius(4)
-                        }
-                        
-                        Button(action: {
-                            modelContext.insert(title)
-                            try? modelContext.save()
-                        }) {
-                            HStack {
-                                Image(systemName: "arrow.down.to.line")
-                                Text("Download")
+                        } else {
+                            Button(action: {
+                                if let firstVideo = viewModel.videos.first {
+                                    selectedVideo = firstVideo
+                                }
+                            }) {
+                                HStack {
+                                    Image(systemName: "play.fill")
+                                    Text("Play Trailer")
+                                }
+                                .font(.headline)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(Color.white)
+                                .foregroundColor(.black)
+                                .cornerRadius(8)
                             }
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background(Color.gray.opacity(0.3))
-                            .foregroundColor(.white)
-                            .cornerRadius(4)
                         }
                     }
                     .padding(.horizontal, 20)
@@ -235,7 +257,54 @@ struct MovieDetailView: View {
                         }
                     }
                 }
+                .fullScreenCover(item: $selectedPlayableItem) { item in
+                    if let url = item.streamUrl {
+                        StreamingPlayerView(url: url, title: item.title, streamId: item.id)
+                    } else {
+                        ZStack(alignment: .topTrailing) {
+                            Color.appBackground.ignoresSafeArea()
+                            
+                            ContentUnavailableView {
+                                Label("Cannot Play", systemImage: "play.slash")
+                            } description: {
+                                Text("No playable link found for this movie.")
+                                    .foregroundColor(.secondary)
+                            } actions: {
+                                Button(action: {
+                                    selectedPlayableItem = nil
+                                }) {
+                                    Text("Close")
+                                        .fontWeight(.bold)
+                                        .frame(width: 120, height: 44)
+                                        .background(Color.accentColor)
+                                        .foregroundColor(.white)
+                                        .cornerRadius(22)
+                                }
+                                .buttonStyle(PressScaleButtonStyle())
+                            }
+                            
+                            Button(action: {
+                                selectedPlayableItem = nil
+                            }) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.title)
+                                    .foregroundColor(.white.opacity(0.6))
+                                    .padding()
+                            }
+                        }
+                    }
+                }
             }
+        }
+    }
+    
+    private func iptvPlayableMovie(movie: MovieDetailModel) -> UnifiedMediaItem? {
+        let movieTitle = (movie.title ?? title.title ?? title.name ?? "").lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        if movieTitle.isEmpty { return nil }
+        
+        return IPTVDataManager.shared.movies.first { item in
+            let itemTitle = item.title.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+            return itemTitle == movieTitle || movieTitle.contains(itemTitle) || itemTitle.contains(movieTitle)
         }
     }
     

@@ -78,25 +78,21 @@ class HomeViewModel {
     func refreshContent() async {
         await dataManager.refreshContent()
         
-        do {
-            let api = ApiServices()
-            let trending = try await api.fetchTrendings(for: "movie", by: "trending")
-            let topRated = try await api.fetchTrendings(for: "movie", by: "top_rated")
-            let upcoming = try await api.fetchTrendings(for: "movie", by: "upcoming")
+        await MainActor.run {
+            let playlistMovies = self.dataManager.movies
             
-            await MainActor.run {
-                self.trendingMovies = trending.map { $0.toUnified }
-                self.top10Movies = Array(topRated.prefix(10)).map { $0.toUnified }
-                self.recommended = upcoming.map { $0.toUnified }
-                
-                if !self.dataManager.movies.isEmpty {
-                    self.recentlyAdded = Array(self.dataManager.movies.prefix(15))
-                } else {
-                    self.recentlyAdded = trending.shuffled().map { $0.toUnified }
-                }
+            if !playlistMovies.isEmpty {
+                // Populate categories cleanly using local slices to give a gorgeous variation
+                self.trendingMovies = Array(playlistMovies.shuffled().prefix(15))
+                self.top10Movies = Array(playlistMovies.prefix(10))
+                self.recommended = Array(playlistMovies.shuffled().prefix(15))
+                self.recentlyAdded = Array(playlistMovies.prefix(15))
+            } else {
+                self.trendingMovies = []
+                self.top10Movies = []
+                self.recommended = []
+                self.recentlyAdded = []
             }
-        } catch {
-            print("Failed to fetch TMDB home metadata: \(error)")
         }
     }
 }

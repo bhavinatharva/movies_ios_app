@@ -54,16 +54,38 @@ struct SeriesDetailView: View {
                             .padding(.horizontal)
                         
                         if !seasons.isEmpty {
-                            Picker("Season", selection: $selectedSeason) {
+                            Menu {
                                 ForEach(seasons, id: \.self) { season in
-                                    Text("Season \(season)").tag(season)
+                                    Button(action: {
+                                        selectedSeason = season
+                                    }) {
+                                        HStack {
+                                            Text("Season \(season)")
+                                            if selectedSeason == season {
+                                                Image(systemName: "checkmark")
+                                            }
+                                        }
+                                    }
                                 }
+                            } label: {
+                                HStack(spacing: 8) {
+                                    Text("Season \(selectedSeason)")
+                                        .font(.system(size: 16, weight: .bold))
+                                        .foregroundColor(.white)
+                                    
+                                    Image(systemName: "chevron.down")
+                                        .font(.system(size: 12, weight: .bold))
+                                        .foregroundColor(.white.opacity(0.8))
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
+                                .background(Color.white.opacity(0.12))
+                                .cornerRadius(6)
                             }
-                            .pickerStyle(.segmented)
                             .padding(.horizontal)
                         }
                     }
-                    .padding(.vertical)
+                    .padding(.vertical, 8)
                     
                     // Episodes List
                     if let currentEpisodes = episodes[selectedSeason] {

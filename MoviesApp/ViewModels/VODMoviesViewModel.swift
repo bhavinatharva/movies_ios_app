@@ -39,23 +39,23 @@ class VODMoviesViewModel {
     }
     
     func loadCategories() async {
-        // Fetch metadata collections from TMDB API
-        do {
-            let api = ApiServices()
-            let trending = try await api.fetchTrendings(for: "movie", by: "trending")
-            let upcoming = try await api.fetchTrendings(for: "movie", by: "upcoming")
-            let top = try await api.fetchTrendings(for: "movie", by: "top_rated")
-            
-            await MainActor.run {
-                self.trendingMovies = trending.map { $0.toUnified }
-                self.newReleases = upcoming.map { $0.toUnified }
-                self.topRated = top.map { $0.toUnified }
-                self.recommended = trending.shuffled().map { $0.toUnified }
-                
-                self.heroMovie = self.trendingMovies.first
+        // Populated entirely from the added playlist VOD movies (0 TMDB API calls!)
+        let playlistMovies = IPTVDataManager.shared.movies
+        
+        await MainActor.run {
+            if !playlistMovies.isEmpty {
+                self.trendingMovies = Array(playlistMovies.shuffled().prefix(15))
+                self.newReleases = Array(playlistMovies.prefix(15))
+                self.topRated = Array(playlistMovies.shuffled().prefix(15))
+                self.recommended = Array(playlistMovies.shuffled().prefix(15))
+                self.heroMovie = playlistMovies.first
+            } else {
+                self.trendingMovies = []
+                self.newReleases = []
+                self.topRated = []
+                self.recommended = []
+                self.heroMovie = nil
             }
-        } catch {
-            print("Failed to fetch TMDB movie tab collections: \(error)")
         }
         
         guard let creds = authManager.credentials else {

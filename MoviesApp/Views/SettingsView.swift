@@ -60,7 +60,7 @@ struct SettingsView: View {
                                 Text(theme.rawValue).tag(theme)
                             }
                         }
-                        .tint(.accentColor)
+                        .pickerStyle(.segmented)
                         .listRowBackground(Color.appCardBackground)
                     }
                     

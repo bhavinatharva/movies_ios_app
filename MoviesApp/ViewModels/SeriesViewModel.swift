@@ -40,25 +40,25 @@ class SeriesViewModel {
     }
     
     func loadCategories() async {
-        // Fetch metadata collections from TMDB API
-        do {
-            let api = ApiServices()
-            let trending = try await api.fetchTrendings(for: "tv", by: "trending")
-            let popular = try await api.fetchTrendings(for: "tv", by: "popular")
-            let top = try await api.fetchTrendings(for: "tv", by: "top_rated")
-            let airing = try await api.fetchTrendings(for: "tv", by: "on_the_air")
-            
-            await MainActor.run {
-                self.trendingSeries = trending.map { $0.toUnified }
-                self.popularSeries = popular.map { $0.toUnified }
-                self.topRated = top.map { $0.toUnified }
-                self.recentlyAdded = airing.map { $0.toUnified }
-                self.recommended = trending.shuffled().map { $0.toUnified }
-                
-                self.heroSeries = self.trendingSeries.first
+        // Populated entirely from the added playlist Series (0 TMDB API calls!)
+        let playlistSeries = IPTVDataManager.shared.series
+        
+        await MainActor.run {
+            if !playlistSeries.isEmpty {
+                self.trendingSeries = Array(playlistSeries.shuffled().prefix(15))
+                self.popularSeries = Array(playlistSeries.shuffled().prefix(15))
+                self.topRated = Array(playlistSeries.prefix(15))
+                self.recentlyAdded = Array(playlistSeries.prefix(15))
+                self.recommended = Array(playlistSeries.shuffled().prefix(15))
+                self.heroSeries = playlistSeries.first
+            } else {
+                self.trendingSeries = []
+                self.popularSeries = []
+                self.topRated = []
+                self.recentlyAdded = []
+                self.recommended = []
+                self.heroSeries = nil
             }
-        } catch {
-            print("Failed to fetch TMDB tv series collections: \(error)")
         }
         
         guard let creds = authManager.credentials else {
