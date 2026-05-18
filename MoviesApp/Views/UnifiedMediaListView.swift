@@ -46,8 +46,9 @@ struct UnifiedMediaCardView: View {
             AsyncImage(url: URL(string: item.posterPath ?? "")) { image in
                 image
                     .resizable()
-                    .scaledToFill()
+                    .scaledToFit()
                     .frame(width: 140, height: 210)
+                    .background(Color.appCardBackground)
                     .netflixStyleGradient()
             } placeholder: {
                 RoundedRectangle(cornerRadius: 16)

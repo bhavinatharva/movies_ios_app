@@ -16,8 +16,9 @@ struct ActorCardView: View {
                 AsyncImage(url: URL(string: actor.profilePath ?? "")) { image in
                     image
                         .resizable()
-                        .scaledToFill()
+                        .scaledToFit()
                         .frame(width: 140, height: 210)
+                        .background(Color.appCardBackground)
                         .netflixStyleGradient()
                 } placeholder: {
                     RoundedRectangle(cornerRadius: 12)
