@@ -2,18 +2,13 @@
 //  HomeView.swift
 //  MoviesApp
 //
-//  Created by Bhavin Parghi on 10/11/25.
-//
 
 import SwiftUI
-import SwiftData
 
 struct HomeView: View {
-    @State private var homeViewModel = HomeViewModel()
+    @State private var viewModel = HomeViewModel()
     @State private var detailNavigationPath = NavigationPath()
-    @AppStorage("iptv_url") private var iptvUrl = "https://iptv-org.github.io/iptv/index.m3u"
-
-    @State private var isShowingSearch = false
+    @State private var selectedPlayableItem: UnifiedMediaItem?
     
     var body: some View {
         NavigationStack(path: $detailNavigationPath) {
@@ -21,121 +16,165 @@ struct HomeView: View {
                 Color.black.ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                    // Custom Header
-                    headerView
+                    // Header title / log
+                    HStack {
+                        Text("IPTV PRO")
+                            .font(.title)
+                            .fontWeight(.black)
+                            .foregroundColor(.accentColor)
+                        Spacer()
+                    }
+                    .padding()
                     
-                    switch homeViewModel.homeStatus {
-                    case .notstarted:
-                        noPlaylistView
-                    case .loading:
-                        if homeViewModel.liveChannels.isEmpty {
-                            Spacer()
-                            ProgressView().tint(.white)
-                            Spacer()
-                        } else {
-                            contentView
+                    ScrollView {
+                        VStack(spacing: 24) {
+                            // 1. Featured Banner
+                            if let featured = viewModel.featuredItem {
+                                IPTVHeroHeaderView(item: featured) {
+                                    UserDataManager.shared.addToHistory(featured)
+                                    selectedPlayableItem = featured
+                                }
+                            }
+                            
+                            // 2. Continue Watching / Recently Watched
+                            if !viewModel.continueWatching.isEmpty {
+                                UnifiedMediaListView(
+                                    header: "Continue Watching",
+                                    items: viewModel.continueWatching,
+                                    onSelect: { item in
+                                        UserDataManager.shared.addToHistory(item)
+                                        selectedPlayableItem = item
+                                    }
+                                )
+                            }
+                            
+                            // 3. Live Categories (Horizontal badges)
+                            if !viewModel.liveCategories.isEmpty {
+                                VStack(alignment: .leading, spacing: 10) {
+                                    Text("Live Categories")
+                                        .font(.title3)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal)
+                                    
+                                    ScrollView(.horizontal, showsIndicators: false) {
+                                        HStack(spacing: 12) {
+                                            ForEach(viewModel.liveCategories.prefix(15)) { category in
+                                                Text(category.name)
+                                                    .font(.caption)
+                                                    .fontWeight(.bold)
+                                                    .padding(.horizontal, 14)
+                                                    .padding(.vertical, 8)
+                                                    .background(Color.gray.opacity(0.3))
+                                                    .foregroundColor(.white)
+                                                    .cornerRadius(15)
+                                            }
+                                        }
+                                        .padding(.horizontal)
+                                    }
+                                }
+                            }
+                            
+                            // 4. Movies Carousel
+                            if !viewModel.moviesCarousel.isEmpty {
+                                UnifiedMediaListView(
+                                    header: "Featured Movies",
+                                    items: viewModel.moviesCarousel,
+                                    onSelect: { item in
+                                        UserDataManager.shared.addToHistory(item)
+                                        selectedPlayableItem = item
+                                    }
+                                )
+                            }
+                            
+                            // 5. Series Carousel
+                            if !viewModel.seriesCarousel.isEmpty {
+                                UnifiedMediaListView(
+                                    header: "Featured Series",
+                                    items: viewModel.seriesCarousel,
+                                    onSelect: { item in
+                                        detailNavigationPath.append(item)
+                                    }
+                                )
+                            }
                         }
-                    case .success:
-                        contentView
-                    case .error(let error):
-                        errorView(error)
                     }
                 }
             }
-            .navigationTitle("IPTV Player")
-            .navigationBarTitleDisplayMode(.inline)
-
-            .sheet(isPresented: $isShowingSearch) {
-                SearchView()
-            }
+            .navigationBarHidden(true)
             .task {
-                await homeViewModel.refreshContent()
+                await viewModel.refreshContent()
             }
             .navigationDestination(for: UnifiedMediaItem.self) { item in
-                if item.source == .iptv, let url = item.streamUrl {
+                if item.mediaType == .tvSeries {
+                    SeriesDetailView(series: item)
+                } else if item.mediaType == .movie, let url = item.streamUrl {
+                    StreamingPlayerView(url: url, title: item.title)
+                }
+            }
+            .fullScreenCover(item: $selectedPlayableItem) { item in
+                if let url = item.streamUrl {
                     StreamingPlayerView(url: url, title: item.title)
                 } else {
-                    MovieDetailView(title: TrendingModel.previeTitles[0]) // Placeholder fallback
-                }
-            }
-            .navigationDestination(for: String.self) { value in
-                if value == "recent" {
-                    RecentMoviesView()
+                    ContentUnavailableView("Cannot Play", systemImage: "play.slash", description: Text("No streamable link found for this item."))
                 }
             }
         }
-    }
-    
-    // MARK: - Helper Views
-    
-    private var headerView: some View {
-        HStack(spacing: 15) {
-            HStack {
-                Image(systemName: "magnifyingglass")
-                    .foregroundColor(.gray)
-                Text("Search Channels...")
-                    .foregroundColor(.gray)
-                Spacer()
-            }
-            .padding(10)
-            .background(Color.gray.opacity(0.2))
-            .cornerRadius(8)
-            .onTapGesture {
-                isShowingSearch = true
-            }
-            
-            Button(action: {
-                detailNavigationPath.append("recent")
-            }) {
-                Image(systemName: "clock.arrow.circlepath")
-                    .font(.title2)
-                    .foregroundColor(.white)
-                    .padding(8)
-                    .background(Color.gray.opacity(0.2))
-                    .cornerRadius(8)
-            }
-        }
-        .padding()
-    }
-    
-    private var contentView: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                ForEach(homeViewModel.categorizedChannels.keys.sorted(), id: \.self) { category in
-                    if let channels = homeViewModel.categorizedChannels[category] {
-                        UnifiedMediaListView(
-                            header: category,
-                            items: channels.map { $0.toUnified },
-                            onSelect: { item in
-                                detailNavigationPath.append(item)
-                            }
-                        )
-                    }
-                }
-            }
-            .padding(.top, 10)
-        }
-    }
-    
-    private var noPlaylistView: some View {
-        ContentUnavailableView(
-            "No Playlist",
-            systemImage: "tv.slash",
-            description: Text("Please add an IPTV playlist in settings to start watching.")
-        )
-        .foregroundColor(.white)
-    }
-    
-    private func errorView(_ error: Error) -> some View {
-        ContentUnavailableView(
-            "Connection Error",
-            systemImage: "wifi.exclamationmark",
-            description: Text(error.localizedDescription)
-        )
-        .foregroundColor(.white)
     }
 }
 
-#Preview {
-    HomeView()
+struct IPTVHeroHeaderView: View {
+    let item: UnifiedMediaItem
+    let onPlay: () -> Void
+    
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            AsyncImage(url: URL(string: item.posterPath ?? "")) { image in
+                image
+                    .resizable()
+                    .scaledToFill()
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 350)
+                    .clipped()
+                    .overlay {
+                        LinearGradient(
+                            stops: [
+                                Gradient.Stop(color: .clear, location: 0.5),
+                                Gradient.Stop(color: .black, location: 1.0)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    }
+            } placeholder: {
+                Rectangle()
+                    .fill(Color.gray.opacity(0.1))
+                    .frame(height: 350)
+            }
+            
+            VStack(spacing: 16) {
+                Text(item.title)
+                    .font(.system(size: 28, weight: .black))
+                    .foregroundColor(.white)
+                    .multilineTextAlignment(.center)
+                    .shadow(radius: 10)
+                
+                HStack(spacing: 20) {
+                    Button(action: onPlay) {
+                        HStack {
+                            Image(systemName: "play.fill")
+                            Text("Play")
+                                .fontWeight(.bold)
+                        }
+                        .padding(.horizontal, 30)
+                        .padding(.vertical, 10)
+                        .background(Color.white)
+                        .foregroundColor(.black)
+                        .cornerRadius(4)
+                    }
+                }
+            }
+            .padding(.bottom, 20)
+        }
+    }
 }

@@ -8,13 +8,14 @@
 import SwiftUI
 
 struct ContentView: View {
+    @State private var authManager = AuthManager.shared
+    
     var body: some View {
-        TabView{
-            Tab(Constants.StringConstants.tabHome, systemImage: Constants.ImageConstants.tabHome){
-                HomeView()
-            }
-            Tab(Constants.StringConstants.tabSettings, systemImage: Constants.ImageConstants.tabSettings){
-                SettingsView()
+        Group {
+            if authManager.isLoggedIn {
+                MainTabView()
+            } else {
+                LoginView()
             }
         }.onAppear{
             if let config = ApiConfig.shared {

@@ -18,7 +18,7 @@ enum MediaSource: String, Codable {
     case iptv
 }
 
-struct UnifiedMediaItem: Identifiable, Hashable {
+struct UnifiedMediaItem: Identifiable, Hashable, Codable {
     let id: String
     let title: String
     let overview: String?
@@ -77,6 +77,40 @@ struct UnifiedMediaItem: Identifiable, Hashable {
         self.voteAverage = nil
         self.runtime = nil
         self.genres = nil
+        self.streamUrl = nil
+        self.epgId = nil
+    }
+
+    // Initializer from XtreamVODStream
+    init(from vod: XtreamVODStream, creds: XtreamCredentials) {
+        self.id = String(vod.streamId)
+        self.title = vod.name
+        self.overview = nil
+        self.posterPath = vod.streamIcon
+        self.backdropPath = nil
+        self.mediaType = .movie
+        self.source = .iptv
+        self.releaseDate = nil
+        self.voteAverage = nil
+        self.runtime = nil
+        self.genres = vod.categoryId != nil ? [vod.categoryId!] : nil
+        self.streamUrl = URL(string: "\(creds.serverUrl)/movie/\(creds.username)/\(creds.password)/\(vod.streamId).mp4")
+        self.epgId = nil
+    }
+    
+    // Initializer from XtreamSeries
+    init(from series: XtreamSeries) {
+        self.id = String(series.seriesId)
+        self.title = series.name
+        self.overview = nil
+        self.posterPath = series.cover
+        self.backdropPath = nil
+        self.mediaType = .tvSeries
+        self.source = .iptv
+        self.releaseDate = nil
+        self.voteAverage = nil
+        self.runtime = nil
+        self.genres = series.categoryId != nil ? [series.categoryId!] : nil
         self.streamUrl = nil
         self.epgId = nil
     }

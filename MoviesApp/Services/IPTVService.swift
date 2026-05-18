@@ -46,6 +46,56 @@ class IPTVService {
             )
         }
     }
+    
+    func fetchLiveCategories(creds: XtreamCredentials) async throws -> [XtreamCategory] {
+        let urlString = "\(creds.serverUrl)/player_api.php?username=\(creds.username)&password=\(creds.password)&action=get_live_categories"
+        guard let url = URL(string: urlString) else { return [] }
+        let (data, _) = try await URLSession.shared.data(from: url)
+        return try JSONDecoder().decode([XtreamCategory].self, from: data)
+    }
+
+    func fetchVODCategories(creds: XtreamCredentials) async throws -> [XtreamCategory] {
+        let urlString = "\(creds.serverUrl)/player_api.php?username=\(creds.username)&password=\(creds.password)&action=get_vod_categories"
+        guard let url = URL(string: urlString) else { return [] }
+        let (data, _) = try await URLSession.shared.data(from: url)
+        return try JSONDecoder().decode([XtreamCategory].self, from: data)
+    }
+
+    func fetchVODStreams(creds: XtreamCredentials, categoryId: String? = nil) async throws -> [XtreamVODStream] {
+        var urlString = "\(creds.serverUrl)/player_api.php?username=\(creds.username)&password=\(creds.password)&action=get_vod_streams"
+        if let catId = categoryId {
+            urlString += "&category_id=\(catId)"
+        }
+        guard let url = URL(string: urlString) else { return [] }
+        let (data, _) = try await URLSession.shared.data(from: url)
+        return try JSONDecoder().decode([XtreamVODStream].self, from: data)
+    }
+
+    func fetchSeriesCategories(creds: XtreamCredentials) async throws -> [XtreamCategory] {
+        let urlString = "\(creds.serverUrl)/player_api.php?username=\(creds.username)&password=\(creds.password)&action=get_series_categories"
+        guard let url = URL(string: urlString) else { return [] }
+        let (data, _) = try await URLSession.shared.data(from: url)
+        return try JSONDecoder().decode([XtreamCategory].self, from: data)
+    }
+
+    func fetchSeries(creds: XtreamCredentials, categoryId: String? = nil) async throws -> [XtreamSeries] {
+        var urlString = "\(creds.serverUrl)/player_api.php?username=\(creds.username)&password=\(creds.password)&action=get_series"
+        if let catId = categoryId {
+            urlString += "&category_id=\(catId)"
+        }
+        guard let url = URL(string: urlString) else { return [] }
+        let (data, _) = try await URLSession.shared.data(from: url)
+        return try JSONDecoder().decode([XtreamSeries].self, from: data)
+    }
+
+    func fetchSeriesInfo(creds: XtreamCredentials, seriesId: Int) async throws -> XtreamSeriesInfoResponse {
+        let urlString = "\(creds.serverUrl)/player_api.php?username=\(creds.username)&password=\(creds.password)&action=get_series_info&series_id=\(seriesId)"
+        guard let url = URL(string: urlString) else {
+            throw NSError(domain: "IPTVService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])
+        }
+        let (data, _) = try await URLSession.shared.data(from: url)
+        return try JSONDecoder().decode(XtreamSeriesInfoResponse.self, from: data)
+    }
 }
 
 // Internal models for Xtream API
