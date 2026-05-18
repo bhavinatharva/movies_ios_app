@@ -4,6 +4,23 @@
 //
 
 import Foundation
+import SwiftUI
+
+enum AppTheme: String, CaseIterable, Identifiable {
+    case dark = "Dark"
+    case light = "Light"
+    case system = "Auto (System)"
+    
+    var id: String { self.rawValue }
+    
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .dark: return .dark
+        case .light: return .light
+        case .system: return nil
+        }
+    }
+}
 
 @Observable
 class UserDataManager {
@@ -12,10 +29,16 @@ class UserDataManager {
     private let favoritesKey = "iptv_favorites"
     private let historyKey = "iptv_history"
     private let progressKey = "iptv_progress"
+    private let themeKey = "iptv_app_theme"
     
     var favorites: Set<String> = []
     var recentlyWatched: [UnifiedMediaItem] = []
     var watchProgress: [String: Double] = [:] // streamId -> duration in seconds
+    var currentTheme: AppTheme = .dark {
+        didSet {
+            UserDefaults.standard.set(currentTheme.rawValue, forKey: themeKey)
+        }
+    }
     
     private init() {
         loadData()
@@ -42,6 +65,14 @@ class UserDataManager {
             self.watchProgress = progressDict
         } else {
             self.watchProgress = [:]
+        }
+        
+        // Load Theme
+        if let themeStr = UserDefaults.standard.string(forKey: themeKey),
+           let theme = AppTheme(rawValue: themeStr) {
+            self.currentTheme = theme
+        } else {
+            self.currentTheme = .dark
         }
     }
     

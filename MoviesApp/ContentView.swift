@@ -9,6 +9,7 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var isSplashActive = true
+    @State private var userDataManager = UserDataManager.shared
     
     var body: some View {
         ZStack {
@@ -32,6 +33,7 @@ struct ContentView: View {
                     .zIndex(0)
             }
         }
+        .preferredColorScheme(userDataManager.currentTheme.colorScheme)
         .onAppear {
             if let config = ApiConfig.shared {
                 print("ApiConfig.shared.baseUrl", config.baseUrl ?? "Not available")

@@ -8,6 +8,7 @@ import SwiftUI
 struct SettingsView: View {
     @AppStorage("has_default_playlist") private var hasDefaultPlaylist = false
     private let playlistManager = PlaylistManager.shared
+    @State private var userDataManager = UserDataManager.shared
     
     @State private var playlistName = "My M3U Playlist"
     @State private var playlistUrl = ""
@@ -141,6 +142,17 @@ struct SettingsView: View {
                                 .font(.footnote)
                                 .listRowBackground(Color.clear)
                         }
+                    }
+                    
+                    Section(header: Text("Appearance").foregroundColor(.gray)) {
+                        Picker("Theme", selection: $userDataManager.currentTheme) {
+                            ForEach(AppTheme.allCases) { theme in
+                                Text(theme.rawValue).tag(theme)
+                            }
+                        }
+                        .foregroundColor(.white)
+                        .tint(.accentColor)
+                        .listRowBackground(Color.gray.opacity(0.1))
                     }
                     
                     Section(footer: Text("App Version 1.0").frame(maxWidth: .infinity, alignment: .center)) {
