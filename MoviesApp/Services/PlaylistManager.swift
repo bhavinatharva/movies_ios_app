@@ -13,7 +13,74 @@ class PlaylistManager {
     private let playlistsKey = "saved_playlists"
     private let channelsCachePrefix = "channels_cache_"
     
-    private init() {}
+    private init() {
+        self.cleanupOversizedUserDefaults()
+    }
+    
+    private func cleanupOversizedUserDefaults() {
+        let defaults = UserDefaults.standard
+        let dictionary = defaults.dictionaryRepresentation()
+        
+        for (key, value) in dictionary {
+            var valueSize = 0
+            if let data = value as? Data {
+                valueSize = data.count
+            } else if let str = value as? String {
+                valueSize = str.utf8.count
+            } else if let array = value as? [Any] {
+                if let data = try? JSONSerialization.data(withJSONObject: array, options: []) {
+                    valueSize = data.count
+                }
+            } else if let dict = value as? [String: Any] {
+                if let data = try? JSONSerialization.data(withJSONObject: dict, options: []) {
+                    valueSize = data.count
+                }
+            }
+            
+            if valueSize > 1_000_000 {
+                print("⚠️ Found oversized UserDefaults key '\(key)' of size \(valueSize) bytes. Performing cleanup...")
+                
+                if key == playlistsKey {
+                    if let data = defaults.data(forKey: playlistsKey),
+                       var playlists = try? JSONDecoder().decode([Playlist].self, from: data) {
+                        var migrated = false
+                        for i in 0..<playlists.count {
+                            let url = playlists[i].url
+                            if url.count > 1024 || url.contains("\n") {
+                                let filename = "migrated_local_\(playlists[i].id).m3u"
+                                if let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
+                                    let fileUrl = docs.appendingPathComponent(filename)
+                                    if let fileData = url.data(using: .utf8) {
+                                        try? fileData.write(to: fileUrl)
+                                        playlists[i].url = fileUrl.absoluteString
+                                        migrated = true
+                                    }
+                                }
+                            }
+                        }
+                        if migrated, let encoded = try? JSONEncoder().encode(playlists) {
+                            defaults.set(encoded, forKey: playlistsKey)
+                            print("✅ Successfully migrated oversized playlist URLs to files.")
+                        } else {
+                            defaults.removeObject(forKey: key)
+                        }
+                    } else {
+                        defaults.removeObject(forKey: key)
+                    }
+                } else {
+                    defaults.removeObject(forKey: key)
+                    print("🧹 Wiped unrecognized oversized key '\(key)'.")
+                }
+            }
+        }
+        
+        if let activeUrl = defaults.string(forKey: "active_playlist_url"), (activeUrl.count > 1024 || activeUrl.contains("\n")) {
+            defaults.removeObject(forKey: "active_playlist_url")
+            print("🧹 Reset active_playlist_url because it was oversized.")
+        }
+        
+        defaults.synchronize()
+    }
     
     // MARK: - Playlist Operations
     

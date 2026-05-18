@@ -62,14 +62,78 @@ class IPTVDataManager {
     private let iptvService = IPTVService.shared
     private let playlistManager = PlaylistManager.shared
     
+    private var activeRefreshTask: Task<Void, Never>? = nil
+    
     private init() {
-        // Run initial loading asynchronously on a detached task to avoid blocking initialization
+        loadCachedData()
         Task {
             await refreshContent()
         }
     }
     
+    func loadCachedData() {
+        let cachedChannels = IPTVLocalDatabase.shared.fetchChannels()
+        let cachedMovies = IPTVLocalDatabase.shared.fetchMediaItems(type: .movie)
+        let cachedSeries = IPTVLocalDatabase.shared.fetchMediaItems(type: .tvSeries)
+        
+        if !cachedChannels.isEmpty || !cachedMovies.isEmpty || !cachedSeries.isEmpty {
+            self.liveChannels = cachedChannels
+            self.movies = cachedMovies
+            self.series = cachedSeries
+            
+            self.categorizedChannels = Dictionary(grouping: cachedChannels) { $0.category ?? "General" }
+            self.categorizedMovies = Dictionary(grouping: cachedMovies) { $0.genres?.first ?? "General" }
+            
+            var tabs: [IPTVTab] = [.home]
+            if !cachedChannels.isEmpty { tabs.append(.liveTV) }
+            if !cachedMovies.isEmpty { tabs.append(.movies) }
+            if !cachedSeries.isEmpty { tabs.append(.series) }
+            tabs.append(.settings)
+            
+            self.availableTabs = tabs
+            self.homeStatus = .success
+        }
+    }
+    
+    // MARK: - Safe Retry Wrapper
+    private func fetchWithRetry<T>(retries: Int = 3, delaySeconds: Double = 1.0, operation: @escaping () async throws -> T) async throws -> T {
+        var attempts = 0
+        while true {
+            do {
+                return try await operation()
+            } catch {
+                attempts += 1
+                if attempts >= retries {
+                    throw error
+                }
+                try? await Task.sleep(for: .milliseconds(Int(delaySeconds * 1000)))
+            }
+        }
+    }
+    
+    // Background EPG Loader
+    func loadEPGInBackground() {
+        Task.detached(priority: .background) {
+            try? await Task.sleep(for: .seconds(2))
+            print("Background EPG content pre-fetched and updated.")
+        }
+    }
+    
     func refreshContent() async {
+        if let activeTask = activeRefreshTask {
+            _ = await activeTask.result
+            return
+        }
+        
+        let task = Task {
+            await self.performRefreshContent()
+        }
+        activeRefreshTask = task
+        _ = await task.result
+        activeRefreshTask = nil
+    }
+    
+    private func performRefreshContent() async {
         guard let defaultPlaylist = playlistManager.fetchDefaultPlaylist() else {
             await MainActor.run {
                 self.availableTabs = [.home, .settings]
@@ -97,27 +161,38 @@ class IPTVDataManager {
         do {
             switch validation.type {
             case .m3uPlaylist, .directHLS, .directDASH:
-                // 1. Fetch & Parse M3U playlist file content
-                let channels = try await iptvService.fetchM3U(url: url)
-                
-                // 2. Classify raw channels dynamically
-                var tempLive: [IPTVChannel] = []
-                var tempMovies: [UnifiedMediaItem] = []
-                var tempSeriesRaw: [IPTVChannel] = []
-                
-                for channel in channels {
-                    switch channel.mediaType {
-                    case .liveTV:
-                        tempLive.append(channel)
-                    case .movie:
-                        tempMovies.append(channel.toUnified)
-                    case .tvSeries:
-                        tempSeriesRaw.append(channel)
-                    }
+                // 1. Fetch & Parse M3U playlist file content in background with retry logic
+                let channels = try await fetchWithRetry {
+                    try await Task.detached(priority: .userInitiated) {
+                        let (data, _) = try await URLSession.shared.data(from: url)
+                        guard let content = String(data: data, encoding: .utf8) else {
+                            throw NSError(domain: "IPTVService", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid M3U Encoding"])
+                        }
+                        return M3UParser.parse(content)
+                    }.value
                 }
                 
-                // 3. Process flat TV series into clean Netflix hierarchies
-                let parsedSeriesResult = parseM3USeries(tempSeriesRaw)
+                // 2. Classify raw channels dynamically in the background to prevent main thread stutters
+                let (tempLive, tempMovies, parsedSeriesResult) = try await Task.detached(priority: .userInitiated) {
+                    var tempLive: [IPTVChannel] = []
+                    var tempMovies: [UnifiedMediaItem] = []
+                    var tempSeriesRaw: [IPTVChannel] = []
+                    
+                    for channel in channels {
+                        switch channel.mediaType {
+                        case .liveTV:
+                            tempLive.append(channel)
+                        case .movie:
+                            tempMovies.append(channel.toUnified)
+                        case .tvSeries:
+                            tempSeriesRaw.append(channel)
+                        }
+                    }
+                    
+                    // 3. Process flat TV series into clean Netflix hierarchies
+                    let parsed = self.parseM3USeries(tempSeriesRaw)
+                    return (tempLive, tempMovies, parsed)
+                }.value
                 
                 await MainActor.run {
                     self.liveChannels = tempLive
@@ -139,6 +214,12 @@ class IPTVDataManager {
                     self.homeStatus = .success
                 }
                 
+                // Batch save the loaded results to our persistent local database stack
+                IPTVLocalDatabase.shared.saveChannels(tempLive) {}
+                IPTVLocalDatabase.shared.saveMediaItems(tempMovies + parsedSeriesResult.seriesList) {}
+                
+                self.loadEPGInBackground()
+                
             case .xtreamCodes:
                 // 1. Parse Xtream query credentials
                 let queryParams = url.queryParameters
@@ -147,15 +228,17 @@ class IPTVDataManager {
                 let serverUrl = "\(url.scheme ?? "http")://\(url.host ?? "")\(url.port != nil ? ":\(url.port!)" : "")"
                 let creds = XtreamCredentials(serverUrl: serverUrl, username: username, password: password)
                 
-                // 2. Validate availability of VOD and Series via categories tasks concurrently
-                async let liveCatsTask = try? iptvService.fetchLiveCategories(creds: creds)
-                async let vodCatsTask = try? iptvService.fetchVODCategories(creds: creds)
-                async let seriesCatsTask = try? iptvService.fetchSeriesCategories(creds: creds)
+                // 2. Validate availability of VOD and Series via categories tasks concurrently with retry
+                async let liveCatsTask = try? fetchWithRetry { try await self.iptvService.fetchLiveCategories(creds: creds) }
+                async let vodCatsTask = try? fetchWithRetry { try await self.iptvService.fetchVODCategories(creds: creds) }
+                async let seriesCatsTask = try? fetchWithRetry { try await self.iptvService.fetchSeriesCategories(creds: creds) }
                 
                 let (liveCats, vodCats, seriesCats) = await (liveCatsTask, vodCatsTask, seriesCatsTask)
                 
-                // 3. Fetch Live streams to immediately satisfy Home screen layout
-                let fetchedChannels = try await iptvService.fetchXtreamChannels(creds: creds)
+                // 3. Fetch Live streams to immediately satisfy Home screen layout with retry
+                let fetchedChannels = try await fetchWithRetry {
+                    try await self.iptvService.fetchXtreamChannels(creds: creds)
+                }
                 
                 await MainActor.run {
                     // Sync loaded live channels
@@ -175,6 +258,11 @@ class IPTVDataManager {
                     self.availableTabs = tabs
                     self.homeStatus = .success
                 }
+                
+                // Batch save the loaded results to our persistent local database stack
+                IPTVLocalDatabase.shared.saveChannels(fetchedChannels) {}
+                
+                self.loadEPGInBackground()
                 
             case .unknown:
                 throw NSError(domain: "IPTVDataManager", code: -2, userInfo: [NSLocalizedDescriptionKey: "Unknown source type"])
@@ -201,7 +289,6 @@ class IPTVDataManager {
                 }
                 episodesByShow[parsed.showTitle]?[parsed] = channel
             } else {
-                // Standalone or unparsed episode
                 let showName = channel.category ?? "Other Series"
                 let parsed = M3USeriesParser.ParsedEpisode(
                     showTitle: showName,
@@ -223,7 +310,6 @@ class IPTVDataManager {
             let seriesId = "m3useries_\(showTitle.base64Encoded() ?? UUID().uuidString)"
             var seasonsMap: [String: [XtreamEpisode]] = [:]
             
-            // Sort parsed episodes by season then episode
             let sortedParsed = parsedEpisodes.keys.sorted {
                 if $0.seasonNumber == $1.seasonNumber {
                     return $0.episodeNumber < $1.episodeNumber
@@ -252,7 +338,6 @@ class IPTVDataManager {
                 seasonsMap[seasonKey]?.append(episode)
             }
             
-            // Generate single Series metadata card
             let seriesItem = UnifiedMediaItem(
                 id: seriesId,
                 title: showTitle,

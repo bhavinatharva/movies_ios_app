@@ -80,29 +80,45 @@ class HomeViewModel {
     func refreshContent() async {
         await dataManager.refreshContent()
         
+        // Priority 1: Load Favorites and Continue Watching (instant local cache)
         await MainActor.run {
-            let playlistMovies = self.dataManager.movies
-            
-            if !playlistMovies.isEmpty {
-                // Populate categories cleanly using local slices to give a gorgeous variation
-                self.trendingMovies = Array(playlistMovies.shuffled().prefix(15))
-                self.top10Movies = Array(playlistMovies.prefix(10))
-                self.recommended = Array(playlistMovies.shuffled().prefix(15))
-                self.recentlyAdded = Array(playlistMovies.prefix(15))
-            } else {
-                self.trendingMovies = []
-                self.top10Movies = []
-                self.recommended = []
-                self.recentlyAdded = []
-            }
-            
+            self.updateFavorites()
+        }
+        
+        // Priority 2: Load Live TV and Live Sport listings
+        try? await Task.sleep(for: .milliseconds(50))
+        await MainActor.run {
             self.sportsLiveNow = self.dataManager.liveChannels.filter { ch in
                 let cat = (ch.category ?? "").lowercased()
                 let name = ch.name.lowercased()
                 return cat.contains("sport") || cat.contains("espn") || cat.contains("bein") || cat.contains("supersport") || cat.contains("sky") || cat.contains("live") || name.contains("sport")
-            }.map { $0.toUnified }
-            
-            self.updateFavorites()
+            }.prefix(15).map { $0.toUnified }
+        }
+        
+        // Priority 3: Load top trending VOD items
+        try? await Task.sleep(for: .milliseconds(50))
+        await MainActor.run {
+            let playlistMovies = self.dataManager.movies
+            if !playlistMovies.isEmpty {
+                self.top10Movies = Array(playlistMovies.prefix(10))
+                self.trendingMovies = Array(playlistMovies.shuffled().prefix(15))
+            } else {
+                self.top10Movies = []
+                self.trendingMovies = []
+            }
+        }
+        
+        // Priority 4: Load recommended and recently added rails progressively
+        try? await Task.sleep(for: .milliseconds(50))
+        await MainActor.run {
+            let playlistMovies = self.dataManager.movies
+            if !playlistMovies.isEmpty {
+                self.recommended = Array(playlistMovies.shuffled().prefix(15))
+                self.recentlyAdded = Array(playlistMovies.prefix(15))
+            } else {
+                self.recommended = []
+                self.recentlyAdded = []
+            }
         }
     }
 }

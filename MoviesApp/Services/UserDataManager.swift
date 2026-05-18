@@ -2,9 +2,12 @@
 //  UserDataManager.swift
 //  MoviesApp
 //
+//  Created by Antigravity on 18/05/26.
+//
 
 import Foundation
 import SwiftUI
+import CoreData
 
 enum AppTheme: String, CaseIterable, Identifiable {
     case dark = "Dark"
@@ -26,9 +29,6 @@ enum AppTheme: String, CaseIterable, Identifiable {
 class UserDataManager {
     static let shared = UserDataManager()
     
-    private let favoritesKey = "iptv_favorites"
-    private let historyKey = "iptv_history"
-    private let progressKey = "iptv_progress"
     private let themeKey = "iptv_app_theme"
     
     var favorites: Set<String> = []
@@ -45,29 +45,48 @@ class UserDataManager {
     }
     
     func loadData() {
-        // Load Favorites
-        if let favArray = UserDefaults.standard.stringArray(forKey: favoritesKey) {
-            self.favorites = Set(favArray)
-        } else {
-            self.favorites = []
+        // 1. Load Favorites from persistent local database (CoreData)
+        self.favorites = IPTVLocalDatabase.shared.fetchFavorites()
+        
+        // 2. Load watchProgress from persistent local database (CoreData)
+        self.watchProgress = IPTVLocalDatabase.shared.fetchProgress()
+        
+        // 3. Load Watch History from persistent local database (CoreData)
+        let historyIds = IPTVLocalDatabase.shared.fetchHistoryIds()
+        var mappedHistory: [UnifiedMediaItem] = []
+        let channels = IPTVDataManager.shared.liveChannels
+        let movies = IPTVDataManager.shared.movies
+        let series = IPTVDataManager.shared.series
+        
+        for id in historyIds {
+            if let ch = channels.first(where: { $0.toUnified.id == id }) {
+                mappedHistory.append(ch.toUnified)
+            } else if let mv = movies.first(where: { $0.id == id }) {
+                mappedHistory.append(mv)
+            } else if let sr = series.first(where: { $0.id == id }) {
+                mappedHistory.append(sr)
+            }
         }
         
-        // Load Watch History
-        if let historyData = UserDefaults.standard.data(forKey: historyKey),
-           let history = try? JSONDecoder().decode([UnifiedMediaItem].self, from: historyData) {
-            self.recentlyWatched = history
-        } else {
-            self.recentlyWatched = []
+        // Fallback: If not present in memory, load from CoreData media items cache directly
+        if mappedHistory.count < historyIds.count {
+            let coreMovies = IPTVLocalDatabase.shared.fetchMediaItems(type: .movie)
+            let coreSeries = IPTVLocalDatabase.shared.fetchMediaItems(type: .tvSeries)
+            
+            for id in historyIds {
+                if !mappedHistory.contains(where: { $0.id == id }) {
+                    if let mv = coreMovies.first(where: { $0.id == id }) {
+                        mappedHistory.append(mv)
+                    } else if let sr = coreSeries.first(where: { $0.id == id }) {
+                        mappedHistory.append(sr)
+                    }
+                }
+            }
         }
         
-        // Load Progress
-        if let progressDict = UserDefaults.standard.dictionary(forKey: progressKey) as? [String: Double] {
-            self.watchProgress = progressDict
-        } else {
-            self.watchProgress = [:]
-        }
+        self.recentlyWatched = mappedHistory
         
-        // Load Theme
+        // 4. Load Theme from light-weight UserDefaults
         if let themeStr = UserDefaults.standard.string(forKey: themeKey),
            let theme = AppTheme(rawValue: themeStr) {
             self.currentTheme = theme
@@ -85,10 +104,11 @@ class UserDataManager {
     func toggleFavorite(id: String) {
         if favorites.contains(id) {
             favorites.remove(id)
+            IPTVLocalDatabase.shared.saveFavorite(id: id, type: "media", isFav: false)
         } else {
             favorites.insert(id)
+            IPTVLocalDatabase.shared.saveFavorite(id: id, type: "media", isFav: true)
         }
-        UserDefaults.standard.set(Array(favorites), forKey: favoritesKey)
     }
     
     // MARK: - Recently Watched
@@ -97,22 +117,27 @@ class UserDataManager {
         recentlyWatched.removeAll { $0.id == item.id }
         recentlyWatched.insert(item, at: 0)
         
-        // Keep only top 20 items
         if recentlyWatched.count > 20 {
             recentlyWatched = Array(recentlyWatched.prefix(20))
         }
         
-        saveHistory()
+        IPTVLocalDatabase.shared.saveHistoryItem(id: item.id)
+        
+        // Batch and persistently cache metadata in the database for instant offline startup
+        IPTVLocalDatabase.shared.saveMediaItems([item]) {}
     }
     
     func removeFromHistory(id: String) {
         recentlyWatched.removeAll { $0.id == id }
-        saveHistory()
-    }
-    
-    private func saveHistory() {
-        if let data = try? JSONEncoder().encode(recentlyWatched) {
-            UserDefaults.standard.set(data, forKey: historyKey)
+        
+        let context = IPTVLocalDatabase.shared.viewContext
+        let fetchRequest = NSFetchRequest<NSManagedObject>(entityName: "HistoryEntity")
+        fetchRequest.predicate = NSPredicate(format: "contentId == %@", id)
+        if let results = try? context.fetch(fetchRequest) {
+            for obj in results {
+                context.delete(obj)
+            }
+            try? context.save()
         }
     }
     
@@ -120,7 +145,7 @@ class UserDataManager {
     
     func updateProgress(id: String, seconds: Double) {
         watchProgress[id] = seconds
-        UserDefaults.standard.set(watchProgress, forKey: progressKey)
+        IPTVLocalDatabase.shared.saveProgress(id: id, type: "media", position: seconds, duration: seconds)
     }
     
     func getProgress(id: String) -> Double {
