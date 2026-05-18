@@ -18,6 +18,9 @@ class VODMoviesViewModel {
     var recommended: [UnifiedMediaItem] = []
     var topRated: [UnifiedMediaItem] = []
     
+    var moviesByGenre: [String: [UnifiedMediaItem]] = [:]
+    var loadingGenres: Set<String> = []
+    
     var isLoading = false
     var isLoadingMovies = false
     var errorMessage: String?
@@ -72,6 +75,9 @@ class VODMoviesViewModel {
             
             await MainActor.run {
                 self.categories = cats
+                for cat in cats {
+                    self.moviesByGenre[cat.id] = dataManager.categorizedMovies[cat.id] ?? []
+                }
                 if let firstCat = cats.first {
                     self.selectedCategory = firstCat
                     self.movies = dataManager.categorizedMovies[firstCat.id] ?? []
@@ -132,11 +138,46 @@ class VODMoviesViewModel {
             let unifiedVods = vods.map { UnifiedMediaItem(from: $0, creds: creds) }
             await MainActor.run {
                 self.movies = unifiedVods
+                self.moviesByGenre[categoryId] = unifiedVods
                 self.isLoadingMovies = false
             }
         } catch {
             await MainActor.run {
                 self.isLoadingMovies = false
+            }
+        }
+    }
+    
+    func loadMoviesIfNeeded(for categoryId: String) async {
+        // If local M3U playlist, it is already cached
+        guard authManager.credentials != nil else {
+            await MainActor.run {
+                self.moviesByGenre[categoryId] = IPTVDataManager.shared.categorizedMovies[categoryId] ?? []
+            }
+            return
+        }
+        
+        // If already loaded or currently loading, skip
+        if moviesByGenre[categoryId] != nil || loadingGenres.contains(categoryId) {
+            return
+        }
+        
+        await MainActor.run {
+            _ = self.loadingGenres.insert(categoryId)
+        }
+        
+        guard let creds = authManager.credentials else { return }
+        
+        do {
+            let vods = try await iptvService.fetchVODStreams(creds: creds, categoryId: categoryId)
+            let unifiedVods = vods.map { UnifiedMediaItem(from: $0, creds: creds) }
+            await MainActor.run {
+                self.moviesByGenre[categoryId] = unifiedVods
+                self.loadingGenres.remove(categoryId)
+            }
+        } catch {
+            await MainActor.run {
+                self.loadingGenres.remove(categoryId)
             }
         }
     }

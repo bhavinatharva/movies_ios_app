@@ -44,7 +44,7 @@ struct VODMoviesView: View {
                         ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(error))
                     } else {
                         ScrollView {
-                            LazyVStack(spacing: 24) {
+                            LazyVStack(spacing: 28) {
                                 if viewModel.searchText.isEmpty {
                                     // 1. Hero Featured Movie
                                     if let hero = viewModel.heroMovie {
@@ -65,32 +65,8 @@ struct VODMoviesView: View {
                                             }
                                         )
                                     }
-                                }
-                                
-                                // 3. Quick Filters (chips)
-                                ScrollView(.horizontal, showsIndicators: false) {
-                                    HStack(spacing: 12) {
-                                        ForEach(viewModel.categories) { category in
-                                            Button(action: {
-                                                viewModel.selectCategory(category)
-                                            }) {
-                                                Text(category.name)
-                                                    .font(.subheadline)
-                                                    .fontWeight(.bold)
-                                                    .padding(.horizontal, 16)
-                                                    .padding(.vertical, 8)
-                                                    .background(viewModel.selectedCategory?.id == category.id ? Color.accentColor : Color.appCardBackground)
-                                                    .foregroundColor(viewModel.selectedCategory?.id == category.id ? .white : .primary)
-                                                    .cornerRadius(20)
-                                            }
-                                        }
-                                    }
-                                    .padding(.horizontal)
-                                }
-                                .padding(.vertical, 8)
-                                
-                                if viewModel.searchText.isEmpty {
-                                    // 4. Trending Movies
+                                    
+                                    // 3. Trending Movies
                                     if !viewModel.trendingMovies.isEmpty {
                                         UnifiedMediaListView(
                                             header: "Trending Movies",
@@ -102,7 +78,7 @@ struct VODMoviesView: View {
                                         )
                                     }
                                     
-                                    // 5. New Releases
+                                    // 4. New Releases
                                     if !viewModel.newReleases.isEmpty {
                                         UnifiedMediaListView(
                                             header: "New Releases",
@@ -114,7 +90,7 @@ struct VODMoviesView: View {
                                         )
                                     }
                                     
-                                    // 6. Recommended
+                                    // 5. Recommended
                                     if !viewModel.recommended.isEmpty {
                                         UnifiedMediaListView(
                                             header: "Recommended For You",
@@ -126,7 +102,7 @@ struct VODMoviesView: View {
                                         )
                                     }
                                     
-                                    // 7. Top Rated
+                                    // 6. Top Rated
                                     if !viewModel.topRated.isEmpty {
                                         UnifiedMediaListView(
                                             header: "Top Rated Movies",
@@ -137,22 +113,23 @@ struct VODMoviesView: View {
                                             }
                                         )
                                     }
-                                }
-                                
-                                // 8. Grid Browse Section
-                                VStack(alignment: .leading, spacing: 12) {
-                                    Text(viewModel.selectedCategory?.name ?? "Browse Movies")
-                                        .font(.title3)
-                                        .fontWeight(.bold)
-                                        .foregroundColor(.white)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                        .padding(.horizontal)
                                     
-                                    if viewModel.isLoadingMovies {
-                                        ProgressView("Loading movies...")
-                                            .frame(maxWidth: .infinity)
-                                            .padding(.vertical, 24)
-                                    } else {
+                                    // 7. Vertical Genre Sections with Horizontal Sliders
+                                    ForEach(viewModel.categories) { category in
+                                        VODGenreRowView(category: category, viewModel: viewModel) { movie in
+                                            UserDataManager.shared.addToHistory(movie)
+                                            selectedMovie = movie
+                                        }
+                                    }
+                                } else {
+                                    // Search results grid view
+                                    VStack(alignment: .leading, spacing: 16) {
+                                        Text("Search Results")
+                                            .font(.title3)
+                                            .fontWeight(.bold)
+                                            .foregroundColor(.white)
+                                            .padding(.horizontal)
+                                        
                                         LazyVGrid(columns: columns, spacing: 16) {
                                             ForEach(viewModel.filteredMovies) { movie in
                                                 UnifiedMediaCardView(item: movie, width: nil)
@@ -164,6 +141,7 @@ struct VODMoviesView: View {
                                         }
                                         .padding(.horizontal)
                                     }
+                                    .padding(.top, 12)
                                 }
                             }
                             .padding(.bottom, 30) // Clear custom tab bar
@@ -214,6 +192,53 @@ struct VODMoviesView: View {
                                 .padding()
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Lazy Loading Genre Row View
+struct VODGenreRowView: View {
+    let category: XtreamCategory
+    var viewModel: VODMoviesViewModel
+    let onSelect: (UnifiedMediaItem) -> Void
+    
+    var body: some View {
+        Group {
+            if let items = viewModel.moviesByGenre[category.id] {
+                if !items.isEmpty {
+                    UnifiedMediaListView(
+                        header: category.name,
+                        items: items,
+                        onSelect: onSelect
+                    )
+                }
+            } else {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(category.name)
+                        .font(.title3)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                        .padding(.horizontal)
+                    
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 16) {
+                            ForEach(0..<4, id: \.self) { _ in
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color.appCardBackground)
+                                    .frame(width: 140, height: 186.6)
+                                    .overlay(
+                                        ProgressView()
+                                            .tint(.gray)
+                                    )
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
+                }
+                .task {
+                    await viewModel.loadMoviesIfNeeded(for: category.id)
                 }
             }
         }
