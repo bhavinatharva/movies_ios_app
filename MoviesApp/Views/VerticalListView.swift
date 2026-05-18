@@ -27,9 +27,9 @@ struct VerticalListView: View {
                     AsyncImage(url: URL(string: title.posterPath ?? "")) { image in
                         image
                             .resizable()
-                            .scaledToFit()
+                            .scaledToFill()
                             .frame(width: 100, height: 150)
-                            .background(Color.appCardBackground)
+                            .clipped()
                             .cardStyle()
                     } placeholder: {
                         RoundedRectangle(cornerRadius: 8)

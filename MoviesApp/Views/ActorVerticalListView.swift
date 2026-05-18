@@ -27,12 +27,12 @@ struct ActorVerticalListView: View {
                     AsyncImage(url: URL(string: title.profilePath ?? "")) { image in
                         image
                             .resizable()
-                            .scaledToFit()
+                            .scaledToFill()
                             .frame(width: 100, height: 150)
-                            .background(Color.appCardBackground)
+                            .clipped()
                             .cardStyle()
                     } placeholder: {
-                        RoundedRectangle(cornerRadius: 12)
+                        RoundedRectangle(cornerRadius: 8)
                             .fill(Color.gray.opacity(0.1))
                             .frame(width: 100, height: 150)
                             .shimmer()

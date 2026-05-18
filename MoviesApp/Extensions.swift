@@ -49,11 +49,10 @@ extension View {
         }
     }
     
-    /// Upgraded card style with larger 16pt corner radius and clean depth-shadow
+    /// Clean card style with professional 8pt corner radius
     func cardStyle() -> some View {
         self
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .shadow(color: .black.opacity(0.4), radius: 8, x: 0, y: 6)
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
     
     func shimmer() -> some View {
