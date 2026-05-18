@@ -6,72 +6,74 @@
 //
 
 import Foundation
-import RealmSwift
 
 class PlaylistManager {
     static let shared = PlaylistManager()
-    private let realm: Realm
     
-    private init() {
-        let config = Realm.Configuration(schemaVersion: 1)
-        realm = try! Realm(configuration: config)
-    }
+    private let playlistsKey = "saved_playlists"
+    private let channelsCachePrefix = "channels_cache_"
+    
+    private init() {}
     
     // MARK: - Playlist Operations
     
     func fetchAllPlaylists() -> [Playlist] {
-        Array(realm.objects(Playlist.self).sorted(byKeyPath: "createdAt", ascending: false))
+        guard let data = UserDefaults.standard.data(forKey: playlistsKey),
+              let playlists = try? JSONDecoder().decode([Playlist].self, from: data) else {
+            return []
+        }
+        return playlists.sorted { $0.createdAt > $1.createdAt }
     }
     
     func fetchDefaultPlaylist() -> Playlist? {
-        realm.objects(Playlist.self).filter("isDefault == true").first
+        fetchAllPlaylists().first { $0.isDefault }
+    }
+    
+    private func savePlaylists(_ playlists: [Playlist]) {
+        if let data = try? JSONEncoder().encode(playlists) {
+            UserDefaults.standard.set(data, forKey: playlistsKey)
+        }
     }
     
     func addPlaylist(name: String, url: String) {
-        let isFirst = realm.objects(Playlist.self).isEmpty
+        var playlists = fetchAllPlaylists()
+        let isFirst = playlists.isEmpty
         let playlist = Playlist(name: name, url: url, isDefault: isFirst)
-        
-        try? realm.write {
-            realm.add(playlist)
-        }
+        playlists.append(playlist)
+        savePlaylists(playlists)
     }
     
     func setDefault(_ playlist: Playlist) {
-        try? realm.write {
-            let all = realm.objects(Playlist.self)
-            for p in all {
-                p.isDefault = (p.id == playlist.id)
-            }
+        var playlists = fetchAllPlaylists()
+        for i in 0..<playlists.count {
+            playlists[i].isDefault = (playlists[i].id == playlist.id)
         }
+        savePlaylists(playlists)
     }
     
     func deletePlaylist(_ playlist: Playlist) {
-        try? realm.write {
-            // Delete associated cached channels first
-            let cached = realm.objects(CachedChannel.self).filter("playlistUrl == %@", playlist.url)
-            realm.delete(cached)
-            realm.delete(playlist)
-        }
+        var playlists = fetchAllPlaylists()
+        playlists.removeAll { $0.id == playlist.id }
+        savePlaylists(playlists)
+        
+        // Delete associated cached channels
+        UserDefaults.standard.removeObject(forKey: channelsCachePrefix + playlist.url)
     }
     
     // MARK: - Channel Caching
     
     func cacheChannels(_ channels: [IPTVChannel], forUrl url: String) {
-        try? realm.write {
-            // Clear existing cache for this URL
-            let existing = realm.objects(CachedChannel.self).filter("playlistUrl == %@", url)
-            realm.delete(existing)
-            
-            // Add new channels
-            for channel in channels {
-                let cached = CachedChannel(playlistUrl: url, channel: channel)
-                realm.add(cached, update: .modified)
-            }
+        let cachedChannels = channels.map { CachedChannel(playlistUrl: url, channel: $0) }
+        if let data = try? JSONEncoder().encode(cachedChannels) {
+            UserDefaults.standard.set(data, forKey: channelsCachePrefix + url)
         }
     }
     
     func getCachedChannels(forUrl url: String) -> [IPTVChannel] {
-        let cached = realm.objects(CachedChannel.self).filter("playlistUrl == %@", url)
+        guard let data = UserDefaults.standard.data(forKey: channelsCachePrefix + url),
+              let cached = try? JSONDecoder().decode([CachedChannel].self, from: data) else {
+            return []
+        }
         return cached.map { $0.toIPTVChannel }
     }
 }

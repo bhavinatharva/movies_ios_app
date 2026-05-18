@@ -22,7 +22,7 @@ class HomeViewModel {
             return
         }
         
-        // 1. Try loading from Realm Cache first (Instant UI)
+        // 1. Try loading from Local Cache first (Instant UI)
         let cached = playlistManager.getCachedChannels(forUrl: defaultPlaylist.url)
         if !cached.isEmpty {
             self.liveChannels = cached
@@ -37,7 +37,7 @@ class HomeViewModel {
             guard let m3uUrl = URL(string: defaultPlaylist.url) else { return }
             let fetchedChannels = try await iptvService.fetchM3U(url: m3uUrl)
             
-            // 3. Update Realm Cache
+            // 3. Update Local Cache
             playlistManager.cacheChannels(fetchedChannels, forUrl: defaultPlaylist.url)
             
             // 4. Update UI

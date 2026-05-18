@@ -6,7 +6,5 @@ target 'MoviesApp' do
   use_frameworks!
 
   # Pods for MoviesApp
-  pod 'Realm', '~> 20.0'
-  pod 'RealmSwift', '~> 20.0'
 
 end

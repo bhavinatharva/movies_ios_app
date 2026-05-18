@@ -6,34 +6,31 @@
 //
 
 import Foundation
-import RealmSwift
 
-class Playlist: Object, Identifiable {
-    @Persisted(primaryKey: true) var id: ObjectId
-    @Persisted var name: String
-    @Persisted var url: String
-    @Persisted var isDefault: Bool = false
-    @Persisted var createdAt: Date = Date()
+struct Playlist: Identifiable, Codable {
+    var id: String = UUID().uuidString
+    var name: String
+    var url: String
+    var isDefault: Bool = false
+    var createdAt: Date = Date()
     
-    convenience init(name: String, url: String, isDefault: Bool = false) {
-        self.init()
+    init(name: String, url: String, isDefault: Bool = false) {
         self.name = name
         self.url = url
         self.isDefault = isDefault
     }
 }
 
-class CachedChannel: Object, Identifiable {
-    @Persisted(primaryKey: true) var id: String // playlistUrl + streamUrl hash
-    @Persisted var playlistUrl: String
-    @Persisted var name: String
-    @Persisted var streamUrl: String
-    @Persisted var logoUrl: String?
-    @Persisted var category: String?
-    @Persisted var epgId: String?
+struct CachedChannel: Identifiable, Codable {
+    var id: String // playlistUrl + streamUrl hash
+    var playlistUrl: String
+    var name: String
+    var streamUrl: String
+    var logoUrl: String?
+    var category: String?
+    var epgId: String?
     
-    convenience init(playlistUrl: String, channel: IPTVChannel) {
-        self.init()
+    init(playlistUrl: String, channel: IPTVChannel) {
         self.playlistUrl = playlistUrl
         self.name = channel.name
         self.streamUrl = channel.streamUrl.absoluteString
