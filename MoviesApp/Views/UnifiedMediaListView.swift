@@ -23,10 +23,12 @@ struct UnifiedMediaListView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 LazyHStack(spacing: 16) {
                     ForEach(items) { item in
-                        UnifiedMediaCardView(item: item)
-                            .onTapGesture {
-                                onSelect(item)
-                            }
+                        Button(action: {
+                            onSelect(item)
+                        }) {
+                            UnifiedMediaCardView(item: item)
+                        }
+                        .buttonStyle(PressScaleButtonStyle())
                     }
                 }
                 .padding(.horizontal, 16)

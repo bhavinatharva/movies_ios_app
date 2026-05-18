@@ -150,8 +150,7 @@ struct LiveTVView: View {
                                         .glassBackground(cornerRadius: 16)
                                         .padding(.horizontal, 12)
                                     }
-                                    .buttonStyle(.plain)
-                                    .pressScaleEffect() // High fidelity spring-scale!
+                                    .buttonStyle(PressScaleButtonStyle())
                                 }
                             }
                             .padding(.top, 12)

@@ -209,7 +209,7 @@ struct IPTVHeroHeaderView: View {
                     .cornerRadius(28)
                     .shadow(color: .white.opacity(0.25), radius: 10, x: 0, y: 5)
                 }
-                .pressScaleEffect() // High fidelity click physics!
+                .buttonStyle(PressScaleButtonStyle())
             }
             .padding(.bottom, 28)
         }

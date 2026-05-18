@@ -41,8 +41,7 @@ struct StreamingPlayerView: View {
                 .glassBackground(cornerRadius: 18)
                 .shadow(color: .black.opacity(0.4), radius: 6, x: 0, y: 3)
             }
-            .buttonStyle(.plain)
-            .pressScaleEffect()
+            .buttonStyle(PressScaleButtonStyle())
             .padding(.leading, 16)
             .padding(.top, 16)
         }

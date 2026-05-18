@@ -60,9 +60,9 @@ extension View {
         self.modifier(ShimmerModifier())
     }
     
-    /// Adds a gorgeous interactive spring-scale reaction on finger presses
+    /// Adds a gorgeous interactive spring-scale reaction on finger presses (legacy fallback, standardise on PressScaleButtonStyle)
     func pressScaleEffect() -> some View {
-        self.modifier(PressScaleModifier())
+        self
     }
     
     /// Glassmorphic background modifier
@@ -109,20 +109,12 @@ struct ShimmerModifier: ViewModifier {
     }
 }
 
-// MARK: - Premium Tap Micro-Interaction
-struct PressScaleModifier: ViewModifier {
-    @GestureState private var isPressed = false
-    
-    func body(content: Content) -> some View {
-        content
-            .scaleEffect(isPressed ? 0.94 : 1.0)
-            .shadow(color: .black.opacity(isPressed ? 0.15 : 0.4), radius: isPressed ? 4 : 8, x: 0, y: isPressed ? 3 : 6)
-            .animation(.spring(response: 0.3, dampingFraction: 0.65, blendDuration: 0), value: isPressed)
-            .simultaneousGesture(
-                DragGesture(minimumDistance: 0)
-                    .updating($isPressed) { _, state, _ in
-                        state = true
-                    }
-            )
+// MARK: - Premium Tap Micro-Interaction Button Style
+struct PressScaleButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.94 : 1.0)
+            .shadow(color: .black.opacity(configuration.isPressed ? 0.15 : 0.4), radius: configuration.isPressed ? 4 : 8, x: 0, y: configuration.isPressed ? 3 : 6)
+            .animation(.spring(response: 0.3, dampingFraction: 0.65, blendDuration: 0), value: configuration.isPressed)
     }
 }
