@@ -301,33 +301,54 @@ struct IPTVHeroHeaderView: View {
     let item: UnifiedMediaItem
     let onPlay: () -> Void
     
+    private var fallbackHeroBackground: some View {
+        ZStack {
+            LinearGradient(
+                colors: [Color.accentColor.opacity(0.15), Color.black],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .frame(height: 500)
+            
+            Image(systemName: "popcorn.fill")
+                .font(.system(size: 80))
+                .foregroundColor(.white.opacity(0.1))
+        }
+    }
+    
     var body: some View {
         ZStack(alignment: .bottom) {
             // Header Backdrop Art
-            AsyncImage(url: URL(string: item.posterPath ?? "")) { image in
-                image
-                    .resizable()
-                    .scaledToFill()
-                    .frame(height: 500)
-                    .clipped()
-                    .overlay {
-                        // Double-layer premium theatrical vignette gradients
-                        LinearGradient(
-                            stops: [
-                                .init(color: .black.opacity(0.75), location: 0),
-                                .init(color: .clear, location: 0.3),
-                                .init(color: .clear, location: 0.6),
-                                .init(color: Color.appBackground, location: 1.0)
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
+            if let posterPath = item.posterPath, !posterPath.isEmpty, let url = URL(string: posterPath) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                            .frame(height: 500)
+                            .clipped()
+                            .overlay {
+                                // Double-layer premium theatrical vignette gradients
+                                LinearGradient(
+                                    stops: [
+                                        .init(color: .black.opacity(0.75), location: 0),
+                                        .init(color: .clear, location: 0.3),
+                                        .init(color: .clear, location: 0.6),
+                                        .init(color: Color.appBackground, location: 1.0)
+                                    ],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            }
+                    case .failure, .empty:
+                        fallbackHeroBackground
+                    @unknown default:
+                        fallbackHeroBackground
                     }
-            } placeholder: {
-                Rectangle()
-                    .fill(Color.white.opacity(0.05))
-                    .frame(height: 500)
-                    .shimmer()
+                }
+            } else {
+                fallbackHeroBackground
             }
             
             // Text & Control Overlay

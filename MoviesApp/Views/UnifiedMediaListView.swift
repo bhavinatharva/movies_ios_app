@@ -61,23 +61,59 @@ struct UnifiedMediaCardView: View {
         return false
     }
     
-    var body: some View {
-        ZStack(alignment: .bottomLeading) {
-            AsyncImage(url: URL(string: item.posterPath ?? "")) { image in
-                image
-                    .resizable()
-                    .scaledToFill()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .clipped()
-            } placeholder: {
-                Rectangle()
-                    .fill(Color.white.opacity(0.08))
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .shimmer()
+    private func fallbackCardBackground(w: CGFloat, h: CGFloat) -> some View {
+        ZStack {
+            LinearGradient(
+                colors: [Color.white.opacity(0.08), Color.white.opacity(0.02)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            
+            VStack(spacing: 8) {
+                Image(systemName: item.mediaType == .liveTV ? "tv" : (item.mediaType == .tvSeries ? "play.tv" : "film"))
+                    .font(.system(size: 28))
+                    .foregroundColor(.white.opacity(0.3))
+                
+                Text(item.title)
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(.white.opacity(0.5))
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 8)
             }
-            .blur(radius: (isAdult && !showAdultContent) ? 22 : 0)
-            .netflixStyleGradient()
-            .cardStyle()
+        }
+        .frame(width: w, height: h)
+    }
+    
+    var body: some View {
+        let cardWidth = width ?? 140
+        let cardHeight = cardWidth * 4 / 3
+        
+        ZStack(alignment: .bottomLeading) {
+            if let posterUrlString = item.posterPath, !posterUrlString.isEmpty, let posterUrl = URL(string: posterUrlString) {
+                AsyncImage(url: posterUrl) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: cardWidth, height: cardHeight)
+                            .clipped()
+                    case .failure, .empty:
+                        fallbackCardBackground(w: cardWidth, h: cardHeight)
+                    @unknown default:
+                        fallbackCardBackground(w: cardWidth, h: cardHeight)
+                    }
+                }
+                .blur(radius: (isAdult && !showAdultContent) ? 22 : 0)
+                .netflixStyleGradient()
+                .cardStyle()
+            } else {
+                fallbackCardBackground(w: cardWidth, h: cardHeight)
+                    .blur(radius: (isAdult && !showAdultContent) ? 22 : 0)
+                    .netflixStyleGradient()
+                    .cardStyle()
+            }
             
             if isAdult && !showAdultContent {
                 Color.black.opacity(0.4)
@@ -95,7 +131,7 @@ struct UnifiedMediaCardView: View {
                         .background(Color.red)
                         .cornerRadius(6)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(width: cardWidth, height: cardHeight)
             }
             
             VStack(alignment: .leading, spacing: 4) {
@@ -114,8 +150,7 @@ struct UnifiedMediaCardView: View {
             .padding(width == nil ? 6 : 10)
             .opacity((isAdult && !showAdultContent) ? 0.3 : 1.0)
         }
-        .frame(width: width)
-        .aspectRatio(3/4, contentMode: .fit)
+        .frame(width: cardWidth, height: cardHeight)
         .pressScaleEffect()
     }
 }
