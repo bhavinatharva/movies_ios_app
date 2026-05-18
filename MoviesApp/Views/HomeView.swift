@@ -77,7 +77,37 @@ struct HomeView: View {
                 if let url = item.streamUrl {
                     StreamingPlayerView(url: url, title: item.title, streamId: item.id)
                 } else {
-                    ContentUnavailableView("Cannot Play", systemImage: "play.slash", description: Text("No streamable link found for this item."))
+                    ZStack(alignment: .topTrailing) {
+                        Color.appBackground.ignoresSafeArea()
+                        
+                        ContentUnavailableView {
+                            Label("Cannot Play", systemImage: "play.slash")
+                        } description: {
+                            Text("No streamable link found for this item.")
+                                .foregroundColor(.secondary)
+                        } actions: {
+                            Button(action: {
+                                selectedPlayableItem = nil
+                            }) {
+                                Text("Close")
+                                    .fontWeight(.bold)
+                                    .frame(width: 120, height: 44)
+                                    .background(Color.accentColor)
+                                    .foregroundColor(.white)
+                                    .cornerRadius(22)
+                            }
+                            .buttonStyle(PressScaleButtonStyle())
+                        }
+                        
+                        Button(action: {
+                            selectedPlayableItem = nil
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.title)
+                                .foregroundColor(.white.opacity(0.6))
+                                .padding()
+                        }
+                    }
                 }
             }
         }

@@ -137,7 +137,37 @@ struct SeriesDetailView: View {
                       let streamUrl = URL(string: "\(creds.serverUrl)/series/\(creds.username)/\(creds.password)/\(episode.id).\(episode.containerExtension)") {
                 StreamingPlayerView(url: streamUrl, title: episode.title, streamId: episode.id)
             } else {
-                ContentUnavailableView("Cannot Play", systemImage: "play.slash", description: Text("No playable link found for this episode."))
+                ZStack(alignment: .topTrailing) {
+                    Color.appBackground.ignoresSafeArea()
+                    
+                    ContentUnavailableView {
+                        Label("Cannot Play", systemImage: "play.slash")
+                    } description: {
+                        Text("No playable link found for this episode.")
+                            .foregroundColor(.secondary)
+                    } actions: {
+                        Button(action: {
+                            selectedEpisode = nil
+                        }) {
+                            Text("Close")
+                                .fontWeight(.bold)
+                                .frame(width: 120, height: 44)
+                                .background(Color.accentColor)
+                                .foregroundColor(.white)
+                                .cornerRadius(22)
+                        }
+                        .buttonStyle(PressScaleButtonStyle())
+                    }
+                    
+                    Button(action: {
+                        selectedEpisode = nil
+                    }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title)
+                            .foregroundColor(.white.opacity(0.6))
+                            .padding()
+                    }
+                }
             }
         }
     }

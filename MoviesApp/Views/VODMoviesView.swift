@@ -183,7 +183,37 @@ struct VODMoviesView: View {
                 if let streamUrl = movie.streamUrl {
                     StreamingPlayerView(url: streamUrl, title: movie.title, streamId: movie.id)
                 } else {
-                    ContentUnavailableView("Cannot Play", systemImage: "play.slash", description: Text("No playable link found for this movie."))
+                    ZStack(alignment: .topTrailing) {
+                        Color.appBackground.ignoresSafeArea()
+                        
+                        ContentUnavailableView {
+                            Label("Cannot Play", systemImage: "play.slash")
+                        } description: {
+                            Text("No playable link found for this movie.")
+                                .foregroundColor(.secondary)
+                        } actions: {
+                            Button(action: {
+                                selectedMovie = nil
+                            }) {
+                                Text("Close")
+                                    .fontWeight(.bold)
+                                    .frame(width: 120, height: 44)
+                                    .background(Color.accentColor)
+                                    .foregroundColor(.white)
+                                    .cornerRadius(22)
+                            }
+                            .buttonStyle(PressScaleButtonStyle())
+                        }
+                        
+                        Button(action: {
+                            selectedMovie = nil
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.title)
+                                .foregroundColor(.white.opacity(0.6))
+                                .padding()
+                        }
+                    }
                 }
             }
         }
