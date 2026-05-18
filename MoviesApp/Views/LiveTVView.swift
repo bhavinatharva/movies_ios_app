@@ -102,6 +102,15 @@ struct LiveTVView: View {
             .fullScreenCover(item: $viewModel.selectedChannelForFullScreen) { channel in
                 StreamingPlayerView(url: channel.streamUrl, title: channel.name)
             }
+            .onAppear {
+                viewModel.updateUserData()
+            }
+            .onChange(of: UserDataManager.shared.favorites) { _, _ in
+                viewModel.updateUserData()
+            }
+            .onChange(of: UserDataManager.shared.recentlyWatched) { _, _ in
+                viewModel.updateUserData()
+            }
         }
     }
     

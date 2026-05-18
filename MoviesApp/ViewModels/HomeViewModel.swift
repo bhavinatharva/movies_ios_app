@@ -14,6 +14,12 @@ class HomeViewModel {
     var top10Movies: [UnifiedMediaItem] = []
     var recentlyAdded: [UnifiedMediaItem] = []
     var recommended: [UnifiedMediaItem] = []
+    var sportsLiveNow: [UnifiedMediaItem] = []
+    var favorites: [UnifiedMediaItem] = []
+    
+    init() {
+        updateFavorites()
+    }
     
     var homeStatus: ApiFetchStatus {
         dataManager.homeStatus
@@ -45,21 +51,17 @@ class HomeViewModel {
         UserDataManager.shared.recentlyWatched.filter { $0.mediaType == .tvSeries }
     }
     
-    var sportsLiveNow: [UnifiedMediaItem] {
-        dataManager.liveChannels.filter { ch in
-            let cat = (ch.category ?? "").lowercased()
-            let name = ch.name.lowercased()
-            return cat.contains("sport") || cat.contains("espn") || cat.contains("bein") || cat.contains("supersport") || cat.contains("sky") || cat.contains("live") || name.contains("sport")
-        }.map { $0.toUnified }
-    }
-    
-    var favorites: [UnifiedMediaItem] {
+    func updateFavorites() {
         let favIds = UserDataManager.shared.favorites
+        if favIds.isEmpty {
+            self.favorites = []
+            return
+        }
+        
         var items: [UnifiedMediaItem] = []
         for ch in dataManager.liveChannels {
-            let unified = ch.toUnified
-            if favIds.contains(unified.id) {
-                items.append(unified)
+            if favIds.contains(ch.toUnified.id) {
+                items.append(ch.toUnified)
             }
         }
         for mv in dataManager.movies {
@@ -72,7 +74,7 @@ class HomeViewModel {
                 items.append(sr)
             }
         }
-        return items
+        self.favorites = items
     }
     
     func refreshContent() async {
@@ -93,6 +95,14 @@ class HomeViewModel {
                 self.recommended = []
                 self.recentlyAdded = []
             }
+            
+            self.sportsLiveNow = self.dataManager.liveChannels.filter { ch in
+                let cat = (ch.category ?? "").lowercased()
+                let name = ch.name.lowercased()
+                return cat.contains("sport") || cat.contains("espn") || cat.contains("bein") || cat.contains("supersport") || cat.contains("sky") || cat.contains("live") || name.contains("sport")
+            }.map { $0.toUnified }
+            
+            self.updateFavorites()
         }
     }
 }

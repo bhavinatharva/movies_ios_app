@@ -73,6 +73,12 @@ struct HomeView: View {
                     await viewModel.refreshContent()
                 }
             }
+            .onAppear {
+                viewModel.updateFavorites()
+            }
+            .onChange(of: UserDataManager.shared.favorites) { _, _ in
+                viewModel.updateFavorites()
+            }
             .fullScreenCover(item: $selectedPlayableItem) { item in
                 if let url = item.streamUrl {
                     StreamingPlayerView(url: url, title: item.title, streamId: item.id)

@@ -22,18 +22,19 @@ class LiveTVViewModel {
     
     private let playlistManager = PlaylistManager.shared
     
-    var favorites: [IPTVChannel] {
-        let favIds = UserDataManager.shared.favorites
-        return allChannels.filter { favIds.contains($0.toUnified.id) }
-    }
-    
-    var recentlyWatched: [IPTVChannel] {
-        let historyIds = UserDataManager.shared.recentlyWatched.filter { $0.mediaType == .liveTV }.map { $0.id }
-        return allChannels.filter { historyIds.contains($0.toUnified.id) }
-    }
+    var favorites: [IPTVChannel] = []
+    var recentlyWatched: [IPTVChannel] = []
     
     var trendingChannels: [IPTVChannel] {
         Array(allChannels.prefix(10))
+    }
+    
+    func updateUserData() {
+        let favIds = UserDataManager.shared.favorites
+        self.favorites = allChannels.filter { favIds.contains($0.toUnified.id) }
+        
+        let historyIds = UserDataManager.shared.recentlyWatched.filter { $0.mediaType == .liveTV }.map { $0.id }
+        self.recentlyWatched = allChannels.filter { historyIds.contains($0.toUnified.id) }
     }
     
     func loadData() async {
@@ -54,6 +55,9 @@ class LiveTVViewModel {
             let uniqueCategories = Array(Set(channels.compactMap { $0.category })).sorted()
             self.categories = ["All"] + uniqueCategories
             self.filterChannels()
+            
+            // Pre-compute user data
+            self.updateUserData()
             
             // Auto-play the first channel in the mini player if none selected yet
             if self.activeChannelForMiniPlayer == nil, let first = channels.first {

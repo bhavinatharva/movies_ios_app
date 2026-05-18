@@ -14,38 +14,39 @@ struct IPTVChannel: Identifiable, Hashable {
     let logoUrl: URL?
     let category: String?
     let epgId: String?
+    let mediaType: MediaType
+    let toUnified: UnifiedMediaItem
     
-    var mediaType: MediaType {
+    init(name: String, streamUrl: URL, logoUrl: URL?, category: String?, epgId: String?) {
+        self.name = name
+        self.streamUrl = streamUrl
+        self.logoUrl = logoUrl
+        self.category = category
+        self.epgId = epgId
+        
         let group = (category ?? "").lowercased()
         let streamStr = streamUrl.absoluteString.lowercased()
         let nameLower = name.lowercased()
         
-        // Series check
+        var type: MediaType = .liveTV
         if group.contains("series") || group.contains("tv show") || group.contains("shows") || 
             streamStr.contains("/series/") || nameLower.matchesSeriesPattern() {
-            return .tvSeries
-        }
-        
-        // VOD Movies check
-        if group.contains("movies") || group.contains("vod") || group.contains("cinema") ||
+            type = .tvSeries
+        } else if group.contains("movies") || group.contains("vod") || group.contains("cinema") ||
             streamStr.contains("/movie/") || streamStr.hasSuffix(".mp4") || streamStr.hasSuffix(".mkv") {
-            return .movie
+            type = .movie
         }
+        self.mediaType = type
         
-        // Fallback to Live TV
-        return .liveTV
-    }
-    
-    var toUnified: UnifiedMediaItem {
-        UnifiedMediaItem(
+        self.toUnified = UnifiedMediaItem(
             id: streamUrl.absoluteString,
             title: name,
-            overview: mediaType == .liveTV ? "Live from \(category ?? "IPTV")" : "VOD from \(category ?? "IPTV")",
+            overview: type == .liveTV ? "Live from \(category ?? "IPTV")" : "VOD from \(category ?? "IPTV")",
             posterPath: logoUrl?.absoluteString,
             backdropPath: nil,
-            mediaType: mediaType,
+            mediaType: type,
             source: .iptv,
-            releaseDate: mediaType == .liveTV ? "LIVE" : nil,
+            releaseDate: type == .liveTV ? "LIVE" : nil,
             voteAverage: nil,
             runtime: nil,
             genres: category != nil ? [category!] : nil,
