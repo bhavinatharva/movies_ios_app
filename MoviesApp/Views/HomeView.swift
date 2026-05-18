@@ -6,6 +6,7 @@
 import SwiftUI
 
 struct HomeView: View {
+    @Environment(\.colorScheme) var colorScheme
     @AppStorage("has_default_playlist") private var hasDefaultPlaylist = false
     @AppStorage("active_playlist_url") private var activePlaylistUrl = ""
     @State private var viewModel = HomeViewModel()
@@ -15,16 +16,20 @@ struct HomeView: View {
     var body: some View {
         NavigationStack(path: $detailNavigationPath) {
             ZStack {
-                // Premium dark theatrical gradient background
-                LinearGradient(
-                    stops: [
-                        .init(color: Color(red: 0.05, green: 0.05, blue: 0.07), location: 0),
-                        .init(color: Color(red: 0.01, green: 0.01, blue: 0.02), location: 1)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea()
+                // Dynamic Premium theatrical background
+                if colorScheme == .light {
+                    Color.appBackground.ignoresSafeArea()
+                } else {
+                    LinearGradient(
+                        stops: [
+                            .init(color: Color(red: 0.05, green: 0.05, blue: 0.07), location: 0),
+                            .init(color: Color(red: 0.01, green: 0.01, blue: 0.02), location: 1)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .ignoresSafeArea()
+                }
                 
                 VStack(spacing: 0) {
                     // Header title / logo

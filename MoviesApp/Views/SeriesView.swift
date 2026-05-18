@@ -17,7 +17,7 @@ struct SeriesView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.black.ignoresSafeArea()
+                Color.appBackground.ignoresSafeArea()
                 
                 VStack(spacing: 0) {
                     // Search Bar
@@ -25,12 +25,12 @@ struct SeriesView: View {
                         Image(systemName: "magnifyingglass")
                             .foregroundColor(.gray)
                         TextField("Search series...", text: $viewModel.searchText)
-                            .foregroundColor(.white)
+                            .foregroundColor(.primary)
                             .autocapitalization(.none)
                             .disableAutocorrection(true)
                     }
                     .padding(10)
-                    .background(Color.gray.opacity(0.2))
+                    .background(Color.appCardBackground)
                     .cornerRadius(8)
                     .padding(.horizontal)
                     .padding(.vertical, 8)

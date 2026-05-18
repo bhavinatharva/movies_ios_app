@@ -118,3 +118,4 @@ struct PressScaleButtonStyle: ButtonStyle {
             .animation(.spring(response: 0.3, dampingFraction: 0.65, blendDuration: 0), value: configuration.isPressed)
     }
 }
+

@@ -18,7 +18,7 @@ struct VODMoviesView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.black.ignoresSafeArea()
+                Color.appBackground.ignoresSafeArea()
                 
                 VStack(spacing: 0) {
                     // Search Bar
@@ -26,12 +26,12 @@ struct VODMoviesView: View {
                         Image(systemName: "magnifyingglass")
                             .foregroundColor(.gray)
                         TextField("Search movies...", text: $viewModel.searchText)
-                            .foregroundColor(.white)
+                            .foregroundColor(.primary)
                             .autocapitalization(.none)
                             .disableAutocorrection(true)
                     }
                     .padding(10)
-                    .background(Color.gray.opacity(0.2))
+                    .background(Color.appCardBackground)
                     .cornerRadius(8)
                     .padding(.horizontal)
                     .padding(.vertical, 8)

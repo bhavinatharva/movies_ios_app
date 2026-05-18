@@ -6,6 +6,7 @@
 import SwiftUI
 
 struct LiveTVView: View {
+    @Environment(\.colorScheme) var colorScheme
     @AppStorage("has_default_playlist") private var hasDefaultPlaylist = false
     @AppStorage("active_playlist_url") private var activePlaylistUrl = ""
     @State private var viewModel = LiveTVViewModel()
@@ -14,16 +15,20 @@ struct LiveTVView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                // Premium deep dark ambient background
-                LinearGradient(
-                    stops: [
-                        .init(color: Color(red: 0.05, green: 0.05, blue: 0.07), location: 0),
-                        .init(color: Color(red: 0.01, green: 0.01, blue: 0.02), location: 1)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea()
+                // Dynamic Premium ambient background
+                if colorScheme == .light {
+                    Color.appBackground.ignoresSafeArea()
+                } else {
+                    LinearGradient(
+                        stops: [
+                            .init(color: Color(red: 0.05, green: 0.05, blue: 0.07), location: 0),
+                            .init(color: Color(red: 0.01, green: 0.01, blue: 0.02), location: 1)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .ignoresSafeArea()
+                }
                 
                 if !hasDefaultPlaylist {
                     emptyPlaylistView
