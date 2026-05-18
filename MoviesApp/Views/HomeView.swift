@@ -52,8 +52,6 @@ struct HomeView: View {
                             if viewModel.liveChannels.isEmpty {
                                 Spacer()
                                 ProgressView("Loading channels...")
-                                    .tint(.white)
-                                    .foregroundColor(.white)
                                 Spacer()
                             } else {
                                 contentView
@@ -66,7 +64,6 @@ struct HomeView: View {
                                 systemImage: "wifi.exclamationmark",
                                 description: Text(error.localizedDescription)
                             )
-                            .foregroundColor(.white)
                         }
                     }
                 }
@@ -93,7 +90,6 @@ struct HomeView: View {
         } description: {
             Text("Go to the Settings tab to add your IPTV M3U Playlist URL and start watching.")
         }
-        .foregroundColor(.white)
     }
     
     private var contentView: some View {
@@ -158,7 +154,7 @@ struct IPTVHeroHeaderView: View {
                                 .init(color: .black.opacity(0.6), location: 0),
                                 .init(color: .clear, location: 0.3),
                                 .init(color: .clear, location: 0.65),
-                                .init(color: .black, location: 1.0)
+                                .init(color: Color.appBackground, location: 1.0)
                             ],
                             startPoint: .top,
                             endPoint: .bottom

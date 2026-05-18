@@ -17,12 +17,11 @@ struct MovieDetailView: View {
     
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            Color.appBackground.ignoresSafeArea()
             
             switch viewModel.status {
             case .notstarted, .loading:
                 ProgressView()
-                    .tint(.white)
                     .scaleEffect(1.5)
             case .success:
                 if let movie = viewModel.movieDetail {
@@ -30,7 +29,6 @@ struct MovieDetailView: View {
                 }
             case .error(let error):
                 ContentUnavailableView("Connection Error", systemImage: "wifi.exclamationmark", description: Text(error.localizedDescription))
-                    .foregroundColor(.white)
             }
         }
         .navigationBarTitleDisplayMode(.inline)
@@ -58,7 +56,7 @@ struct MovieDetailView: View {
                                     LinearGradient(
                                         stops: [
                                             Gradient.Stop(color: .clear, location: 0.6),
-                                            Gradient.Stop(color: .black, location: 1.0)
+                                            Gradient.Stop(color: Color.appBackground, location: 1.0)
                                         ],
                                         startPoint: .top,
                                         endPoint: .bottom
@@ -120,9 +118,9 @@ struct MovieDetailView: View {
                                         .font(.caption)
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 6)
-                                        .background(Color.gray.opacity(0.3))
+                                        .background(Color.appCardBackground)
                                         .cornerRadius(20)
-                                        .foregroundColor(.white)
+                                        .foregroundColor(.primary)
                                 }
                             }
                             .padding(.horizontal, 20)
@@ -172,7 +170,7 @@ struct MovieDetailView: View {
                             Text("Videos & Trailers")
                                 .font(.title3)
                                 .fontWeight(.bold)
-                                .foregroundColor(.white)
+                                .foregroundColor(.primary)
                                 .padding(.horizontal, 20)
                             
                             ScrollView(.horizontal, showsIndicators: false) {
@@ -202,11 +200,11 @@ struct MovieDetailView: View {
                         Text("Overview")
                             .font(.title3)
                             .fontWeight(.bold)
-                            .foregroundColor(.white)
+                            .foregroundColor(.primary)
                         
                         Text(movie.overview ?? "No description available.")
                             .font(.body)
-                            .foregroundColor(.gray)
+                            .foregroundColor(.secondary)
                             .lineSpacing(4)
                     }
                     .padding(.horizontal, 20)

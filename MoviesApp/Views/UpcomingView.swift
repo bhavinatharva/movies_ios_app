@@ -14,12 +14,11 @@ struct UpcomingView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.black.ignoresSafeArea()
+                Color.appBackground.ignoresSafeArea()
                 
                 switch upcomingModel.upcomingStatus {
                 case ApiFetchStatus.notstarted, .loading:
                     ProgressView()
-                        .tint(.white)
                 case ApiFetchStatus.success:
                     VerticalListView(titles:upcomingModel.upcomingMovies,canDelete: false)
                         .navigationDestination(for: TrendingModel.self) { title in
@@ -28,7 +27,6 @@ struct UpcomingView: View {
         
                 case ApiFetchStatus.error(underlyingError: let error):
                     ContentUnavailableView("Connection Error", systemImage: "wifi.exclamationmark", description: Text(error.localizedDescription))
-                        .foregroundColor(.white)
                 }
             }
             .navigationTitle(Constants.StringConstants.tabUpcoming)

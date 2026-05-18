@@ -12,7 +12,7 @@ struct ActorDetailView: View {
     
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            Color.appBackground.ignoresSafeArea()
             
             GeometryReader { geo in
                 ScrollView {
@@ -29,7 +29,7 @@ struct ActorDetailView: View {
                                         LinearGradient(
                                             stops: [
                                                 Gradient.Stop(color: .clear, location: 0.6),
-                                                Gradient.Stop(color: .black, location: 1.0)
+                                                Gradient.Stop(color: Color.appBackground, location: 1.0)
                                             ],
                                             startPoint: .top,
                                             endPoint: .bottom
@@ -71,7 +71,7 @@ struct ActorDetailView: View {
                                 Text("Known For")
                                     .font(.title3)
                                     .fontWeight(.bold)
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.primary)
                                     .padding(.horizontal, 20)
                                 
                                 ScrollView(.horizontal, showsIndicators: false) {
@@ -92,11 +92,11 @@ struct ActorDetailView: View {
                             Text("About")
                                 .font(.title3)
                                 .fontWeight(.bold)
-                                .foregroundColor(.white)
+                                .foregroundColor(.primary)
                             
                             Text("Popularity: \(String(format: "%.1f", 0.0))") // Replace with real popularity if added to model
                                 .font(.body)
-                                .foregroundColor(.gray)
+                                .foregroundColor(.secondary)
                         }
                         .padding(.horizontal, 20)
                         .padding(.top, 10)

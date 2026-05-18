@@ -25,7 +25,7 @@ struct MovieHeroHeaderView: View {
                         LinearGradient(
                             stops: [
                                 Gradient.Stop(color: .clear, location: 0.5),
-                                Gradient.Stop(color: .black, location: 1.0)
+                                Gradient.Stop(color: Color.appBackground, location: 1.0)
                             ],
                             startPoint: .top,
                             endPoint: .bottom
@@ -41,7 +41,7 @@ struct MovieHeroHeaderView: View {
             VStack(spacing: 16) {
                 Text(movie.title ?? movie.name ?? "")
                     .font(.system(size: 36, weight: .black))
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
                     .multilineTextAlignment(.center)
                     .shadow(radius: 10)
                 

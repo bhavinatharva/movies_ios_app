@@ -17,12 +17,11 @@ struct ActorsView: View {
     var body: some View {
         NavigationStack(path: $navigationPath) {
             ZStack {
-                Color.black.ignoresSafeArea()
+                Color.appBackground.ignoresSafeArea()
                 
                 switch actorViewModel.actorStatus {
                 case .notstarted, .loading:
                     ProgressView()
-                        .tint(.white)
                 case .success:
                     ScrollView {
                         VStack(spacing: 24) {
@@ -69,7 +68,6 @@ struct ActorsView: View {
                         systemImage: "wifi.exclamationmark",
                         description: Text(error.localizedDescription)
                     )
-                    .foregroundColor(.white)
                 }
             }
             .navigationDestination(for: ActorModel.self) { actor in

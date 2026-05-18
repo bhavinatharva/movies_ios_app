@@ -38,12 +38,9 @@ struct SeriesView: View {
                     if viewModel.isLoading {
                         Spacer()
                         ProgressView("Loading Categories...")
-                            .tint(.white)
-                            .foregroundColor(.white)
                         Spacer()
                     } else if let error = viewModel.errorMessage {
                         ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(error))
-                            .foregroundColor(.white)
                     } else {
                         // Category Horizontal Bar
                         ScrollView(.horizontal, showsIndicators: false) {
@@ -57,8 +54,8 @@ struct SeriesView: View {
                                             .fontWeight(.bold)
                                             .padding(.horizontal, 16)
                                             .padding(.vertical, 8)
-                                            .background(viewModel.selectedCategory?.id == category.id ? Color.accentColor : Color.gray.opacity(0.2))
-                                            .foregroundColor(.white)
+                                            .background(viewModel.selectedCategory?.id == category.id ? Color.accentColor : Color.appCardBackground)
+                                            .foregroundColor(viewModel.selectedCategory?.id == category.id ? .white : .primary)
                                             .cornerRadius(20)
                                     }
                                 }
@@ -70,8 +67,6 @@ struct SeriesView: View {
                         if viewModel.isLoadingSeries {
                             Spacer()
                             ProgressView("Loading Series...")
-                                .tint(.white)
-                                .foregroundColor(.white)
                             Spacer()
                         } else {
                             ScrollView {

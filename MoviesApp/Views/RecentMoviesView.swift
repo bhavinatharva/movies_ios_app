@@ -13,17 +13,15 @@ struct RecentMoviesView: View {
     var body: some View {
 
             ZStack {
-                Color.black.ignoresSafeArea()
+                Color.appBackground.ignoresSafeArea()
                 
                 Group {
                     switch viewModel.fetchStatus {
                     case .notstarted, .loading:
                         ProgressView("Loading recent changes...")
-                            .tint(.white)
                     case .success:
                         if viewModel.recentChanges.isEmpty {
                             ContentUnavailableView("No Recent Changes", systemImage: "clock.badge.exclamationmark", description: Text("No movie changes found in the past 24 hours."))
-                                .foregroundColor(.white)
                         } else {
                             List(viewModel.recentChanges) { change in
                                 HStack {
@@ -34,7 +32,7 @@ struct RecentMoviesView: View {
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text("Movie ID: \(String(change.id))")
                                             .font(.headline)
-                                            .foregroundColor(.white)
+                                            .foregroundColor(.primary)
                                         if let adult = change.adult {
                                             Text(adult ? "Adult Content" : "Standard Content")
                                                 .font(.caption)
@@ -46,17 +44,16 @@ struct RecentMoviesView: View {
                                     
                                     Image(systemName: "chevron.right")
                                         .font(.caption)
-                                        .foregroundColor(.gray)
+                                        .foregroundColor(.secondary)
                                 }
                                 .padding(.vertical, 8)
-                                .listRowBackground(Color.black)
+                                .listRowBackground(Color.appBackground)
                                 .listRowSeparator(.visible, edges: .bottom)
                             }
                             .listStyle(.plain)
                         }
                     case .error(let error):
                         ContentUnavailableView("Error Loading Data", systemImage: "exclamationmark.triangle", description: Text(error.localizedDescription))
-                            .foregroundColor(.white)
                     }
                 }
             }

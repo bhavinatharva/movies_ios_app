@@ -24,15 +24,12 @@ struct SeriesDetailView: View {
     
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            Color.appBackground.ignoresSafeArea()
             
             if isLoading {
                 ProgressView("Loading Series Info...")
-                    .tint(.white)
-                    .foregroundColor(.white)
             } else if let error = errorMessage {
                 ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(error))
-                    .foregroundColor(.white)
             } else {
                 VStack(spacing: 0) {
                     // Header cover / Banner
@@ -53,7 +50,7 @@ struct SeriesDetailView: View {
                         Text(series.title)
                             .font(.title2)
                             .fontWeight(.bold)
-                            .foregroundColor(.white)
+                            .foregroundColor(.primary)
                             .padding(.horizontal)
                         
                         if !seasons.isEmpty {
@@ -98,14 +95,14 @@ struct SeriesDetailView: View {
                                                 Text("\(episode.episodeNum ?? 0). \(episode.title)")
                                                     .font(.subheadline)
                                                     .fontWeight(.bold)
-                                                    .foregroundColor(.white)
+                                                    .foregroundColor(.primary)
                                                     .lineLimit(1)
                                                     .multilineTextAlignment(.leading)
                                                 
                                                 if let plot = episode.info?.plot {
                                                     Text(plot)
                                                         .font(.caption)
-                                                        .foregroundColor(.gray)
+                                                        .foregroundColor(.secondary)
                                                         .lineLimit(2)
                                                         .multilineTextAlignment(.leading)
                                                 }
@@ -122,7 +119,7 @@ struct SeriesDetailView: View {
                     } else {
                         Spacer()
                         Text("No episodes in this season")
-                            .foregroundColor(.gray)
+                            .foregroundColor(.secondary)
                         Spacer()
                     }
                 }

@@ -34,11 +34,8 @@ struct LiveTVView: View {
                     emptyPlaylistView
                 } else if viewModel.isLoading {
                     ProgressView("Loading Live TV...")
-                        .tint(.white)
-                        .foregroundColor(.white)
                 } else if let error = viewModel.errorMessage {
                     ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(error))
-                        .foregroundColor(.white)
                 } else {
                     HStack(spacing: 0) {
                         // Categories Sidebar (Vertical Scroll)
@@ -61,7 +58,7 @@ struct LiveTVView: View {
                                             
                                             Text(category)
                                                 .font(.system(size: 13, weight: viewModel.selectedCategory == category ? .bold : .medium, design: .rounded))
-                                                .foregroundColor(viewModel.selectedCategory == category ? .white : .gray)
+                                                .foregroundColor(viewModel.selectedCategory == category ? .primary : .secondary)
                                                 .padding(.leading, 2)
                                             
                                             Spacer()
@@ -96,7 +93,7 @@ struct LiveTVView: View {
                                         HStack(spacing: 16) {
                                             // Glass-framed Logo Container
                                             ZStack {
-                                                Color.black.opacity(0.4)
+                                                Color.appCardBackground
                                                 
                                                 if let logoUrl = channel.logoUrl {
                                                     AsyncImage(url: logoUrl) { image in
@@ -106,31 +103,31 @@ struct LiveTVView: View {
                                                     } placeholder: {
                                                         Image(systemName: "tv")
                                                             .font(.body)
-                                                            .foregroundColor(.gray)
+                                                            .foregroundColor(.secondary)
                                                     }
                                                 } else {
                                                     Image(systemName: "tv")
                                                         .font(.body)
-                                                        .foregroundColor(.gray)
+                                                        .foregroundColor(.secondary)
                                                 }
                                             }
                                             .frame(width: 64, height: 44)
                                             .cornerRadius(12)
                                             .overlay(
                                                 RoundedRectangle(cornerRadius: 12)
-                                                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                                                    .stroke(Color.primary.opacity(0.1), lineWidth: 1)
                                             )
                                             
                                             VStack(alignment: .leading, spacing: 4) {
                                                 Text(channel.name)
                                                     .font(.system(size: 15, weight: .bold, design: .rounded))
-                                                    .foregroundColor(.white)
+                                                    .foregroundColor(.primary)
                                                     .lineLimit(1)
                                                 
                                                 if let cat = channel.category {
                                                     Text(cat)
                                                         .font(.caption)
-                                                        .foregroundColor(.gray)
+                                                        .foregroundColor(.secondary)
                                                         .lineLimit(1)
                                                 }
                                             }
@@ -182,6 +179,5 @@ struct LiveTVView: View {
         } description: {
             Text("Go to the Settings tab to add your IPTV M3U Playlist URL and start watching.")
         }
-        .foregroundColor(.white)
     }
 }

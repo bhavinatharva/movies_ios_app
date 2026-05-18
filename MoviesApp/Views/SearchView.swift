@@ -16,12 +16,11 @@ struct SearchView: View {
     var body: some View {
         NavigationStack(path: $navigationPath) {
             ZStack {
-                Color.black.ignoresSafeArea()
+                Color.appBackground.ignoresSafeArea()
                 
                 ScrollView {
                     if let error = searchViewModel.errorMessage {
                         ContentUnavailableView("Search Error", systemImage: "exclamationmark.magnifyingglass", description: Text(error))
-                            .foregroundColor(.white)
                     }
                     
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 20) {

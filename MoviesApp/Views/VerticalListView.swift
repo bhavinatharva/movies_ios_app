@@ -40,12 +40,12 @@ struct VerticalListView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text((title.name ?? title.title) ?? "Unknown")
                             .font(.headline)
-                            .foregroundColor(.white)
+                            .foregroundColor(.primary)
                             .lineLimit(2)
                         
                         Text(title.overview ?? "")
                             .font(.caption)
-                            .foregroundColor(.gray)
+                            .foregroundColor(.secondary)
                             .lineLimit(3)
                         
                         HStack {
@@ -68,10 +68,10 @@ struct VerticalListView: View {
                     
                     Image(systemName: "play.circle")
                         .font(.title2)
-                        .foregroundColor(.white)
+                        .foregroundColor(.accentColor)
                 }
             }
-            .listRowBackground(Color.black)
+            .listRowBackground(Color.appBackground)
             .listRowSeparator(.visible, edges: .bottom)
             .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
             .swipeActions(edge: .trailing) {
@@ -86,7 +86,7 @@ struct VerticalListView: View {
             }
         }
         .listStyle(.plain)
-        .background(Color.black)
+        .background(Color.appBackground)
     }
 }
 

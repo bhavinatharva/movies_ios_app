@@ -25,7 +25,7 @@ struct ActorHeroHeaderView: View {
                             LinearGradient(
                                 stops: [
                                     Gradient.Stop(color: .clear, location: 0.5),
-                                    Gradient.Stop(color: .black, location: 1.0)
+                                    Gradient.Stop(color: Color.appBackground, location: 1.0)
                                 ],
                                 startPoint: .top,
                                 endPoint: .bottom
@@ -38,14 +38,14 @@ struct ActorHeroHeaderView: View {
                         .shimmer()
                 }
             } else {
-                Color.black.opacity(0.8)
+                Color.appBackground
                     .frame(height: 450)
             }
             
             VStack(spacing: 12) {
                 Text(actor?.name ?? "Featured Actor")
                     .font(.system(size: 42, weight: .black))
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
                     .multilineTextAlignment(.center)
                 
                 HStack(spacing: 16) {
@@ -53,7 +53,7 @@ struct ActorHeroHeaderView: View {
                         .font(.caption)
                         .fontWeight(.bold)
                         .tracking(2)
-                        .foregroundColor(.white)
+                        .foregroundColor(.secondary)
                     
                     Circle()
                         .frame(width: 4, height: 4)

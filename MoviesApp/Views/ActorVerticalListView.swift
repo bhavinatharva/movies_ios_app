@@ -40,7 +40,7 @@ struct ActorVerticalListView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(title.name ?? "Unknown")
                             .font(.headline)
-                            .foregroundColor(.white)
+                            .foregroundColor(.primary)
                             .lineLimit(2)
                         
                         Text(title.knownForDepartment ?? "")
@@ -50,7 +50,7 @@ struct ActorVerticalListView: View {
                         if let knownFor = title.knownFor?.prefix(2) {
                             Text(knownFor.compactMap { $0.title ?? $0.name }.joined(separator: ", "))
                                 .font(.caption)
-                                .foregroundColor(.gray)
+                                .foregroundColor(.secondary)
                                 .lineLimit(1)
                         }
                         
@@ -70,15 +70,15 @@ struct ActorVerticalListView: View {
                     
                     Image(systemName: "chevron.right")
                         .font(.caption)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.secondary)
                 }
             }
-            .listRowBackground(Color.black)
+            .listRowBackground(Color.appBackground)
             .listRowSeparator(.visible, edges: .bottom)
             .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
         }
         .listStyle(.plain)
-        .background(Color.black)
+        .background(Color.appBackground)
     }
 }
 

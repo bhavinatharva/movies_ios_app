@@ -19,18 +19,18 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.black.ignoresSafeArea()
+                Color.appBackground.ignoresSafeArea()
                 
                 List {
                     // 1. Playlists List Section
                     if !playlists.isEmpty {
-                        Section(header: Text("Your IPTV Playlists").foregroundColor(.gray)) {
+                        Section(header: Text("Your IPTV Playlists").foregroundColor(.secondary)) {
                             ForEach(playlists) { playlist in
                                 HStack(spacing: 12) {
                                     VStack(alignment: .leading, spacing: 4) {
                                         HStack(spacing: 8) {
                                             Text(playlist.name)
-                                                .foregroundColor(.white)
+                                                .foregroundColor(.primary)
                                                 .fontWeight(playlist.isDefault ? .bold : .regular)
                                             
                                             if playlist.isDefault {
@@ -77,7 +77,7 @@ struct SettingsView: View {
                                             .font(.title3)
                                     }
                                 }
-                                .listRowBackground(Color.gray.opacity(0.1))
+                                .listRowBackground(Color.appCardBackground)
                                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                     Button(role: .destructive) {
                                         playlistManager.deletePlaylist(playlist)
@@ -98,23 +98,20 @@ struct SettingsView: View {
                                 systemImage: "tv.slash",
                                 description: Text("Add your M3U link or Xtream URL below to get started.")
                             )
-                            .foregroundColor(.white)
                         }
                         .listRowBackground(Color.clear)
                     }
                     
                     // 2. Add Playlist Section
-                    Section(header: Text("Add New IPTV Source").foregroundColor(.gray)) {
+                    Section(header: Text("Add New IPTV Source").foregroundColor(.secondary)) {
                         TextField("Playlist Name", text: $playlistName)
-                            .foregroundColor(.white)
-                            .listRowBackground(Color.gray.opacity(0.1))
+                            .listRowBackground(Color.appCardBackground)
                         
                         TextField("M3U Playlist URL", text: $playlistUrl)
                             .keyboardType(.URL)
                             .autocapitalization(.none)
                             .disableAutocorrection(true)
-                            .foregroundColor(.white)
-                            .listRowBackground(Color.gray.opacity(0.1))
+                            .listRowBackground(Color.appCardBackground)
                         
                         Button(action: {
                             Task {
@@ -123,7 +120,6 @@ struct SettingsView: View {
                         }) {
                             if isLoading {
                                 ProgressView()
-                                    .tint(.white)
                             } else {
                                 Text("Load & Save Playlist")
                                     .fontWeight(.bold)
@@ -132,7 +128,7 @@ struct SettingsView: View {
                         }
                         .foregroundColor(.accentColor)
                         .disabled(isLoading || playlistUrl.isEmpty)
-                        .listRowBackground(Color.gray.opacity(0.1))
+                        .listRowBackground(Color.appCardBackground)
                     }
                     
                     if let error = errorMessage {
@@ -144,15 +140,14 @@ struct SettingsView: View {
                         }
                     }
                     
-                    Section(header: Text("Appearance").foregroundColor(.gray)) {
+                    Section(header: Text("Appearance").foregroundColor(.secondary)) {
                         Picker("Theme", selection: $userDataManager.currentTheme) {
                             ForEach(AppTheme.allCases) { theme in
                                 Text(theme.rawValue).tag(theme)
                             }
                         }
-                        .foregroundColor(.white)
                         .tint(.accentColor)
-                        .listRowBackground(Color.gray.opacity(0.1))
+                        .listRowBackground(Color.appCardBackground)
                     }
                     
                     Section(footer: Text("App Version 1.0").frame(maxWidth: .infinity, alignment: .center)) {

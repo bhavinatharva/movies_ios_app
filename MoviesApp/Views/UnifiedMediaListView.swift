@@ -17,7 +17,7 @@ struct UnifiedMediaListView: View {
             Text(header)
                 .font(.title3)
                 .fontWeight(.bold)
-                .foregroundColor(.white)
+                .foregroundColor(.primary)
                 .padding(.horizontal, 16)
             
             ScrollView(.horizontal, showsIndicators: false) {
