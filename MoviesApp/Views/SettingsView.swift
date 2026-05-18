@@ -118,22 +118,57 @@ struct SettingsView: View {
         isLoading = true
         errorMessage = nil
         
-        var sanitizedUrl = playlistUrl.trimmingCharacters(in: .whitespacesAndNewlines)
-        sanitizedUrl = sanitizedUrl.replacingOccurrences(of: "\r", with: "")
-        sanitizedUrl = sanitizedUrl.replacingOccurrences(of: "\n", with: "")
+        let validationResult = IPTVValidator.validateIPTVSource(input: playlistUrl)
         
-        if !sanitizedUrl.lowercased().hasPrefix("http://") && !sanitizedUrl.lowercased().hasPrefix("https://") {
-            sanitizedUrl = "http://" + sanitizedUrl
-        }
-        
-        guard let url = URL(string: sanitizedUrl) else {
-            errorMessage = "Invalid URL format."
+        guard validationResult.isValid,
+              let sanitizedStr = validationResult.sanitizedUrl,
+              let url = URL(string: sanitizedStr) else {
+            errorMessage = validationResult.errorMessage ?? "Invalid IPTV source. Please enter a valid M3U, Xtream API, or HLS URL."
             isLoading = false
             return
         }
         
         do {
-            let channels = try await IPTVService.shared.fetchM3U(url: url)
+            let channels: [IPTVChannel]
+            
+            switch validationResult.type {
+            case .m3uPlaylist:
+                channels = try await IPTVService.shared.fetchM3U(url: url)
+            case .xtreamCodes:
+                if url.path.contains("player_api.php") {
+                    let queryParams = url.queryParameters
+                    let username = queryParams["username"] ?? ""
+                    let password = queryParams["password"] ?? ""
+                    let serverUrl = "\(url.scheme ?? "http")://\(url.host ?? "")\(url.port != nil ? ":\(url.port!)" : "")"
+                    let creds = XtreamCredentials(serverUrl: serverUrl, username: username, password: password)
+                    channels = try await IPTVService.shared.fetchXtreamChannels(creds: creds)
+                } else {
+                    channels = try await IPTVService.shared.fetchM3U(url: url)
+                }
+            case .directHLS:
+                let channel = IPTVChannel(
+                    name: playlistName.isEmpty ? "Direct HLS Stream" : playlistName,
+                    streamUrl: url,
+                    logoUrl: nil,
+                    category: "Direct HLS Stream",
+                    epgId: nil
+                )
+                channels = [channel]
+            case .directDASH:
+                let channel = IPTVChannel(
+                    name: playlistName.isEmpty ? "Direct DASH Stream" : playlistName,
+                    streamUrl: url,
+                    logoUrl: nil,
+                    category: "Direct DASH Stream",
+                    epgId: nil
+                )
+                channels = [channel]
+            case .unknown:
+                errorMessage = "Invalid IPTV source. Please enter a valid M3U, Xtream API, or HLS URL."
+                isLoading = false
+                return
+            }
+            
             guard !channels.isEmpty else {
                 errorMessage = "The playlist is empty or invalid."
                 isLoading = false
@@ -141,13 +176,13 @@ struct SettingsView: View {
             }
             
             let name = playlistName.isEmpty ? "My M3U Playlist" : playlistName
-            playlistManager.addPlaylist(name: name, url: sanitizedUrl)
-            playlistManager.cacheChannels(channels, forUrl: sanitizedUrl)
+            playlistManager.addPlaylist(name: name, url: sanitizedStr)
+            playlistManager.cacheChannels(channels, forUrl: sanitizedStr)
             
             hasDefaultPlaylist = true
             playlistUrl = ""
         } catch {
-            errorMessage = "Failed to load M3U: \(error.localizedDescription)"
+            errorMessage = "Failed to load IPTV source: \(error.localizedDescription)"
         }
         
         isLoading = false
