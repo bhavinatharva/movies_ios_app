@@ -12,6 +12,12 @@ class VODMoviesViewModel {
     var movies: [UnifiedMediaItem] = []
     var selectedCategory: XtreamCategory?
     
+    var heroMovie: UnifiedMediaItem?
+    var trendingMovies: [UnifiedMediaItem] = []
+    var newReleases: [UnifiedMediaItem] = []
+    var recommended: [UnifiedMediaItem] = []
+    var topRated: [UnifiedMediaItem] = []
+    
     var isLoading = false
     var isLoadingMovies = false
     var errorMessage: String?
@@ -19,6 +25,10 @@ class VODMoviesViewModel {
     
     private let iptvService = IPTVService.shared
     private let authManager = AuthManager.shared
+    
+    var continueWatching: [UnifiedMediaItem] {
+        UserDataManager.shared.recentlyWatched.filter { $0.mediaType == .movie }
+    }
     
     var filteredMovies: [UnifiedMediaItem] {
         if searchText.isEmpty {
@@ -29,6 +39,25 @@ class VODMoviesViewModel {
     }
     
     func loadCategories() async {
+        // Fetch metadata collections from TMDB API
+        do {
+            let api = ApiServices()
+            let trending = try await api.fetchTrendings(for: "movie", by: "trending")
+            let upcoming = try await api.fetchTrendings(for: "movie", by: "upcoming")
+            let top = try await api.fetchTrendings(for: "movie", by: "top_rated")
+            
+            await MainActor.run {
+                self.trendingMovies = trending.map { $0.toUnified }
+                self.newReleases = upcoming.map { $0.toUnified }
+                self.topRated = top.map { $0.toUnified }
+                self.recommended = trending.shuffled().map { $0.toUnified }
+                
+                self.heroMovie = self.trendingMovies.first
+            }
+        } catch {
+            print("Failed to fetch TMDB movie tab collections: \(error)")
+        }
+        
         guard let creds = authManager.credentials else {
             // Support local M3U Movies
             await MainActor.run {
@@ -46,6 +75,9 @@ class VODMoviesViewModel {
                 if let firstCat = cats.first {
                     self.selectedCategory = firstCat
                     self.movies = dataManager.categorizedMovies[firstCat.id] ?? []
+                    if self.heroMovie == nil {
+                        self.heroMovie = self.movies.first
+                    }
                 }
                 self.isLoading = false
             }
