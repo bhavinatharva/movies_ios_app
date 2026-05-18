@@ -12,6 +12,13 @@ class SeriesViewModel {
     var series: [UnifiedMediaItem] = []
     var selectedCategory: XtreamCategory?
     
+    var heroSeries: UnifiedMediaItem?
+    var trendingSeries: [UnifiedMediaItem] = []
+    var popularSeries: [UnifiedMediaItem] = []
+    var recommended: [UnifiedMediaItem] = []
+    var topRated: [UnifiedMediaItem] = []
+    var recentlyAdded: [UnifiedMediaItem] = []
+    
     var isLoading = false
     var isLoadingSeries = false
     var errorMessage: String?
@@ -19,6 +26,10 @@ class SeriesViewModel {
     
     private let iptvService = IPTVService.shared
     private let authManager = AuthManager.shared
+    
+    var continueWatching: [UnifiedMediaItem] {
+        UserDataManager.shared.recentlyWatched.filter { $0.mediaType == .tvSeries }
+    }
     
     var filteredSeries: [UnifiedMediaItem] {
         if searchText.isEmpty {
@@ -29,6 +40,27 @@ class SeriesViewModel {
     }
     
     func loadCategories() async {
+        // Fetch metadata collections from TMDB API
+        do {
+            let api = ApiServices()
+            let trending = try await api.fetchTrendings(for: "tv", by: "trending")
+            let popular = try await api.fetchTrendings(for: "tv", by: "popular")
+            let top = try await api.fetchTrendings(for: "tv", by: "top_rated")
+            let airing = try await api.fetchTrendings(for: "tv", by: "on_the_air")
+            
+            await MainActor.run {
+                self.trendingSeries = trending.map { $0.toUnified }
+                self.popularSeries = popular.map { $0.toUnified }
+                self.topRated = top.map { $0.toUnified }
+                self.recentlyAdded = airing.map { $0.toUnified }
+                self.recommended = trending.shuffled().map { $0.toUnified }
+                
+                self.heroSeries = self.trendingSeries.first
+            }
+        } catch {
+            print("Failed to fetch TMDB tv series collections: \(error)")
+        }
+        
         guard let creds = authManager.credentials else {
             // M3U TV Series Fallback
             await MainActor.run {
@@ -56,6 +88,9 @@ class SeriesViewModel {
                 if let firstCat = cats.first {
                     self.selectedCategory = firstCat
                     self.series = catsMap[firstCat.id] ?? []
+                    if self.heroSeries == nil {
+                        self.heroSeries = self.series.first
+                    }
                 }
                 self.isLoading = false
             }
