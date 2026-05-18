@@ -34,6 +34,7 @@ struct UnifiedMediaItem: Identifiable, Hashable, Codable {
     var genres: [String]?
     var streamUrl: URL? // For IPTV HLS streams
     var epgId: String? // For EPG matching
+    var adult: Bool?
     
     // General Initializer
     init(id: String,
@@ -48,7 +49,8 @@ struct UnifiedMediaItem: Identifiable, Hashable, Codable {
          runtime: Int? = nil,
          genres: [String]? = nil,
          streamUrl: URL? = nil,
-         epgId: String? = nil) {
+         epgId: String? = nil,
+         adult: Bool? = false) {
         self.id = id
         self.title = title
         self.overview = overview
@@ -62,6 +64,7 @@ struct UnifiedMediaItem: Identifiable, Hashable, Codable {
         self.genres = genres
         self.streamUrl = streamUrl
         self.epgId = epgId
+        self.adult = adult
     }
 
     // Initializer from TrendingModel (TMDB)
@@ -79,6 +82,7 @@ struct UnifiedMediaItem: Identifiable, Hashable, Codable {
         self.genres = nil
         self.streamUrl = nil
         self.epgId = nil
+        self.adult = trending.adult
     }
 
     // Initializer from XtreamVODStream

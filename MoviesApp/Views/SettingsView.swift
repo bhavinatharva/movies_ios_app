@@ -9,6 +9,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @AppStorage("has_default_playlist") private var hasDefaultPlaylist = false
+    @AppStorage("show_adult_content") private var showAdultContent = false
     @State private var userDataManager = UserDataManager.shared
     
     var body: some View {
@@ -27,8 +28,29 @@ struct SettingsView: View {
                                 Text("Your Playlists")
                                     .foregroundColor(.primary)
                                     .fontWeight(.medium)
+                             }
+                        }
+                        .listRowBackground(Color.appCardBackground)
+                    }
+                    
+                    Section(header: Text("Content Filter").foregroundColor(.secondary)) {
+                        Toggle(isOn: $showAdultContent) {
+                            HStack(spacing: 12) {
+                                Image(systemName: "exclamationmark.shield.fill")
+                                    .foregroundColor(.accentColor)
+                                    .font(.title3)
+                                
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Show Adult Content (18+)")
+                                        .foregroundColor(.primary)
+                                        .fontWeight(.medium)
+                                    Text("Toggle to blur adult content")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
                             }
                         }
+                        .toggleStyle(SwitchToggleStyle(tint: .accentColor))
                         .listRowBackground(Color.appCardBackground)
                     }
                     

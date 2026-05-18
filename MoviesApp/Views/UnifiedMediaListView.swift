@@ -42,6 +42,24 @@ struct UnifiedMediaListView: View {
 struct UnifiedMediaCardView: View {
     let item: UnifiedMediaItem
     var width: CGFloat? = 140
+    @AppStorage("show_adult_content") private var showAdultContent = false
+    
+    private var isAdult: Bool {
+        if item.adult == true { return true }
+        let titleLower = item.title.lowercased()
+        if titleLower.contains("18+") || titleLower.contains("xxx") || titleLower.contains("adult") || titleLower.contains("redlight") {
+            return true
+        }
+        if let genres = item.genres {
+            for genre in genres {
+                let genreLower = genre.lowercased()
+                if genreLower.contains("18+") || genreLower.contains("xxx") || genreLower.contains("adult") {
+                    return true
+                }
+            }
+        }
+        return false
+    }
     
     var body: some View {
         ZStack(alignment: .bottomLeading) {
@@ -57,8 +75,28 @@ struct UnifiedMediaCardView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .shimmer()
             }
+            .blur(radius: (isAdult && !showAdultContent) ? 22 : 0)
             .netflixStyleGradient()
             .cardStyle()
+            
+            if isAdult && !showAdultContent {
+                Color.black.opacity(0.4)
+                    .cardStyle()
+                
+                VStack(spacing: 6) {
+                    Image(systemName: "eye.slash.fill")
+                        .font(.system(size: 24))
+                        .foregroundColor(.white.opacity(0.85))
+                    Text("18+")
+                        .font(.system(size: 10, weight: .black))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Color.red)
+                        .cornerRadius(6)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
             
             VStack(alignment: .leading, spacing: 4) {
                 if item.releaseDate == "LIVE" {
@@ -74,6 +112,7 @@ struct UnifiedMediaCardView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(width == nil ? 6 : 10)
+            .opacity((isAdult && !showAdultContent) ? 0.3 : 1.0)
         }
         .frame(width: width)
         .aspectRatio(3/4, contentMode: .fit)
