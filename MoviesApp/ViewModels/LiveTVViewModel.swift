@@ -8,53 +8,45 @@ import SwiftUI
 
 @Observable
 class LiveTVViewModel {
-    var categories: [XtreamCategory] = []
+    var categories: [String] = []
     var allChannels: [IPTVChannel] = []
     var filteredChannels: [IPTVChannel] = []
-    var selectedCategory: XtreamCategory?
+    var selectedCategory: String?
     
     var isLoading = false
     var errorMessage: String?
     
-    private let iptvService = IPTVService.shared
-    private let authManager = AuthManager.shared
+    private let playlistManager = PlaylistManager.shared
     
     func loadData() async {
-        guard let creds = authManager.credentials else { return }
-        
         await MainActor.run {
             isLoading = true
             errorMessage = nil
         }
         
-        do {
-            async let cats = iptvService.fetchLiveCategories(creds: creds)
-            async let chans = iptvService.fetchXtreamChannels(creds: creds)
-            
-            let fetchedCategories = try await cats
-            let fetchedChannels = try await chans
-            
+        guard let defaultPlaylist = playlistManager.fetchDefaultPlaylist() else {
             await MainActor.run {
-                self.categories = fetchedCategories
-                self.allChannels = fetchedChannels
-                
-                if let firstCat = self.categories.first {
-                    self.selectCategory(firstCat)
-                } else {
-                    self.filteredChannels = self.allChannels
-                }
-                self.isLoading = false
+                isLoading = false
             }
-        } catch {
-            await MainActor.run {
-                self.errorMessage = error.localizedDescription
-                self.isLoading = false
+            return
+        }
+        
+        let cached = playlistManager.getCachedChannels(forUrl: defaultPlaylist.url)
+        
+        await MainActor.run {
+            self.allChannels = cached
+            self.categories = Array(Set(cached.compactMap { $0.category })).sorted()
+            if let firstCat = self.categories.first {
+                self.selectCategory(firstCat)
+            } else {
+                self.filteredChannels = cached
             }
+            self.isLoading = false
         }
     }
     
-    func selectCategory(_ category: XtreamCategory) {
+    func selectCategory(_ category: String) {
         selectedCategory = category
-        filteredChannels = allChannels.filter { $0.category == category.id }
+        filteredChannels = allChannels.filter { $0.category == category }
     }
 }

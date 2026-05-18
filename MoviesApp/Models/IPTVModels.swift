@@ -17,7 +17,7 @@ struct IPTVChannel: Identifiable, Hashable {
     
     var toUnified: UnifiedMediaItem {
         UnifiedMediaItem(
-            id: id.uuidString,
+            id: streamUrl.absoluteString,
             title: name,
             overview: "Live from \(category ?? "IPTV")",
             posterPath: logoUrl?.absoluteString,

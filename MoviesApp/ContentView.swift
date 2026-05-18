@@ -8,20 +8,13 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var authManager = AuthManager.shared
-    
     var body: some View {
-        Group {
-            if authManager.isLoggedIn {
-                MainTabView()
-            } else {
-                LoginView()
+        MainTabView()
+            .onAppear {
+                if let config = ApiConfig.shared {
+                    print("ApiConfig.shared.baseUrl", config.baseUrl ?? "Not available")
+                }
             }
-        }.onAppear{
-            if let config = ApiConfig.shared {
-                print("ApiConfig.shared.baseUrl", config.baseUrl ?? "Not available")
-            }
-        }
     }
 }
 

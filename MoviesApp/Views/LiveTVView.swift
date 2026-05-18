@@ -6,14 +6,18 @@
 import SwiftUI
 
 struct LiveTVView: View {
+    @AppStorage("has_default_playlist") private var hasDefaultPlaylist = false
     @State private var viewModel = LiveTVViewModel()
+    @State private var selectedChannel: IPTVChannel?
     
     var body: some View {
         NavigationStack {
             ZStack {
                 Color.black.ignoresSafeArea()
                 
-                if viewModel.isLoading {
+                if !hasDefaultPlaylist {
+                    emptyPlaylistView
+                } else if viewModel.isLoading {
                     ProgressView("Loading Live TV...")
                         .tint(.white)
                         .foregroundColor(.white)
@@ -25,17 +29,17 @@ struct LiveTVView: View {
                         // Categories Sidebar (Vertical Scroll)
                         ScrollView(.vertical, showsIndicators: false) {
                             VStack(spacing: 0) {
-                                ForEach(viewModel.categories) { category in
+                                ForEach(viewModel.categories, id: \.self) { category in
                                     Button(action: {
                                         viewModel.selectCategory(category)
                                     }) {
-                                        Text(category.name)
+                                        Text(category)
                                             .font(.subheadline)
-                                            .fontWeight(viewModel.selectedCategory?.id == category.id ? .bold : .regular)
-                                            .foregroundColor(viewModel.selectedCategory?.id == category.id ? .white : .gray)
+                                            .fontWeight(viewModel.selectedCategory == category ? .bold : .regular)
+                                            .foregroundColor(viewModel.selectedCategory == category ? .white : .gray)
                                             .frame(maxWidth: .infinity, alignment: .leading)
                                             .padding()
-                                            .background(viewModel.selectedCategory?.id == category.id ? Color.gray.opacity(0.3) : Color.clear)
+                                            .background(viewModel.selectedCategory == category ? Color.gray.opacity(0.3) : Color.clear)
                                     }
                                 }
                             }
@@ -47,7 +51,10 @@ struct LiveTVView: View {
                         ScrollView {
                             LazyVStack(spacing: 15) {
                                 ForEach(viewModel.filteredChannels) { channel in
-                                    NavigationLink(destination: StreamingPlayerView(url: channel.streamUrl, title: channel.name)) {
+                                    Button(action: {
+                                        UserDataManager.shared.addToHistory(channel.toUnified)
+                                        selectedChannel = channel
+                                    }) {
                                         HStack(spacing: 15) {
                                             if let logoUrl = channel.logoUrl {
                                                 AsyncImage(url: logoUrl) { image in
@@ -70,6 +77,7 @@ struct LiveTVView: View {
                                             Text(channel.name)
                                                 .font(.headline)
                                                 .foregroundColor(.white)
+                                                .multilineTextAlignment(.leading)
                                             
                                             Spacer()
                                         }
@@ -85,10 +93,22 @@ struct LiveTVView: View {
             .navigationTitle(Constants.StringConstants.tabLiveTV)
             .navigationBarTitleDisplayMode(.inline)
             .task {
-                if viewModel.categories.isEmpty {
+                if hasDefaultPlaylist && viewModel.categories.isEmpty {
                     await viewModel.loadData()
                 }
             }
+            .fullScreenCover(item: $selectedChannel) { channel in
+                StreamingPlayerView(url: channel.streamUrl, title: channel.name)
+            }
         }
+    }
+    
+    private var emptyPlaylistView: some View {
+        ContentUnavailableView {
+            Label("No Playlist Loaded", systemImage: "tv.slash")
+        } description: {
+            Text("Go to the Settings tab to add your IPTV M3U Playlist URL and start watching.")
+        }
+        .foregroundColor(.white)
     }
 }

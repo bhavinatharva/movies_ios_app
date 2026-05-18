@@ -6,6 +6,7 @@
 import SwiftUI
 
 struct HomeView: View {
+    @AppStorage("has_default_playlist") private var hasDefaultPlaylist = false
     @State private var viewModel = HomeViewModel()
     @State private var detailNavigationPath = NavigationPath()
     @State private var selectedPlayableItem: UnifiedMediaItem?
@@ -16,100 +17,49 @@ struct HomeView: View {
                 Color.black.ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                    // Header title / log
+                    // Header title / logo
                     HStack {
-                        Text("IPTV PRO")
-                            .font(.title)
+                        Text("IPTV PLAYER")
+                            .font(.title2)
                             .fontWeight(.black)
                             .foregroundColor(.accentColor)
                         Spacer()
                     }
-                    .padding()
+                    .padding(.horizontal)
+                    .padding(.top, 10)
+                    .padding(.bottom, 5)
                     
-                    ScrollView {
-                        VStack(spacing: 24) {
-                            // 1. Featured Banner
-                            if let featured = viewModel.featuredItem {
-                                IPTVHeroHeaderView(item: featured) {
-                                    UserDataManager.shared.addToHistory(featured)
-                                    selectedPlayableItem = featured
-                                }
+                    if !hasDefaultPlaylist {
+                        emptyPlaylistView
+                    } else {
+                        switch viewModel.homeStatus {
+                        case .notstarted, .loading:
+                            if viewModel.liveChannels.isEmpty {
+                                Spacer()
+                                ProgressView("Loading channels...")
+                                    .tint(.white)
+                                    .foregroundColor(.white)
+                                Spacer()
+                            } else {
+                                contentView
                             }
-                            
-                            // 2. Continue Watching / Recently Watched
-                            if !viewModel.continueWatching.isEmpty {
-                                UnifiedMediaListView(
-                                    header: "Continue Watching",
-                                    items: viewModel.continueWatching,
-                                    onSelect: { item in
-                                        UserDataManager.shared.addToHistory(item)
-                                        selectedPlayableItem = item
-                                    }
-                                )
-                            }
-                            
-                            // 3. Live Categories (Horizontal badges)
-                            if !viewModel.liveCategories.isEmpty {
-                                VStack(alignment: .leading, spacing: 10) {
-                                    Text("Live Categories")
-                                        .font(.title3)
-                                        .fontWeight(.bold)
-                                        .foregroundColor(.white)
-                                        .padding(.horizontal)
-                                    
-                                    ScrollView(.horizontal, showsIndicators: false) {
-                                        HStack(spacing: 12) {
-                                            ForEach(viewModel.liveCategories.prefix(15)) { category in
-                                                Text(category.name)
-                                                    .font(.caption)
-                                                    .fontWeight(.bold)
-                                                    .padding(.horizontal, 14)
-                                                    .padding(.vertical, 8)
-                                                    .background(Color.gray.opacity(0.3))
-                                                    .foregroundColor(.white)
-                                                    .cornerRadius(15)
-                                            }
-                                        }
-                                        .padding(.horizontal)
-                                    }
-                                }
-                            }
-                            
-                            // 4. Movies Carousel
-                            if !viewModel.moviesCarousel.isEmpty {
-                                UnifiedMediaListView(
-                                    header: "Featured Movies",
-                                    items: viewModel.moviesCarousel,
-                                    onSelect: { item in
-                                        UserDataManager.shared.addToHistory(item)
-                                        selectedPlayableItem = item
-                                    }
-                                )
-                            }
-                            
-                            // 5. Series Carousel
-                            if !viewModel.seriesCarousel.isEmpty {
-                                UnifiedMediaListView(
-                                    header: "Featured Series",
-                                    items: viewModel.seriesCarousel,
-                                    onSelect: { item in
-                                        detailNavigationPath.append(item)
-                                    }
-                                )
-                            }
+                        case .success:
+                            contentView
+                        case .error(let error):
+                            ContentUnavailableView(
+                                "Connection Error",
+                                systemImage: "wifi.exclamationmark",
+                                description: Text(error.localizedDescription)
+                            )
+                            .foregroundColor(.white)
                         }
                     }
                 }
             }
             .navigationBarHidden(true)
             .task {
-                await viewModel.refreshContent()
-            }
-            .navigationDestination(for: UnifiedMediaItem.self) { item in
-                if item.mediaType == .tvSeries {
-                    SeriesDetailView(series: item)
-                } else if item.mediaType == .movie, let url = item.streamUrl {
-                    StreamingPlayerView(url: url, title: item.title)
+                if hasDefaultPlaylist {
+                    await viewModel.refreshContent()
                 }
             }
             .fullScreenCover(item: $selectedPlayableItem) { item in
@@ -119,6 +69,56 @@ struct HomeView: View {
                     ContentUnavailableView("Cannot Play", systemImage: "play.slash", description: Text("No streamable link found for this item."))
                 }
             }
+        }
+    }
+    
+    private var emptyPlaylistView: some View {
+        ContentUnavailableView {
+            Label("No Playlist Loaded", systemImage: "tv.slash")
+        } description: {
+            Text("Go to the Settings tab to add your IPTV M3U Playlist URL and start watching.")
+        }
+        .foregroundColor(.white)
+    }
+    
+    private var contentView: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                // 1. Featured Banner
+                if let featured = viewModel.featuredItem {
+                    IPTVHeroHeaderView(item: featured) {
+                        UserDataManager.shared.addToHistory(featured)
+                        selectedPlayableItem = featured
+                    }
+                }
+                
+                // 2. Continue Watching / Recently Watched
+                if !viewModel.continueWatching.isEmpty {
+                    UnifiedMediaListView(
+                        header: "Continue Watching",
+                        items: viewModel.continueWatching,
+                        onSelect: { item in
+                            UserDataManager.shared.addToHistory(item)
+                            selectedPlayableItem = item
+                        }
+                    )
+                }
+                
+                // 3. Categories Carousels
+                ForEach(viewModel.categorizedChannels.keys.sorted(), id: \.self) { category in
+                    if let channels = viewModel.categorizedChannels[category] {
+                        UnifiedMediaListView(
+                            header: category,
+                            items: channels.map { $0.toUnified },
+                            onSelect: { item in
+                                UserDataManager.shared.addToHistory(item)
+                                selectedPlayableItem = item
+                            }
+                        )
+                    }
+                }
+            }
+            .padding(.bottom, 20)
         }
     }
 }

@@ -14,12 +14,6 @@ struct MainTabView: View {
             Tab(Constants.StringConstants.tabLiveTV, systemImage: Constants.ImageConstants.tabLiveTV) {
                 LiveTVView()
             }
-            Tab(Constants.StringConstants.tabMovies, systemImage: Constants.ImageConstants.tabMovies) {
-                VODMoviesView()
-            }
-            Tab(Constants.StringConstants.tabSeries, systemImage: Constants.ImageConstants.tabSeries) {
-                SeriesView()
-            }
             Tab(Constants.StringConstants.tabSettings, systemImage: Constants.ImageConstants.tabSettings) {
                 SettingsView()
             }
