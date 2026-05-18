@@ -93,7 +93,7 @@ struct HomeView: View {
     
     private var contentView: some View {
         ScrollView {
-            VStack(spacing: 24) {
+            LazyVStack(spacing: 24) {
                 // 1. Featured Banner
                 if let featured = viewModel.featuredItem {
                     IPTVHeroHeaderView(item: featured) {
@@ -128,7 +128,7 @@ struct HomeView: View {
                     }
                 }
             }
-            .padding(.bottom, 20)
+            .padding(.bottom, 30) // Extra padding to clear custom tab bar
         }
     }
 }
@@ -184,6 +184,7 @@ struct IPTVHeroHeaderView: View {
                     .foregroundColor(.white)
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
+                    .minimumScaleFactor(0.55) // Automatically scale font down up to 55% to fit without cutting!
                     .padding(.horizontal, 24)
                     .shadow(color: .black.opacity(0.8), radius: 8, x: 0, y: 4)
                 

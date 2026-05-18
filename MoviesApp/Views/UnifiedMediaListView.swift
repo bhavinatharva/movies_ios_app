@@ -64,7 +64,9 @@ struct UnifiedMediaCardView: View {
                     .font(.system(size: 13, weight: .bold))
                     .foregroundColor(.white)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.75) // Auto-scales text down slightly to fit without cutting
                     .shadow(color: .black.opacity(0.8), radius: 3, x: 0, y: 1)
+                    .fixedSize(horizontal: false, vertical: true) // Prevents vertical clipping of letters
             }
             .padding(10)
         }
