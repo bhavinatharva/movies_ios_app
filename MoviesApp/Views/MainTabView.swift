@@ -38,7 +38,7 @@ struct MainTabView: View {
     
     var body: some View {
         TabView(selection: $selectedTab) {
-            ForEach(dataManager.availableTabs) { tab in
+            ForEach(IPTVTab.allCases) { tab in
                 tabViewContent(for: tab)
                     .tabItem {
                         Label(tab.title, systemImage: tab.systemImage)
@@ -47,13 +47,7 @@ struct MainTabView: View {
             }
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
-        .onChange(of: dataManager.availableTabs) { _, newTabs in
-            if !newTabs.contains(selectedTab) {
-                selectedTab = .home
-            }
-        }
     }
-    
     @ViewBuilder
     private func tabViewContent(for tab: IPTVTab) -> some View {
         switch tab {
