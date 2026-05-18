@@ -100,7 +100,7 @@ struct VODMoviesView: View {
             }
             .fullScreenCover(item: $selectedMovie) { movie in
                 if let streamUrl = movie.streamUrl {
-                    StreamingPlayerView(url: streamUrl, title: movie.title)
+                    StreamingPlayerView(url: streamUrl, title: movie.title, streamId: movie.id)
                 } else {
                     ContentUnavailableView("Cannot Play", systemImage: "play.slash", description: Text("No playable link found for this movie."))
                 }

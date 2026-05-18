@@ -29,11 +29,42 @@ class SeriesViewModel {
     }
     
     func loadCategories() async {
-        guard let creds = authManager.credentials else { return }
+        guard let creds = authManager.credentials else {
+            // M3U TV Series Fallback
+            await MainActor.run {
+                self.isLoading = true
+                self.errorMessage = nil
+            }
+            
+            let dataManager = IPTVDataManager.shared
+            // Categorize by genre
+            var catsMap: [String: [UnifiedMediaItem]] = [:]
+            for s in dataManager.series {
+                let genre = s.genres?.first ?? "General"
+                if catsMap[genre] == nil {
+                    catsMap[genre] = []
+                }
+                catsMap[genre]?.append(s)
+            }
+            
+            let cats = catsMap.keys.sorted().map { name in
+                XtreamCategory(id: name, name: name)
+            }
+            
+            await MainActor.run {
+                self.categories = cats
+                if let firstCat = cats.first {
+                    self.selectedCategory = firstCat
+                    self.series = catsMap[firstCat.id] ?? []
+                }
+                self.isLoading = false
+            }
+            return
+        }
         
         await MainActor.run {
-            isLoading = true
-            errorMessage = nil
+            self.isLoading = true
+            self.errorMessage = nil
         }
         
         do {
@@ -55,6 +86,14 @@ class SeriesViewModel {
     
     func selectCategory(_ category: XtreamCategory) {
         selectedCategory = category
+        
+        guard authManager.credentials != nil else {
+            // Support local M3U TV Series
+            let dataManager = IPTVDataManager.shared
+            self.series = dataManager.series.filter { ($0.genres?.first ?? "General") == category.id }
+            return
+        }
+        
         Task {
             await loadSeries(for: category.id)
         }
@@ -64,7 +103,7 @@ class SeriesViewModel {
         guard let creds = authManager.credentials else { return }
         
         await MainActor.run {
-            isLoadingSeries = true
+            self.isLoadingSeries = true
         }
         
         do {

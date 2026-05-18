@@ -56,6 +56,9 @@ struct SettingsView: View {
                                         Button(action: {
                                             playlistManager.setDefault(playlist)
                                             refreshPlaylists()
+                                            Task {
+                                                await IPTVDataManager.shared.refreshContent()
+                                            }
                                         }) {
                                             Text("Activate")
                                                 .font(.footnote)
@@ -78,6 +81,9 @@ struct SettingsView: View {
                                     Button(role: .destructive) {
                                         playlistManager.deletePlaylist(playlist)
                                         refreshPlaylists()
+                                        Task {
+                                            await IPTVDataManager.shared.refreshContent()
+                                        }
                                     } label: {
                                         Label("Delete", systemImage: "trash")
                                     }
@@ -225,6 +231,7 @@ struct SettingsView: View {
             hasDefaultPlaylist = true
             playlistUrl = ""
             refreshPlaylists()
+            await IPTVDataManager.shared.refreshContent()
         } catch {
             errorMessage = "Failed to load IPTV source: \(error.localizedDescription)"
         }

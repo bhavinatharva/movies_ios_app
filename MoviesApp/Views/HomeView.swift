@@ -74,7 +74,7 @@ struct HomeView: View {
             }
             .fullScreenCover(item: $selectedPlayableItem) { item in
                 if let url = item.streamUrl {
-                    StreamingPlayerView(url: url, title: item.title)
+                    StreamingPlayerView(url: url, title: item.title, streamId: item.id)
                 } else {
                     ContentUnavailableView("Cannot Play", systemImage: "play.slash", description: Text("No streamable link found for this item."))
                 }

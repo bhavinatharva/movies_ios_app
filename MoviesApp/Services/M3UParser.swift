@@ -80,3 +80,60 @@ extension String {
         return nil
     }
 }
+
+struct M3USeriesParser {
+    struct ParsedEpisode: Hashable {
+        let showTitle: String
+        let seasonNumber: Int
+        let episodeNumber: Int
+        let episodeTitle: String
+    }
+    
+    static func parseEpisode(from name: String) -> ParsedEpisode? {
+        // Look for patterns like "S01E02", "S1E2", "S01 E02", "Season 1 Episode 2", etc.
+        let patterns = [
+            "s(\\d{1,2})\\s*e(\\d{1,2})",
+            "season\\s*(\\d{1,2})\\s*episode\\s*(\\d{1,2})"
+        ]
+        
+        for pattern in patterns {
+            if let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]),
+               let match = regex.firstMatch(in: name, options: [], range: NSRange(location: 0, length: name.count)) {
+                
+                let rangeS = match.range(at: 1)
+                let rangeE = match.range(at: 2)
+                
+                if let swiftRangeS = Range(rangeS, in: name),
+                   let swiftRangeE = Range(rangeE, in: name),
+                   let seasonNum = Int(name[swiftRangeS]),
+                   let episodeNum = Int(name[swiftRangeE]) {
+                    
+                    // Split the name to get show title and episode title
+                    let fullMatchRange = Range(match.range(at: 0), in: name)!
+                    
+                    let showTitle = String(name[..<fullMatchRange.lowerBound])
+                        .trimmingCharacters(in: .whitespacesAndNewlines)
+                        .trimmingCharacters(in: .punctuationCharacters)
+                        .trimmingCharacters(in: .symbols)
+                    
+                    var episodeTitle = String(name[fullMatchRange.upperBound...])
+                        .trimmingCharacters(in: .whitespacesAndNewlines)
+                        .trimmingCharacters(in: .punctuationCharacters)
+                        .trimmingCharacters(in: .symbols)
+                    
+                    if episodeTitle.isEmpty {
+                        episodeTitle = "Episode \(episodeNum)"
+                    }
+                    
+                    return ParsedEpisode(
+                        showTitle: showTitle.isEmpty ? "Unknown Series" : showTitle,
+                        seasonNumber: seasonNum,
+                        episodeNumber: episodeNum,
+                        episodeTitle: episodeTitle
+                    )
+                }
+            }
+        }
+        return nil
+    }
+}

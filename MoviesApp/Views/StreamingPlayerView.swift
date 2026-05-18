@@ -12,13 +12,14 @@ import AVFoundation
 struct StreamingPlayerView: View {
     let url: URL
     let title: String
+    var streamId: String? = nil
     @Environment(\.dismiss) var dismiss
     
     var body: some View {
         ZStack(alignment: .topLeading) {
             Color.black.ignoresSafeArea()
             
-            PremiumPlayerRepresentable(url: url) {
+            PremiumPlayerRepresentable(url: url, streamId: streamId) {
                 dismiss()
             }
             .ignoresSafeArea()
@@ -51,13 +52,22 @@ struct StreamingPlayerView: View {
 
 struct PremiumPlayerRepresentable: UIViewControllerRepresentable {
     let url: URL
+    var streamId: String? = nil
     let onDismiss: () -> Void
     
     class Coordinator: NSObject, AVPlayerViewControllerDelegate {
         var parent: PremiumPlayerRepresentable
+        var timeObserver: Any?
+        weak var player: AVPlayer?
         
         init(_ parent: PremiumPlayerRepresentable) {
             self.parent = parent
+        }
+        
+        deinit {
+            if let timeObserver = timeObserver, let player = player {
+                player.removeTimeObserver(timeObserver)
+            }
         }
         
         func playerViewController(_ playerViewController: AVPlayerViewController, willEndFullScreenPresentationWithAnimationCoordinator coordinator: any UIViewControllerTransitionCoordinator) {
@@ -87,6 +97,25 @@ struct PremiumPlayerRepresentable: UIViewControllerRepresentable {
         controller.allowsPictureInPicturePlayback = true
         controller.canStartPictureInPictureAutomaticallyFromInline = true
         controller.showsPlaybackControls = true
+        
+        // Progress auto-resume seek
+        if let targetId = streamId {
+            let progress = UserDataManager.shared.getProgress(id: targetId)
+            if progress > 0 {
+                let time = CMTime(seconds: progress, preferredTimescale: 1)
+                player.seek(to: time)
+            }
+            
+            // Progress auto-saving observer
+            let timeScale = CMTimeScale(NSEC_PER_SEC)
+            let observer = player.addPeriodicTimeObserver(forInterval: CMTime(seconds: 2.0, preferredTimescale: timeScale), queue: .main) { [weak player] time in
+                guard let player = player else { return }
+                let seconds = time.seconds
+                UserDataManager.shared.updateProgress(id: targetId, seconds: seconds)
+            }
+            context.coordinator.timeObserver = observer
+            context.coordinator.player = player
+        }
         
         player.play()
         

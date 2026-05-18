@@ -29,11 +29,32 @@ class VODMoviesViewModel {
     }
     
     func loadCategories() async {
-        guard let creds = authManager.credentials else { return }
+        guard let creds = authManager.credentials else {
+            // Support local M3U Movies
+            await MainActor.run {
+                self.isLoading = true
+                self.errorMessage = nil
+            }
+            
+            let dataManager = IPTVDataManager.shared
+            let cats = dataManager.categorizedMovies.keys.sorted().map { name in
+                XtreamCategory(id: name, name: name)
+            }
+            
+            await MainActor.run {
+                self.categories = cats
+                if let firstCat = cats.first {
+                    self.selectedCategory = firstCat
+                    self.movies = dataManager.categorizedMovies[firstCat.id] ?? []
+                }
+                self.isLoading = false
+            }
+            return
+        }
         
         await MainActor.run {
-            isLoading = true
-            errorMessage = nil
+            self.isLoading = true
+            self.errorMessage = nil
         }
         
         do {
@@ -55,6 +76,13 @@ class VODMoviesViewModel {
     
     func selectCategory(_ category: XtreamCategory) {
         selectedCategory = category
+        
+        guard authManager.credentials != nil else {
+            // Support local M3U Movies
+            self.movies = IPTVDataManager.shared.categorizedMovies[category.id] ?? []
+            return
+        }
+        
         Task {
             await loadMovies(for: category.id)
         }
@@ -64,7 +92,7 @@ class VODMoviesViewModel {
         guard let creds = authManager.credentials else { return }
         
         await MainActor.run {
-            isLoadingMovies = true
+            self.isLoadingMovies = true
         }
         
         do {

@@ -18,6 +18,10 @@ struct SeriesDetailView: View {
     private let iptvService = IPTVService.shared
     private let authManager = AuthManager.shared
     
+    private var isM3USeries: Bool {
+        series.id.hasPrefix("m3useries_")
+    }
+    
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
@@ -130,9 +134,11 @@ struct SeriesDetailView: View {
             await loadSeriesInfo()
         }
         .fullScreenCover(item: $selectedEpisode) { episode in
-            if let creds = authManager.credentials,
-               let streamUrl = URL(string: "\(creds.serverUrl)/series/\(creds.username)/\(creds.password)/\(episode.id).\(episode.containerExtension)") {
-                StreamingPlayerView(url: streamUrl, title: episode.title)
+            if isM3USeries, let streamUrl = URL(string: episode.id) {
+                StreamingPlayerView(url: streamUrl, title: episode.title, streamId: episode.id)
+            } else if let creds = authManager.credentials,
+                      let streamUrl = URL(string: "\(creds.serverUrl)/series/\(creds.username)/\(creds.password)/\(episode.id).\(episode.containerExtension)") {
+                StreamingPlayerView(url: streamUrl, title: episode.title, streamId: episode.id)
             } else {
                 ContentUnavailableView("Cannot Play", systemImage: "play.slash", description: Text("No playable link found for this episode."))
             }
@@ -140,6 +146,21 @@ struct SeriesDetailView: View {
     }
     
     private func loadSeriesInfo() async {
+        if isM3USeries {
+            let cached = IPTVDataManager.shared.m3uEpisodes[series.id] ?? [:]
+            await MainActor.run {
+                self.episodes = cached
+                self.seasons = cached.keys.sorted {
+                    let s1 = Int($0) ?? 0
+                    let s2 = Int($1) ?? 0
+                    return s1 < s2
+                }
+                self.selectedSeason = self.seasons.first ?? ""
+                self.isLoading = false
+            }
+            return
+        }
+        
         guard let creds = authManager.credentials,
               let seriesId = Int(series.id) else {
             errorMessage = "Invalid credentials or Series ID"
