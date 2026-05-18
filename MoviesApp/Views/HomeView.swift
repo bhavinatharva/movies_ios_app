@@ -15,7 +15,16 @@ struct HomeView: View {
     var body: some View {
         NavigationStack(path: $detailNavigationPath) {
             ZStack {
-                Color.black.ignoresSafeArea()
+                // Premium dark theatrical gradient background
+                LinearGradient(
+                    stops: [
+                        .init(color: Color(red: 0.05, green: 0.05, blue: 0.07), location: 0),
+                        .init(color: Color(red: 0.01, green: 0.01, blue: 0.02), location: 1)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
                 
                 VStack(spacing: 0) {
                     // Header title / logo
@@ -130,52 +139,83 @@ struct IPTVHeroHeaderView: View {
     
     var body: some View {
         ZStack(alignment: .bottom) {
+            // Header Backdrop Art
             AsyncImage(url: URL(string: item.posterPath ?? "")) { image in
                 image
                     .resizable()
                     .scaledToFill()
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 350)
+                    .frame(height: 380)
                     .clipped()
                     .overlay {
+                        // Double-layer premium theatrical vignette gradients
                         LinearGradient(
                             stops: [
-                                Gradient.Stop(color: .clear, location: 0.5),
-                                Gradient.Stop(color: .black, location: 1.0)
+                                .init(color: .black.opacity(0.6), location: 0),
+                                .init(color: .clear, location: 0.3),
+                                .init(color: .clear, location: 0.65),
+                                .init(color: .black, location: 1.0)
                             ],
                             startPoint: .top,
                             endPoint: .bottom
                         )
                     }
             } placeholder: {
-                Rectangle()
-                    .fill(Color.gray.opacity(0.1))
-                    .frame(height: 350)
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(Color.white.opacity(0.05))
+                    .frame(height: 380)
+                    .shimmer()
             }
             
-            VStack(spacing: 16) {
+            // Text & Control Overlay
+            VStack(spacing: 14) {
+                // Floating category tag
+                if let category = item.genres?.first {
+                    Text(category.uppercased())
+                        .font(.system(size: 11, weight: .black, design: .rounded))
+                        .foregroundColor(.accentColor)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 5)
+                        .glassBackground(cornerRadius: 12)
+                        .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+                }
+                
                 Text(item.title)
-                    .font(.system(size: 28, weight: .black))
+                    .font(.system(size: 32, weight: .black, design: .rounded))
                     .foregroundColor(.white)
                     .multilineTextAlignment(.center)
-                    .shadow(radius: 10)
+                    .lineLimit(2)
+                    .padding(.horizontal, 24)
+                    .shadow(color: .black.opacity(0.8), radius: 8, x: 0, y: 4)
                 
-                HStack(spacing: 20) {
-                    Button(action: onPlay) {
-                        HStack {
-                            Image(systemName: "play.fill")
-                            Text("Play")
-                                .fontWeight(.bold)
-                        }
-                        .padding(.horizontal, 30)
-                        .padding(.vertical, 10)
-                        .background(Color.white)
-                        .foregroundColor(.black)
-                        .cornerRadius(4)
+                // Play Action Trigger
+                Button(action: {
+                    // Visual haptic pop
+                    let generator = UIImpactFeedbackGenerator(style: .medium)
+                    generator.impactOccurred()
+                    onPlay()
+                }) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "play.fill")
+                            .font(.body)
+                        Text("Stream Now")
+                            .fontWeight(.black)
                     }
+                    .font(.system(size: 15, design: .rounded))
+                    .padding(.horizontal, 34)
+                    .padding(.vertical, 12)
+                    .background(Color.white)
+                    .foregroundColor(.black)
+                    .cornerRadius(28)
+                    .shadow(color: .white.opacity(0.25), radius: 10, x: 0, y: 5)
                 }
+                .pressScaleEffect() // High fidelity click physics!
             }
-            .padding(.bottom, 20)
+            .padding(.bottom, 28)
         }
+        .frame(height: 380)
+        .cornerRadius(24)
+        .padding(.horizontal, 16)
+        .padding(.top, 16)
+        .shadow(color: .black.opacity(0.5), radius: 15, x: 0, y: 10)
     }
 }

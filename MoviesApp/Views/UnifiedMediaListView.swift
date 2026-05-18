@@ -48,32 +48,55 @@ struct UnifiedMediaCardView: View {
                     .frame(width: 140, height: 210)
                     .netflixStyleGradient()
             } placeholder: {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.gray.opacity(0.2))
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color.white.opacity(0.08))
                     .frame(width: 140, height: 210)
                     .shimmer()
             }
             .cardStyle()
             
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 4) {
                 if item.releaseDate == "LIVE" {
-                    Text("LIVE")
-                        .font(.system(size: 8, weight: .bold))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 1)
-                        .background(Color.red)
-                        .cornerRadius(2)
+                    LiveIndicatorView()
                 }
                 
                 Text(item.title)
-                    .font(.caption)
-                    .fontWeight(.bold)
+                    .font(.system(size: 13, weight: .bold))
                     .foregroundColor(.white)
                     .lineLimit(1)
+                    .shadow(color: .black.opacity(0.8), radius: 3, x: 0, y: 1)
             }
-            .padding(8)
+            .padding(10)
         }
         .frame(width: 140)
+        .pressScaleEffect() // Adds instant tactile scale micro-feedback!
+    }
+}
+
+struct LiveIndicatorView: View {
+    @State private var isAnimating = false
+    
+    var body: some View {
+        HStack(spacing: 4) {
+            Circle()
+                .fill(Color.red)
+                .frame(width: 6, height: 6)
+                .opacity(isAnimating ? 0.3 : 1.0)
+                .scaleEffect(isAnimating ? 1.35 : 1.0)
+            
+            Text("LIVE")
+                .font(.system(size: 8, weight: .black))
+                .foregroundColor(.white)
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 3)
+        .background(Color.red.opacity(0.85))
+        .cornerRadius(4)
+        .shadow(color: .red.opacity(0.4), radius: 4, x: 0, y: 2)
+        .onAppear {
+            withAnimation(.easeInOut(duration: 0.85).repeatForever(autoreverses: true)) {
+                isAnimating = true
+            }
+        }
     }
 }

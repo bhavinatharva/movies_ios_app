@@ -14,7 +14,16 @@ struct LiveTVView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.black.ignoresSafeArea()
+                // Premium deep dark ambient background
+                LinearGradient(
+                    stops: [
+                        .init(color: Color(red: 0.05, green: 0.05, blue: 0.07), location: 0),
+                        .init(color: Color(red: 0.01, green: 0.01, blue: 0.02), location: 1)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
                 
                 if !hasDefaultPlaylist {
                     emptyPlaylistView
@@ -29,64 +38,123 @@ struct LiveTVView: View {
                     HStack(spacing: 0) {
                         // Categories Sidebar (Vertical Scroll)
                         ScrollView(.vertical, showsIndicators: false) {
-                            VStack(spacing: 0) {
+                            VStack(spacing: 4) {
                                 ForEach(viewModel.categories, id: \.self) { category in
                                     Button(action: {
-                                        viewModel.selectCategory(category)
+                                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7, blendDuration: 0)) {
+                                            viewModel.selectCategory(category)
+                                        }
+                                        let generator = UIImpactFeedbackGenerator(style: .light)
+                                        generator.impactOccurred()
                                     }) {
-                                        Text(category)
-                                            .font(.subheadline)
-                                            .fontWeight(viewModel.selectedCategory == category ? .bold : .regular)
-                                            .foregroundColor(viewModel.selectedCategory == category ? .white : .gray)
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-                                            .padding()
-                                            .background(viewModel.selectedCategory == category ? Color.gray.opacity(0.3) : Color.clear)
-                                    }
-                                }
-                            }
-                        }
-                        .frame(width: 120)
-                        .background(Color.gray.opacity(0.1))
-                        
-                        // Channels List
-                        ScrollView {
-                            LazyVStack(spacing: 15) {
-                                ForEach(viewModel.filteredChannels) { channel in
-                                    Button(action: {
-                                        UserDataManager.shared.addToHistory(channel.toUnified)
-                                        selectedChannel = channel
-                                    }) {
-                                        HStack(spacing: 15) {
-                                            if let logoUrl = channel.logoUrl {
-                                                AsyncImage(url: logoUrl) { image in
-                                                    image.resizable()
-                                                         .scaledToFit()
-                                                } placeholder: {
-                                                    Image(systemName: "tv")
-                                                        .foregroundColor(.gray)
-                                                }
-                                                .frame(width: 60, height: 40)
-                                                .cornerRadius(4)
-                                            } else {
-                                                Image(systemName: "tv")
-                                                    .frame(width: 60, height: 40)
-                                                    .background(Color.gray.opacity(0.3))
-                                                    .cornerRadius(4)
-                                                    .foregroundColor(.white)
-                                            }
+                                        HStack {
+                                            // Glowing active indicator neon bar
+                                            RoundedRectangle(cornerRadius: 2)
+                                                .fill(viewModel.selectedCategory == category ? Color.accentColor : Color.clear)
+                                                .frame(width: 4, height: 18)
+                                                .shadow(color: viewModel.selectedCategory == category ? Color.accentColor.opacity(0.8) : .clear, radius: 4)
                                             
-                                            Text(channel.name)
-                                                .font(.headline)
-                                                .foregroundColor(.white)
-                                                .multilineTextAlignment(.leading)
+                                            Text(category)
+                                                .font(.system(size: 13, weight: viewModel.selectedCategory == category ? .bold : .medium, design: .rounded))
+                                                .foregroundColor(viewModel.selectedCategory == category ? .white : .gray)
+                                                .padding(.leading, 2)
                                             
                                             Spacer()
                                         }
-                                        .padding(.horizontal)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 10)
+                                        .padding(.horizontal, 6)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 10)
+                                                .fill(viewModel.selectedCategory == category ? Color.white.opacity(0.06) : Color.clear)
+                                        )
+                                        .padding(.horizontal, 6)
                                     }
+                                    .buttonStyle(.plain)
                                 }
                             }
-                            .padding(.top)
+                            .padding(.top, 12)
+                        }
+                        .frame(width: 130)
+                        .background(Color.white.opacity(0.02))
+                        
+                        // Channels List
+                        ScrollView {
+                            LazyVStack(spacing: 12) {
+                                ForEach(viewModel.filteredChannels) { channel in
+                                    Button(action: {
+                                        let generator = UIImpactFeedbackGenerator(style: .medium)
+                                        generator.impactOccurred()
+                                        UserDataManager.shared.addToHistory(channel.toUnified)
+                                        selectedChannel = channel
+                                    }) {
+                                        HStack(spacing: 16) {
+                                            // Glass-framed Logo Container
+                                            ZStack {
+                                                Color.black.opacity(0.4)
+                                                
+                                                if let logoUrl = channel.logoUrl {
+                                                    AsyncImage(url: logoUrl) { image in
+                                                        image.resizable()
+                                                             .scaledToFit()
+                                                             .padding(4)
+                                                    } placeholder: {
+                                                        Image(systemName: "tv")
+                                                            .font(.body)
+                                                            .foregroundColor(.gray)
+                                                    }
+                                                } else {
+                                                    Image(systemName: "tv")
+                                                        .font(.body)
+                                                        .foregroundColor(.gray)
+                                                }
+                                            }
+                                            .frame(width: 64, height: 44)
+                                            .cornerRadius(12)
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 12)
+                                                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                                            )
+                                            
+                                            VStack(alignment: .leading, spacing: 4) {
+                                                Text(channel.name)
+                                                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                                                    .foregroundColor(.white)
+                                                    .lineLimit(1)
+                                                
+                                                if let cat = channel.category {
+                                                    Text(cat)
+                                                        .font(.caption)
+                                                        .foregroundColor(.gray)
+                                                        .lineLimit(1)
+                                                }
+                                            }
+                                            
+                                            Spacer()
+                                            
+                                            // Glowing Mini Live Badge
+                                            HStack(spacing: 4) {
+                                                Circle()
+                                                    .fill(Color.red)
+                                                    .frame(width: 6, height: 6)
+                                                Text("LIVE")
+                                                    .font(.system(size: 9, weight: .black))
+                                                    .foregroundColor(.red)
+                                            }
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 4)
+                                            .background(Color.red.opacity(0.1))
+                                            .cornerRadius(6)
+                                        }
+                                        .padding(12)
+                                        .glassBackground(cornerRadius: 16)
+                                        .padding(.horizontal, 12)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .pressScaleEffect() // High fidelity spring-scale!
+                                }
+                            }
+                            .padding(.top, 12)
                         }
                     }
                 }
