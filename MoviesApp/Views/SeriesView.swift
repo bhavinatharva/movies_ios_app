@@ -73,7 +73,7 @@ struct SeriesView: View {
                                 LazyVGrid(columns: columns, spacing: 16) {
                                     ForEach(viewModel.filteredSeries) { series in
                                         NavigationLink(destination: SeriesDetailView(series: series)) {
-                                            UnifiedMediaCardView(item: series)
+                                            UnifiedMediaCardView(item: series, width: nil)
                                         }
                                     }
                                 }

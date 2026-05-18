@@ -73,7 +73,7 @@ struct VODMoviesView: View {
                             ScrollView {
                                 LazyVGrid(columns: columns, spacing: 16) {
                                     ForEach(viewModel.filteredMovies) { movie in
-                                        UnifiedMediaCardView(item: movie)
+                                        UnifiedMediaCardView(item: movie, width: nil)
                                             .onTapGesture {
                                                 UserDataManager.shared.addToHistory(movie)
                                                 selectedMovie = movie

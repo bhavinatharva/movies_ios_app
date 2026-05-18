@@ -9,6 +9,7 @@ import SwiftUI
 
 struct MovieCardView: View {
     let movie: TrendingModel
+    var width: CGFloat? = 140
     
     var body: some View {
         ZStack(alignment: .bottomLeading) {
@@ -16,15 +17,15 @@ struct MovieCardView: View {
                 image
                     .resizable()
                     .scaledToFill()
-                    .frame(width: 140, height: 210)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .clipped()
-                    .netflixStyleGradient()
             } placeholder: {
-                RoundedRectangle(cornerRadius: 8)
+                Rectangle()
                     .fill(Color.gray.opacity(0.2))
-                    .frame(width: 140, height: 210)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .shimmer()
             }
+            .netflixStyleGradient()
             .cardStyle()
             
             VStack(alignment: .leading, spacing: 2) {
@@ -39,14 +40,14 @@ struct MovieCardView: View {
                 }
                 
                 Text(movie.title ?? movie.name ?? "Unknown")
-                    .font(.caption)
-                    .fontWeight(.bold)
+                    .font(.system(size: width == nil ? 11 : 13, weight: .bold))
                     .foregroundColor(.white)
                     .lineLimit(1)
             }
-            .padding(8)
+            .padding(width == nil ? 6 : 8)
         }
-        .frame(width: 140)
+        .frame(width: width)
+        .aspectRatio(3/4, contentMode: .fit)
     }
 }
 

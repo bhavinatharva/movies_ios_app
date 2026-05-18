@@ -23,9 +23,9 @@ struct SearchView: View {
                         ContentUnavailableView("Search Error", systemImage: "exclamationmark.magnifyingglass", description: Text(error))
                     }
                     
-                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 20) {
+                    LazyVGrid(columns: [GridItem(.flexible(), spacing: 16), GridItem(.flexible(), spacing: 16), GridItem(.flexible(), spacing: 16)], spacing: 16) {
                         ForEach(searchViewModel.searchingMovies) { title in
-                            MovieCardView(movie: title)
+                            MovieCardView(movie: title, width: nil)
                                 .onTapGesture {
                                     navigationPath.append(title)
                                 }

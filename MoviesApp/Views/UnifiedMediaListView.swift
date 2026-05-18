@@ -40,6 +40,7 @@ struct UnifiedMediaListView: View {
 
 struct UnifiedMediaCardView: View {
     let item: UnifiedMediaItem
+    var width: CGFloat? = 140
     
     var body: some View {
         ZStack(alignment: .bottomLeading) {
@@ -47,15 +48,15 @@ struct UnifiedMediaCardView: View {
                 image
                     .resizable()
                     .scaledToFill()
-                    .frame(width: 140, height: 210)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .clipped()
-                    .netflixStyleGradient()
             } placeholder: {
-                RoundedRectangle(cornerRadius: 8)
+                Rectangle()
                     .fill(Color.white.opacity(0.08))
-                    .frame(width: 140, height: 210)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .shimmer()
             }
+            .netflixStyleGradient()
             .cardStyle()
             
             VStack(alignment: .leading, spacing: 4) {
@@ -64,17 +65,18 @@ struct UnifiedMediaCardView: View {
                 }
                 
                 Text(item.title)
-                    .font(.system(size: 13, weight: .bold))
+                    .font(.system(size: width == nil ? 11 : 13, weight: .bold))
                     .foregroundColor(.white)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.75) // Auto-scales text down slightly to fit without cutting
+                    .minimumScaleFactor(0.75)
                     .shadow(color: .black.opacity(0.8), radius: 3, x: 0, y: 1)
-                    .fixedSize(horizontal: false, vertical: true) // Prevents vertical clipping of letters
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(10)
+            .padding(width == nil ? 6 : 10)
         }
-        .frame(width: 140)
-        .pressScaleEffect() // Adds instant tactile scale micro-feedback!
+        .frame(width: width)
+        .aspectRatio(3/4, contentMode: .fit)
+        .pressScaleEffect()
     }
 }
 
