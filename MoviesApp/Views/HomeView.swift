@@ -12,7 +12,7 @@ struct HomeView: View {
     @State private var homeViewModel = HomeViewModel()
     @State private var detailNavigationPath = NavigationPath()
     @AppStorage("iptv_url") private var iptvUrl = "https://iptv-org.github.io/iptv/index.m3u"
-    @State private var isShowingSettings = false
+
     @State private var isShowingSearch = false
     
     var body: some View {
@@ -44,20 +44,7 @@ struct HomeView: View {
             }
             .navigationTitle("IPTV Player")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(action: { isShowingSettings = true }) {
-                        Image(systemName: "gearshape")
-                            .foregroundColor(.white)
-                    }
-                }
-            }
-            .sheet(isPresented: $isShowingSettings) {
-                SettingsView()
-                    .onDisappear {
-                        Task { await homeViewModel.refreshContent() }
-                    }
-            }
+
             .sheet(isPresented: $isShowingSearch) {
                 SearchView()
             }

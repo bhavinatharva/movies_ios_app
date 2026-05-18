@@ -14,6 +14,7 @@ struct Constants {
         static let tabUpcoming = "play.circle"
         static let tabSearch = "magnifyingglass"
         static let tabDownloads = "arrow.down.to.line"
+        static let tabSettings = "gearshape"
         
         static let movie = "movieclapper"
         static let tv = "tv"
@@ -51,6 +52,7 @@ struct Constants {
         static let tabUpcoming = "Upcoming"
         static let tabSearch = "Search"
         static let tabDownloads="Downloads"
+        static let tabSettings="Settings"
         static let tabRecent = "Recent"
         
         static let btnPlay = "Play"

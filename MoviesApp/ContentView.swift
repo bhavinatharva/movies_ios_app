@@ -13,8 +13,8 @@ struct ContentView: View {
             Tab(Constants.StringConstants.tabHome, systemImage: Constants.ImageConstants.tabHome){
                 HomeView()
             }
-            Tab(Constants.StringConstants.tabDownloads, systemImage: Constants.ImageConstants.tabDownloads){
-                DownloadView()
+            Tab(Constants.StringConstants.tabSettings, systemImage: Constants.ImageConstants.tabSettings){
+                SettingsView()
             }
         }.onAppear{
             if let config = ApiConfig.shared {
