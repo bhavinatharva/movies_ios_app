@@ -94,10 +94,30 @@ struct LoginView: View {
         errorMessage = nil
         
         Task {
-            // Clean URL (remove trailing slash)
-            var cleanUrl = serverUrl.trimmingCharacters(in: .whitespacesAndNewlines)
-            if cleanUrl.hasSuffix("/") {
-                cleanUrl.removeLast()
+            // Sanitize and extract base URL (scheme + host + port)
+            var cleanUrl = serverUrl.replacingOccurrences(of: " ", with: "")
+            cleanUrl = cleanUrl.trimmingCharacters(in: .whitespacesAndNewlines)
+            
+            if !cleanUrl.lowercased().hasPrefix("http://") && !cleanUrl.lowercased().hasPrefix("https://") {
+                cleanUrl = "http://" + cleanUrl
+            }
+            
+            let parts = cleanUrl.components(separatedBy: "://")
+            if parts.count >= 2 {
+                let scheme = parts[0]
+                var rest = parts[1]
+                while rest.hasPrefix("/") {
+                    rest.removeFirst()
+                }
+                cleanUrl = "\(scheme)://\(rest)"
+            }
+            
+            if let url = URL(string: cleanUrl), let scheme = url.scheme, let host = url.host {
+                var baseUrl = "\(scheme)://\(host)"
+                if let port = url.port {
+                    baseUrl += ":\(port)"
+                }
+                cleanUrl = baseUrl
             }
             
             let creds = XtreamCredentials(serverUrl: cleanUrl, username: username.trimmingCharacters(in: .whitespacesAndNewlines), password: password)
