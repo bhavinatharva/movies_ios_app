@@ -29,6 +29,7 @@ struct MovieHorizontalListView: View {
                             }
                     }
                 }
+                .frame(height: 190)
                 .padding(.horizontal, 16)
             }
         }

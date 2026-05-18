@@ -31,6 +31,7 @@ struct UnifiedMediaListView: View {
                         .buttonStyle(PressScaleButtonStyle())
                     }
                 }
+                .frame(height: 190)
                 .padding(.horizontal, 16)
             }
         }

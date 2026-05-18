@@ -31,39 +31,38 @@ struct HomeView: View {
                     .ignoresSafeArea()
                 }
                 
-                VStack(spacing: 0) {
-                    // Header title / logo
-                    HStack {
-                        Text("IPTV PLAYER")
-                            .font(.title2)
-                            .fontWeight(.black)
-                            .foregroundColor(.accentColor)
-                        Spacer()
-                    }
-                    .padding(.horizontal)
-                    .padding(.top, 10)
-                    .padding(.bottom, 5)
-                    
-                    if !hasDefaultPlaylist {
+                if !hasDefaultPlaylist {
+                    VStack(spacing: 0) {
+                        headerView
                         emptyPlaylistView
-                    } else {
+                    }
+                } else {
+                    ZStack(alignment: .top) {
                         switch viewModel.homeStatus {
                         case .notstarted, .loading:
                             if viewModel.liveChannels.isEmpty {
-                                Spacer()
-                                ProgressView("Loading channels...")
-                                Spacer()
+                                VStack(spacing: 0) {
+                                    headerView
+                                    Spacer()
+                                    ProgressView("Loading channels...")
+                                    Spacer()
+                                }
                             } else {
                                 contentView
+                                headerView
                             }
                         case .success:
                             contentView
+                            headerView
                         case .error(let error):
-                            ContentUnavailableView(
-                                "Connection Error",
-                                systemImage: "wifi.exclamationmark",
-                                description: Text(error.localizedDescription)
-                            )
+                            VStack(spacing: 0) {
+                                headerView
+                                ContentUnavailableView(
+                                    "Connection Error",
+                                    systemImage: "wifi.exclamationmark",
+                                    description: Text(error.localizedDescription)
+                                )
+                            }
                         }
                     }
                 }
@@ -82,6 +81,40 @@ struct HomeView: View {
                 }
             }
         }
+    }
+    
+    private var headerView: some View {
+        HStack(spacing: 20) {
+            Text("IPTV")
+                .font(.system(size: 26, weight: .black, design: .rounded))
+                .foregroundColor(.accentColor)
+            
+            Spacer()
+            
+            HStack(spacing: 20) {
+                Text("TV Shows")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(.white)
+                
+                Text("Movies")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(.white)
+                
+                Text("Categories")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(.white)
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 16)
+        .padding(.bottom, 16)
+        .background(
+            LinearGradient(
+                colors: [.black.opacity(0.85), .clear],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        )
     }
     
     private var emptyPlaylistView: some View {
@@ -131,6 +164,7 @@ struct HomeView: View {
             }
             .padding(.bottom, 30) // Extra padding to clear custom tab bar
         }
+        .ignoresSafeArea(edges: .top)
     }
 }
 
@@ -145,15 +179,15 @@ struct IPTVHeroHeaderView: View {
                 image
                     .resizable()
                     .scaledToFill()
-                    .frame(height: 380)
+                    .frame(height: 500)
                     .clipped()
                     .overlay {
                         // Double-layer premium theatrical vignette gradients
                         LinearGradient(
                             stops: [
-                                .init(color: .black.opacity(0.6), location: 0),
+                                .init(color: .black.opacity(0.75), location: 0),
                                 .init(color: .clear, location: 0.3),
-                                .init(color: .clear, location: 0.65),
+                                .init(color: .clear, location: 0.6),
                                 .init(color: Color.appBackground, location: 1.0)
                             ],
                             startPoint: .top,
@@ -161,14 +195,14 @@ struct IPTVHeroHeaderView: View {
                         )
                     }
             } placeholder: {
-                RoundedRectangle(cornerRadius: 24)
+                Rectangle()
                     .fill(Color.white.opacity(0.05))
-                    .frame(height: 380)
+                    .frame(height: 500)
                     .shimmer()
             }
             
             // Text & Control Overlay
-            VStack(spacing: 14) {
+            VStack(spacing: 16) {
                 // Floating category tag
                 if let category = item.genres?.first {
                     Text(category.uppercased())
@@ -189,35 +223,53 @@ struct IPTVHeroHeaderView: View {
                     .padding(.horizontal, 24)
                     .shadow(color: .black.opacity(0.8), radius: 8, x: 0, y: 4)
                 
-                // Play Action Trigger
-                Button(action: {
-                    // Visual haptic pop
-                    let generator = UIImpactFeedbackGenerator(style: .medium)
-                    generator.impactOccurred()
-                    onPlay()
-                }) {
-                    HStack(spacing: 12) {
-                        Image(systemName: "play.fill")
-                            .font(.body)
-                        Text("Stream Now")
-                            .fontWeight(.black)
+                // Netflix-Style Action Buttons
+                HStack(spacing: 16) {
+                    // White Play Button
+                    Button(action: {
+                        let generator = UIImpactFeedbackGenerator(style: .medium)
+                        generator.impactOccurred()
+                        onPlay()
+                    }) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "play.fill")
+                                .font(.body)
+                            Text("Play")
+                                .fontWeight(.bold)
+                        }
+                        .font(.system(size: 15))
+                        .padding(.horizontal, 28)
+                        .padding(.vertical, 10)
+                        .background(Color.white)
+                        .foregroundColor(.black)
+                        .cornerRadius(8)
                     }
-                    .font(.system(size: 15, design: .rounded))
-                    .padding(.horizontal, 34)
-                    .padding(.vertical, 12)
-                    .background(Color.white)
-                    .foregroundColor(.black)
-                    .cornerRadius(28)
-                    .shadow(color: .white.opacity(0.25), radius: 10, x: 0, y: 5)
+                    .buttonStyle(PressScaleButtonStyle())
+                    
+                    // Translucent Info Button
+                    Button(action: {
+                        let generator = UIImpactFeedbackGenerator(style: .medium)
+                        generator.impactOccurred()
+                        onPlay()
+                    }) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "info.circle")
+                                .font(.body)
+                            Text("Info")
+                                .fontWeight(.bold)
+                        }
+                        .font(.system(size: 15))
+                        .padding(.horizontal, 28)
+                        .padding(.vertical, 10)
+                        .background(Color.white.opacity(0.2))
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                    }
+                    .buttonStyle(PressScaleButtonStyle())
                 }
-                .buttonStyle(PressScaleButtonStyle())
             }
-            .padding(.bottom, 28)
+            .padding(.bottom, 24)
         }
-        .frame(height: 380)
-        .cornerRadius(24)
-        .padding(.horizontal, 16)
-        .padding(.top, 16)
-        .shadow(color: .black.opacity(0.5), radius: 15, x: 0, y: 10)
+        .frame(height: 500)
     }
 }
