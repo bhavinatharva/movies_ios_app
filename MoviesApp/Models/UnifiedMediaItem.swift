@@ -126,3 +126,39 @@ extension TrendingModel {
         UnifiedMediaItem(from: self)
     }
 }
+
+func isAdultString(_ text: String) -> Bool {
+    let lower = text.lowercased()
+    return lower.contains("18+") ||
+           lower.contains("xxx") ||
+           lower.contains("adult") ||
+           lower.contains("redlight") ||
+           lower.contains("porno") ||
+           lower.contains("erot") ||
+           lower.contains("nsfw") ||
+           lower.contains("pink") ||
+           lower.contains("hentai")
+}
+
+extension UnifiedMediaItem {
+    var isAdult: Bool {
+        if adult == true { return true }
+        if isAdultString(title) { return true }
+        if let genres = genres {
+            for genre in genres {
+                if isAdultString(genre) {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+}
+
+extension IPTVChannel {
+    var isAdult: Bool {
+        if isAdultString(name) { return true }
+        if let cat = category, isAdultString(cat) { return true }
+        return false
+    }
+}

@@ -9,6 +9,7 @@ struct HomeView: View {
     @Environment(\.colorScheme) var colorScheme
     @AppStorage("has_default_playlist") private var hasDefaultPlaylist = false
     @AppStorage("active_playlist_url") private var activePlaylistUrl = ""
+    @AppStorage("show_adult_content") private var showAdultContent = false
     @State private var viewModel = HomeViewModel()
     @State private var detailNavigationPath = NavigationPath()
     @State private var selectedPlayableItem: UnifiedMediaItem?
@@ -139,6 +140,14 @@ struct HomeView: View {
                 Text("Categories")
                     .font(.system(size: 14, weight: .bold))
                     .foregroundColor(.white)
+                
+                if showAdultContent {
+                    NavigationLink(destination: AdultView()) {
+                        Text("Adult(18+)")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(.red)
+                    }
+                }
             }
         }
         .padding(.horizontal, 20)
