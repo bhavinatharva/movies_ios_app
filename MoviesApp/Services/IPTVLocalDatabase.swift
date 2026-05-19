@@ -211,26 +211,51 @@ class IPTVLocalDatabase {
         container.newBackgroundContext()
     }
     
+    // MARK: - Data Management
+    
+    func clearAllData() {
+        let context = newBackgroundContext()
+        context.performAndWait {
+            let chReq = NSFetchRequest<NSFetchRequestResult>(entityName: "ChannelEntity")
+            let medReq = NSFetchRequest<NSFetchRequestResult>(entityName: "MediaEntity")
+            
+            let chDel = NSBatchDeleteRequest(fetchRequest: chReq)
+            let medDel = NSBatchDeleteRequest(fetchRequest: medReq)
+            
+            chDel.resultType = .resultTypeObjectIDs
+            medDel.resultType = .resultTypeObjectIDs
+            
+            if let result1 = try? context.execute(chDel) as? NSBatchDeleteResult,
+               let objectIDs1 = result1.result as? [NSManagedObjectID] {
+                NSManagedObjectContext.mergeChanges(fromRemoteContextSave: [NSDeletedObjectsKey: objectIDs1], into: [self.viewContext])
+            }
+            
+            if let result2 = try? context.execute(medDel) as? NSBatchDeleteResult,
+               let objectIDs2 = result2.result as? [NSManagedObjectID] {
+                NSManagedObjectContext.mergeChanges(fromRemoteContextSave: [NSDeletedObjectsKey: objectIDs2], into: [self.viewContext])
+            }
+            
+            try? context.save()
+        }
+    }
+    
     // MARK: - Channel CRUD
     
     func saveChannels(_ channels: [IPTVChannel], completion: @escaping () -> Void) {
         let context = newBackgroundContext()
         context.perform {
-            let fetchRequest = NSFetchRequest<NSManagedObject>(entityName: "ChannelEntity")
-            let existing = (try? context.fetch(fetchRequest)) ?? []
-            
-            var existingMap: [String: NSManagedObject] = [:]
-            for obj in existing {
-                if let url = obj.value(forKey: "streamUrl") as? String {
-                    existingMap[url] = obj
-                }
+            let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "ChannelEntity")
+            let deleteReq = NSBatchDeleteRequest(fetchRequest: fetchRequest)
+            deleteReq.resultType = .resultTypeObjectIDs
+            if let result = try? context.execute(deleteReq) as? NSBatchDeleteResult,
+               let objectIDs = result.result as? [NSManagedObjectID] {
+                NSManagedObjectContext.mergeChanges(fromRemoteContextSave: [NSDeletedObjectsKey: objectIDs], into: [self.viewContext])
             }
             
             for ch in channels {
-                let urlStr = ch.streamUrl.absoluteString
-                let obj = existingMap[urlStr] ?? NSEntityDescription.insertNewObject(forEntityName: "ChannelEntity", into: context)
+                let obj = NSEntityDescription.insertNewObject(forEntityName: "ChannelEntity", into: context)
                 obj.setValue(ch.name, forKey: "name")
-                obj.setValue(urlStr, forKey: "streamUrl")
+                obj.setValue(ch.streamUrl.absoluteString, forKey: "streamUrl")
                 obj.setValue(ch.logoUrl?.absoluteString, forKey: "logoUrl")
                 obj.setValue(ch.category, forKey: "category")
                 obj.setValue(ch.epgId, forKey: "epgId")
@@ -266,18 +291,16 @@ class IPTVLocalDatabase {
     func saveMediaItems(_ items: [UnifiedMediaItem], completion: @escaping () -> Void) {
         let context = newBackgroundContext()
         context.perform {
-            let fetchRequest = NSFetchRequest<NSManagedObject>(entityName: "MediaEntity")
-            let existing = (try? context.fetch(fetchRequest)) ?? []
-            
-            var existingMap: [String: NSManagedObject] = [:]
-            for obj in existing {
-                if let id = obj.value(forKey: "id") as? String {
-                    existingMap[id] = obj
-                }
+            let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "MediaEntity")
+            let deleteReq = NSBatchDeleteRequest(fetchRequest: fetchRequest)
+            deleteReq.resultType = .resultTypeObjectIDs
+            if let result = try? context.execute(deleteReq) as? NSBatchDeleteResult,
+               let objectIDs = result.result as? [NSManagedObjectID] {
+                NSManagedObjectContext.mergeChanges(fromRemoteContextSave: [NSDeletedObjectsKey: objectIDs], into: [self.viewContext])
             }
             
             for item in items {
-                let obj = existingMap[item.id] ?? NSEntityDescription.insertNewObject(forEntityName: "MediaEntity", into: context)
+                let obj = NSEntityDescription.insertNewObject(forEntityName: "MediaEntity", into: context)
                 obj.setValue(item.id, forKey: "id")
                 obj.setValue(item.title, forKey: "title")
                 obj.setValue(item.overview, forKey: "overview")

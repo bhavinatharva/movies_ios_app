@@ -136,9 +136,16 @@ class IPTVDataManager {
     private func performRefreshContent() async {
         guard let defaultPlaylist = playlistManager.fetchDefaultPlaylist() else {
             await MainActor.run {
+                self.liveChannels = []
+                self.movies = []
+                self.series = []
+                self.categorizedChannels = [:]
+                self.categorizedMovies = [:]
+                self.m3uEpisodes = [:]
                 self.availableTabs = [.home, .settings]
                 self.homeStatus = .notstarted
             }
+            IPTVLocalDatabase.shared.clearAllData()
             return
         }
         

@@ -229,70 +229,18 @@ struct AddPlaylistSheet: View {
         let validationResult = IPTVValidator.validateIPTVSource(input: urlString)
         
         guard validationResult.isValid,
-              let sanitizedStr = validationResult.sanitizedUrl,
-              let url = URL(string: sanitizedStr) else {
+              let sanitizedStr = validationResult.sanitizedUrl else {
             errorMessage = validationResult.errorMessage ?? "Invalid IPTV source. Please enter a valid M3U, Xtream API, or HLS URL."
             isLoading = false
             return
         }
         
-        do {
-            let channels: [IPTVChannel]
-            
-            switch validationResult.type {
-            case .m3uPlaylist:
-                channels = try await IPTVService.shared.fetchM3U(url: url)
-            case .xtreamCodes:
-                if url.path.contains("player_api.php") {
-                    let queryParams = url.queryParameters
-                    let username = queryParams["username"] ?? ""
-                    let password = queryParams["password"] ?? ""
-                    let serverUrl = "\(url.scheme ?? "http")://\(url.host ?? "")\(url.port != nil ? ":\(url.port!)" : "")"
-                    let creds = XtreamCredentials(serverUrl: serverUrl, username: username, password: password)
-                    channels = try await IPTVService.shared.fetchXtreamChannels(creds: creds)
-                } else {
-                    channels = try await IPTVService.shared.fetchM3U(url: url)
-                }
-            case .directHLS:
-                let channel = IPTVChannel(
-                    name: name.isEmpty ? "Direct HLS Stream" : name,
-                    streamUrl: url,
-                    logoUrl: nil,
-                    category: "Direct HLS Stream",
-                    epgId: nil
-                )
-                channels = [channel]
-            case .directDASH:
-                let channel = IPTVChannel(
-                    name: name.isEmpty ? "Direct DASH Stream" : name,
-                    streamUrl: url,
-                    logoUrl: nil,
-                    category: "Direct DASH Stream",
-                    epgId: nil
-                )
-                channels = [channel]
-            case .unknown:
-                errorMessage = "Invalid IPTV source. Please enter a valid M3U, Xtream API, or HLS URL."
-                isLoading = false
-                return
-            }
-            
-            guard !channels.isEmpty else {
-                errorMessage = "The playlist is empty or invalid."
-                isLoading = false
-                return
-            }
-            
-            let finalName = name.isEmpty ? "My M3U Playlist" : name
-            playlistManager.addPlaylist(name: finalName, url: sanitizedStr)
-            playlistManager.cacheChannels(channels, forUrl: sanitizedStr)
-            
-            await IPTVDataManager.shared.refreshContent()
-            onSuccess()
-            dismiss()
-        } catch {
-            errorMessage = "Failed to load IPTV source: \(error.localizedDescription)"
-        }
+        let finalName = name.isEmpty ? "My M3U Playlist" : name
+        playlistManager.addPlaylist(name: finalName, url: sanitizedStr)
+        
+        await IPTVDataManager.shared.refreshContent()
+        onSuccess()
+        dismiss()
         
         isLoading = false
     }

@@ -58,6 +58,31 @@ struct SettingsView: View {
                                 .foregroundColor(.secondary)
                         }
                     }
+                    
+                    if hasDefaultPlaylist {
+                        Button(action: {
+                            Task {
+                                let generator = UIImpactFeedbackGenerator(style: .medium)
+                                generator.impactOccurred()
+                                await IPTVDataManager.shared.refreshContent()
+                            }
+                        }) {
+                            HStack(spacing: 12) {
+                                Image(systemName: "arrow.triangle.2.circlepath")
+                                    .foregroundColor(.blue)
+                                    .font(.title3)
+                                
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Refresh Playlist Content")
+                                        .foregroundColor(.primary)
+                                        .fontWeight(.medium)
+                                    Text("Fetch again for new channels and VODs")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        }
+                    }
                 }
                 
                 // Section 2: APPEARANCE & FILTER
