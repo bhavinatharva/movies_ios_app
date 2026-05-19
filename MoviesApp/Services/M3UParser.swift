@@ -12,11 +12,7 @@ class M3UParser {
         return AsyncThrowingStream(IPTVChannel.self) { continuation in
             let task = Task(priority: .userInitiated) {
                 do {
-                    let configuration = URLSessionConfiguration.default
-                    configuration.timeoutIntervalForRequest = 30
-                    configuration.timeoutIntervalForResource = 300
-                    let session = URLSession(configuration: configuration)
-                    
+                    let session = await IPTVRequestManager.shared.getStreamingSession(for: .m3u)
                     let (bytes, response) = try await session.bytes(from: url)
                     
                     if let httpResponse = response as? HTTPURLResponse {

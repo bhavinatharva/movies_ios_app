@@ -143,7 +143,7 @@ struct SettingsView: View {
                     
                     Toggle(isOn: $autoPlayNext) {
                         HStack(spacing: 12) {
-                            Image(systemName: "play.next.fill")
+                            Image(systemName: "forward.end.fill")
                                 .foregroundColor(.purple)
                                 .font(.title3)
                             

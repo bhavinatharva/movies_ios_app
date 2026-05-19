@@ -252,16 +252,22 @@ class IPTVLocalDatabase {
                 NSManagedObjectContext.mergeChanges(fromRemoteContextSave: [NSDeletedObjectsKey: objectIDs], into: [self.viewContext])
             }
             
-            for ch in channels {
+            for (index, ch) in channels.enumerated() {
                 let obj = NSEntityDescription.insertNewObject(forEntityName: "ChannelEntity", into: context)
                 obj.setValue(ch.name, forKey: "name")
                 obj.setValue(ch.streamUrl.absoluteString, forKey: "streamUrl")
                 obj.setValue(ch.logoUrl?.absoluteString, forKey: "logoUrl")
                 obj.setValue(ch.category, forKey: "category")
                 obj.setValue(ch.epgId, forKey: "epgId")
+                
+                if (index + 1) % 500 == 0 {
+                    try? context.save()
+                    context.reset()
+                }
             }
             
             try? context.save()
+            context.reset()
             completion()
         }
     }
@@ -299,7 +305,7 @@ class IPTVLocalDatabase {
                 NSManagedObjectContext.mergeChanges(fromRemoteContextSave: [NSDeletedObjectsKey: objectIDs], into: [self.viewContext])
             }
             
-            for item in items {
+            for (index, item) in items.enumerated() {
                 let obj = NSEntityDescription.insertNewObject(forEntityName: "MediaEntity", into: context)
                 obj.setValue(item.id, forKey: "id")
                 obj.setValue(item.title, forKey: "title")
@@ -319,9 +325,15 @@ class IPTVLocalDatabase {
                 obj.setValue(item.streamUrl?.absoluteString, forKey: "streamUrl")
                 obj.setValue(item.epgId, forKey: "epgId")
                 obj.setValue(item.adult ?? false, forKey: "adult")
+                
+                if (index + 1) % 500 == 0 {
+                    try? context.save()
+                    context.reset()
+                }
             }
             
             try? context.save()
+            context.reset()
             completion()
         }
     }

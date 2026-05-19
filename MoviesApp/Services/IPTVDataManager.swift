@@ -256,17 +256,15 @@ class IPTVDataManager {
                 let serverUrl = "\(url.scheme ?? "http")://\(url.host ?? "")\(url.port != nil ? ":\(url.port!)" : "")"
                 let creds = XtreamCredentials(serverUrl: serverUrl, username: username, password: password)
                 
-                // 2. Validate availability of VOD and Series via categories tasks concurrently with retry
-                async let liveCatsTask = try? fetchWithRetry { try await self.iptvService.fetchLiveCategories(creds: creds) }
-                async let vodCatsTask = try? fetchWithRetry { try await self.iptvService.fetchVODCategories(creds: creds) }
-                async let seriesCatsTask = try? fetchWithRetry { try await self.iptvService.fetchSeriesCategories(creds: creds) }
+                // 2. Validate availability of VOD and Series via categories tasks concurrently
+                async let liveCatsTask = try? self.iptvService.fetchLiveCategories(creds: creds)
+                async let vodCatsTask = try? self.iptvService.fetchVODCategories(creds: creds)
+                async let seriesCatsTask = try? self.iptvService.fetchSeriesCategories(creds: creds)
                 
                 let (liveCats, vodCats, seriesCats) = await (liveCatsTask, vodCatsTask, seriesCatsTask)
                 
-                // 3. Fetch Live streams to immediately satisfy Home screen layout with retry
-                let fetchedChannels = try await fetchWithRetry {
-                    try await self.iptvService.fetchXtreamChannels(creds: creds)
-                }
+                // 3. Fetch Live streams to immediately satisfy Home screen layout
+                let fetchedChannels = try await self.iptvService.fetchXtreamChannels(creds: creds)
                 
                 await MainActor.run {
                     // Sync loaded live channels
