@@ -119,21 +119,33 @@ class IPTVDataManager {
         }
     }
     
-    func refreshContent() async {
+    func refreshContent(clearFirst: Bool = false) async {
         if let activeTask = activeRefreshTask {
             _ = await activeTask.result
             return
         }
         
         let task = Task {
-            await self.performRefreshContent()
+            await self.performRefreshContent(clearFirst: clearFirst)
         }
         activeRefreshTask = task
         _ = await task.result
         activeRefreshTask = nil
     }
     
-    private func performRefreshContent() async {
+    private func performRefreshContent(clearFirst: Bool) async {
+        if clearFirst {
+            await MainActor.run {
+                self.liveChannels = []
+                self.movies = []
+                self.series = []
+                self.categorizedChannels = [:]
+                self.categorizedMovies = [:]
+                self.m3uEpisodes = [:]
+            }
+            IPTVLocalDatabase.shared.clearAllData()
+        }
+        
         guard let defaultPlaylist = playlistManager.fetchDefaultPlaylist() else {
             await MainActor.run {
                 self.liveChannels = []

@@ -65,7 +65,7 @@ struct PlaylistsListView: View {
                                             playlistManager.setDefault(playlist)
                                             refreshPlaylists()
                                             Task {
-                                                await IPTVDataManager.shared.refreshContent()
+                                                await IPTVDataManager.shared.refreshContent(clearFirst: true)
                                                 isActivating = false
                                             }
                                         }) {
