@@ -38,6 +38,11 @@ class M3UParser {
                         }
                         
                         let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
+                        
+                        #if DEBUG
+                        print("📡 [M3UParser] Fetched Line: \(trimmedLine)")
+                        #endif
+                        
                         if trimmedLine.isEmpty { continue }
                         
                         if trimmedLine.hasPrefix("#EXTINF:") {

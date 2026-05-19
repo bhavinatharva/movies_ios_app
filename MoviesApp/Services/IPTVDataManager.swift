@@ -177,6 +177,14 @@ class IPTVDataManager {
             return
         }
         
+        #if DEBUG
+        print("🌐 [IPTVDataManager] ===========================================")
+        print("🌐 [IPTVDataManager] Starting fetch for active playlist...")
+        print("🌐 [IPTVDataManager] URL: \(url.absoluteString)")
+        print("🌐 [IPTVDataManager] Detected Type: \(validation.type)")
+        print("🌐 [IPTVDataManager] ===========================================")
+        #endif
+        
         do {
             switch validation.type {
             case .m3uPlaylist, .directHLS, .directDASH:
