@@ -29,12 +29,19 @@ struct IPTVChannel: Identifiable, Hashable {
         let nameLower = name.lowercased()
         
         var type: MediaType = .liveTV
-        if group.contains("series") || group.contains("tv show") || group.contains("shows") || 
-            streamStr.contains("/series/") || nameLower.matchesSeriesPattern() {
+        
+        let seriesKeywords = ["series", "tv show", "shows", "season", "episodes", "netflix", "hulu", "amazon prime", "apple tv+", "web series"]
+        let hasSeriesKeyword = seriesKeywords.contains(where: { group.contains($0) })
+        
+        if hasSeriesKeyword || streamStr.contains("/series/") || nameLower.matchesSeriesPattern() {
             type = .tvSeries
-        } else if group.contains("movies") || group.contains("vod") || group.contains("cinema") ||
-            streamStr.contains("/movie/") || streamStr.hasSuffix(".mp4") || streamStr.hasSuffix(".mkv") {
-            type = .movie
+        } else {
+            let movieKeywords = ["movies", "movie", "vod", "cinema", "film", "box office", "boxoffice", "premiere", "blockbuster", "new release", "marvel", "dc", "disney+"]
+            let hasMovieKeyword = movieKeywords.contains(where: { group.contains($0) })
+            
+            if hasMovieKeyword || streamStr.contains("/movie/") || streamStr.hasSuffix(".mp4") || streamStr.hasSuffix(".mkv") || streamStr.hasSuffix(".avi") || nameLower.matchesMovieYearPattern() {
+                type = .movie
+            }
         }
         self.mediaType = type
         
@@ -147,6 +154,16 @@ extension String {
     func matchesSeriesPattern() -> Bool {
         let pattern = "s\\d{1,2}\\s*e\\d{1,2}"
         if let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) {
+            let range = NSRange(location: 0, length: self.count)
+            return regex.firstMatch(in: self, options: [], range: range) != nil
+        }
+        return false
+    }
+    
+    func matchesMovieYearPattern() -> Bool {
+        // Detects patterns like (2012), [2019], (1998) which are highly indicative of movies
+        let pattern = "(\\(|\\[)\\s*(19|20)\\d{2}\\s*(\\)|\\])"
+        if let regex = try? NSRegularExpression(pattern: pattern, options: []) {
             let range = NSRange(location: 0, length: self.count)
             return regex.firstMatch(in: self, options: [], range: range) != nil
         }

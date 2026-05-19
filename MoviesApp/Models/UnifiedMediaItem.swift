@@ -165,15 +165,12 @@ extension TrendingModel {
 
 func isAdultString(_ text: String) -> Bool {
     let lower = text.lowercased()
-    return lower.contains("18+") ||
-           lower.contains("xxx") ||
-           lower.contains("adult") ||
-           lower.contains("redlight") ||
-           lower.contains("porno") ||
-           lower.contains("erot") ||
-           lower.contains("nsfw") ||
-           lower.contains("pink") ||
-           lower.contains("hentai")
+    let adultKeywords = [
+        "18+", "xxx", "adult", "redlight", "porno", "erot", "nsfw",
+        "pink", "hentai", "onlyfans", "brazzers", "playboy", "penthouse",
+        "hustler", "mature", "uncensored", "sex"
+    ]
+    return adultKeywords.contains(where: { lower.contains($0) })
 }
 
 extension UnifiedMediaItem {
