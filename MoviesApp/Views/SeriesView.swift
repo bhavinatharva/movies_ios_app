@@ -136,10 +136,13 @@ struct SeriesView: View {
                                         
                                         LazyVGrid(columns: columns, spacing: 16) {
                                             ForEach(viewModel.filteredSeries) { series in
-                                                UnifiedMediaCardView(item: series, width: nil)
-                                                    .onTapGesture {
-                                                        selectedDetailSeries = series
-                                                    }
+                                                GeometryReader { geo in
+                                                    UnifiedMediaCardView(item: series, width: geo.size.width)
+                                                        .onTapGesture {
+                                                            selectedDetailSeries = series
+                                                        }
+                                                }
+                                                .aspectRatio(3/4, contentMode: .fit)
                                             }
                                         }
                                         .padding(.horizontal)

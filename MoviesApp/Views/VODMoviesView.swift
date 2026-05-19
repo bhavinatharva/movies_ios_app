@@ -132,11 +132,14 @@ struct VODMoviesView: View {
                                         
                                         LazyVGrid(columns: columns, spacing: 16) {
                                             ForEach(viewModel.filteredMovies) { movie in
-                                                UnifiedMediaCardView(item: movie, width: nil)
-                                                    .onTapGesture {
-                                                        UserDataManager.shared.addToHistory(movie)
-                                                        selectedMovie = movie
-                                                    }
+                                                GeometryReader { geo in
+                                                    UnifiedMediaCardView(item: movie, width: geo.size.width)
+                                                        .onTapGesture {
+                                                            UserDataManager.shared.addToHistory(movie)
+                                                            selectedMovie = movie
+                                                        }
+                                                }
+                                                .aspectRatio(3/4, contentMode: .fit)
                                             }
                                         }
                                         .padding(.horizontal)
