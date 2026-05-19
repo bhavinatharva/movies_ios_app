@@ -161,14 +161,15 @@ class IPTVDataManager {
         do {
             switch validation.type {
             case .m3uPlaylist, .directHLS, .directDASH:
-                // 1. Fetch & Parse M3U playlist file content in background with retry logic
+                // 1. Fetch & Parse M3U playlist file using streaming parser (minimizing memory usage in background)
                 let channels = try await fetchWithRetry {
                     try await Task.detached(priority: .userInitiated) {
-                        let (data, _) = try await URLSession.shared.data(from: url)
-                        guard let content = String(data: data, encoding: .utf8) else {
-                            throw NSError(domain: "IPTVService", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid M3U Encoding"])
+                        var parsedChannels: [IPTVChannel] = []
+                        let stream = try await M3UParser.parseStream(from: url)
+                        for try await channel in stream {
+                            parsedChannels.append(channel)
                         }
-                        return M3UParser.parse(content)
+                        return parsedChannels
                     }.value
                 }
                 

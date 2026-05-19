@@ -118,6 +118,42 @@ struct UnifiedMediaItem: Identifiable, Hashable, Codable {
         self.streamUrl = nil
         self.epgId = nil
     }
+    
+    // Initializer from IPTVChannel (M3U channels)
+    init(from channel: IPTVChannel) {
+        self.id = channel.streamUrl.absoluteString
+        self.title = channel.name
+        self.overview = channel.mediaType == .liveTV ? "Live from \(channel.category ?? "IPTV")" : "VOD from \(channel.category ?? "IPTV")"
+        self.posterPath = channel.logoUrl?.absoluteString
+        self.backdropPath = nil
+        self.mediaType = channel.mediaType
+        self.source = .iptv
+        self.releaseDate = channel.mediaType == .liveTV ? "LIVE" : nil
+        self.voteAverage = nil
+        self.runtime = nil
+        self.genres = channel.category != nil ? [channel.category!] : nil
+        self.streamUrl = channel.streamUrl
+        self.epgId = channel.epgId
+        self.adult = false
+    }
+
+    // Initializer from XtreamEpisode
+    init(from episode: XtreamEpisode, seriesId: String, creds: XtreamCredentials) {
+        self.id = episode.id
+        self.title = episode.title
+        self.overview = episode.info?.plot
+        self.posterPath = episode.info?.movieImage
+        self.backdropPath = nil
+        self.mediaType = .movie
+        self.source = .iptv
+        self.releaseDate = nil
+        self.voteAverage = nil
+        self.runtime = nil
+        self.genres = nil
+        self.streamUrl = URL(string: "\(creds.serverUrl)/series/\(creds.username)/\(creds.password)/\(episode.id).\(episode.containerExtension)")
+        self.epgId = nil
+        self.adult = false
+    }
 }
 
 // Extension to help existing views

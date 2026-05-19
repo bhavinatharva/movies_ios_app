@@ -8,6 +8,73 @@
 import Foundation
 
 class M3UParser {
+    static func parseStream(from url: URL) async throws -> AsyncThrowingStream<IPTVChannel, Error> {
+        return AsyncThrowingStream(IPTVChannel.self) { continuation in
+            let task = Task(priority: .userInitiated) {
+                do {
+                    let configuration = URLSessionConfiguration.default
+                    configuration.timeoutIntervalForRequest = 30
+                    configuration.timeoutIntervalForResource = 300
+                    let session = URLSession(configuration: configuration)
+                    
+                    let (bytes, response) = try await session.bytes(from: url)
+                    
+                    if let httpResponse = response as? HTTPURLResponse {
+                        if !(200...299).contains(httpResponse.statusCode) {
+                            continuation.finish(throwing: URLError(.badServerResponse))
+                            return
+                        }
+                    } else if url.scheme?.lowercased() != "file" {
+                        continuation.finish(throwing: URLError(.badServerResponse))
+                        return
+                    }
+                    
+                    var currentInfo: [String: String] = [:]
+                    
+                    for try await line in bytes.lines {
+                        if Task.isCancelled {
+                            continuation.finish(throwing: CancellationError())
+                            return
+                        }
+                        
+                        let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if trimmedLine.isEmpty { continue }
+                        
+                        if trimmedLine.hasPrefix("#EXTINF:") {
+                            currentInfo = parseExtInf(trimmedLine)
+                        } else if !trimmedLine.hasPrefix("#") {
+                            if let streamUrl = URL(string: trimmedLine) {
+                                let name = currentInfo["name"] ?? currentInfo["tvg-name"] ?? "Unknown Channel"
+                                let logo = currentInfo["logo"].flatMap { URL(string: $0) }
+                                let category = currentInfo["group"]
+                                let epg = currentInfo["epg-id"] ?? currentInfo["id"]
+                                
+                                let channel = IPTVChannel(
+                                    name: name,
+                                    streamUrl: streamUrl,
+                                    logoUrl: logo,
+                                    category: category,
+                                    epgId: epg
+                                )
+                                continuation.yield(channel)
+                            }
+                            currentInfo = [:]
+                        }
+                    }
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+            
+            continuation.onTermination = { termination in
+                if case .cancelled = termination {
+                    task.cancel()
+                }
+            }
+        }
+    }
+
     static func parse(_ content: String) -> [IPTVChannel] {
         var channels: [IPTVChannel] = []
         let lines = content.components(separatedBy: .newlines)
@@ -16,17 +83,16 @@ class M3UParser {
         
         for line in lines {
             let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
-            
             if trimmedLine.isEmpty { continue }
             
             if trimmedLine.hasPrefix("#EXTINF:") {
                 currentInfo = parseExtInf(trimmedLine)
-            } else if trimmedLine.hasPrefix("http") {
+            } else if !trimmedLine.hasPrefix("#") {
                 if let url = URL(string: trimmedLine) {
-                    let name = currentInfo["name"] ?? "Unknown Channel"
+                    let name = currentInfo["name"] ?? currentInfo["tvg-name"] ?? "Unknown Channel"
                     let logo = currentInfo["logo"].flatMap { URL(string: $0) }
                     let category = currentInfo["group"]
-                    let epg = currentInfo["epg-id"]
+                    let epg = currentInfo["epg-id"] ?? currentInfo["id"]
                     
                     let channel = IPTVChannel(
                         name: name,
@@ -47,20 +113,67 @@ class M3UParser {
     private static func parseExtInf(_ line: String) -> [String: String] {
         var info: [String: String] = [:]
         
-        // Extract attributes
-        let attributes = ["tvg-logo", "group-title", "tvg-id", "tvg-name"]
-        for attr in attributes {
-            if let value = line.extractValue(for: attr) {
-                let key = attr.replacingOccurrences(of: "tvg-", with: "")
-                              .replacingOccurrences(of: "group-title", with: "group")
-                info[key] = value
+        var commaIndex: String.Index? = nil
+        var insideQuotes = false
+        var insideSingleQuotes = false
+        
+        for idx in line.indices {
+            let char = line[idx]
+            if char == "\"" {
+                insideQuotes.toggle()
+            } else if char == "'" {
+                insideSingleQuotes.toggle()
+            } else if char == "," && !insideQuotes && !insideSingleQuotes {
+                commaIndex = idx
+                break
             }
         }
         
-        // Extract channel name (everything after the last comma)
-        if let lastComma = line.lastIndex(of: ",") {
-            let name = String(line[line.index(after: lastComma)...]).trimmingCharacters(in: .whitespacesAndNewlines)
-            info["name"] = name
+        let divider = commaIndex ?? line.endIndex
+        let attributePart = line[line.startIndex..<divider]
+        
+        let scanner = Scanner(string: String(attributePart))
+        scanner.charactersToBeSkipped = .whitespaces
+        
+        _ = scanner.scanString("#EXTINF:")
+        _ = scanner.scanInt()
+        
+        while !scanner.isAtEnd {
+            guard let key = scanner.scanUpToString("=") else { break }
+            _ = scanner.scanString("=")
+            
+            var value = ""
+            if scanner.scanString("\"") != nil {
+                if let val = scanner.scanUpToString("\"") {
+                    value = val
+                }
+                _ = scanner.scanString("\"")
+            } else if scanner.scanString("'") != nil {
+                if let val = scanner.scanUpToString("'") {
+                    value = val
+                }
+                _ = scanner.scanString("'")
+            } else {
+                if let val = scanner.scanUpToCharacters(from: .whitespaces) {
+                    value = val
+                }
+            }
+            
+            let trimmedKey = key.trimmingCharacters(in: .whitespacesAndNewlines)
+            let trimmedVal = value.trimmingCharacters(in: .whitespacesAndNewlines)
+            
+            if !trimmedKey.isEmpty {
+                let normalizedKey = trimmedKey.replacingOccurrences(of: "tvg-", with: "")
+                                              .replacingOccurrences(of: "group-title", with: "group")
+                info[normalizedKey] = trimmedVal
+            }
+        }
+        
+        if let commaIndex = commaIndex {
+            let name = String(line[line.index(after: commaIndex)...]).trimmingCharacters(in: .whitespacesAndNewlines)
+            if !name.isEmpty {
+                info["name"] = name
+            }
         }
         
         return info
