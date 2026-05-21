@@ -74,10 +74,14 @@ class IPTVService {
         #endif
         
         let streams = try await decodeInBackground([XtreamStream].self, from: data)
-        return streams.map { stream in
-            IPTVChannel(
+        return streams.compactMap { stream in
+            guard let streamUrl = URL(string: "\(creds.serverUrl)/live/\(creds.username)/\(creds.password)/\(stream.streamId).m3u8") else {
+                return nil
+            }
+            
+            return IPTVChannel(
                 name: stream.name,
-                streamUrl: URL(string: "\(creds.serverUrl)/live/\(creds.username)/\(creds.password)/\(stream.streamId).m3u8")!,
+                streamUrl: streamUrl,
                 logoUrl: URL(string: stream.streamIcon),
                 category: stream.categoryId,
                 epgId: stream.epgChannelId

@@ -45,6 +45,8 @@ struct StreamingPlayerView: View {
     
     @State private var timeObserver: Any? = nil
     @State private var hideControlsTask: Task<Void, Never>? = nil
+    @State private var lastProgressSaveTime: Date = .distantPast
+    private let progressSaveInterval: TimeInterval = 15
     
     // Detect stream types
     var streamType: MediaType {
@@ -596,8 +598,8 @@ struct StreamingPlayerView: View {
     
     // MARK: - Logic Helpers
     
-    private func setupPlayer() {
-        let playerItem = AVPlayerItem(url: url)
+    private func setupPlayer(with playbackURL: URL? = nil) {
+        let playerItem = AVPlayerItem(url: playbackURL ?? url)
         player.replaceCurrentItem(with: playerItem)
         
         let timeScale = CMTimeScale(NSEC_PER_SEC)
@@ -612,10 +614,7 @@ struct StreamingPlayerView: View {
                 }
             }
             
-            // Auto resume progress
-            if let targetId = streamId {
-                UserDataManager.shared.updateProgress(id: targetId, seconds: time.seconds)
-            }
+            saveProgressIfNeeded(seconds: time.seconds)
         }
         
         if let targetId = streamId {
@@ -631,21 +630,39 @@ struct StreamingPlayerView: View {
     }
     
     private func teardownPlayer() {
+        saveCurrentProgress()
         player.pause()
         if let observer = timeObserver {
             player.removeTimeObserver(observer)
+            timeObserver = nil
         }
         hideControlsTask?.cancel()
     }
     
     private func swapChannel(to channel: IPTVChannel) {
         teardownPlayer()
-        
-        // Setup new URL stream channel properties
-        let newPlayerItem = AVPlayerItem(url: channel.streamUrl)
-        player.replaceCurrentItem(with: newPlayerItem)
-        setupPlayer()
+        setupPlayer(with: channel.streamUrl)
         triggerToast("Swapped to \(channel.name)")
+    }
+
+    private func saveProgressIfNeeded(seconds: Double) {
+        guard seconds.isFinite,
+              let targetId = streamId,
+              Date().timeIntervalSince(lastProgressSaveTime) >= progressSaveInterval else {
+            return
+        }
+        
+        UserDataManager.shared.updateProgress(id: targetId, seconds: seconds)
+        lastProgressSaveTime = Date()
+    }
+
+    private func saveCurrentProgress() {
+        guard currentTime.isFinite, let targetId = streamId else {
+            return
+        }
+        
+        UserDataManager.shared.updateProgress(id: targetId, seconds: currentTime)
+        lastProgressSaveTime = Date()
     }
     
     private func toggleControls() {

@@ -39,6 +39,7 @@ enum IPTVTab: String, CaseIterable, Identifiable, Codable {
     }
 }
 
+@MainActor
 @Observable
 class IPTVDataManager {
     static let shared = IPTVDataManager()
@@ -226,7 +227,7 @@ class IPTVDataManager {
                     }
                     
                     // 3. Process flat TV series into clean Netflix hierarchies
-                    let parsed = self.parseM3USeries(tempSeriesRaw)
+                    let parsed = Self.parseM3USeries(tempSeriesRaw)
                     return (tempLive, tempMovies, tempUncategorized, parsed)
                 }.value
                 
@@ -314,7 +315,7 @@ class IPTVDataManager {
         let episodesMap: [String: [String: [XtreamEpisode]]]
     }
     
-    private func parseM3USeries(_ channels: [IPTVChannel]) -> ParsedSeriesResult {
+    nonisolated private static func parseM3USeries(_ channels: [IPTVChannel]) -> ParsedSeriesResult {
         var episodesByShow: [String: [M3USeriesParser.ParsedEpisode: IPTVChannel]] = [:]
         
         for channel in channels {
