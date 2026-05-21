@@ -106,6 +106,10 @@ class IPTVDataManager {
             do {
                 return try await operation()
             } catch {
+                if let urlError = error as? URLError, (400...499).contains(urlError.code.rawValue) {
+                    throw error // Fast fail for 4xx errors
+                }
+                
                 attempts += 1
                 if attempts >= retries {
                     throw error

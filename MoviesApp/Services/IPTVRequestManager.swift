@@ -99,11 +99,21 @@ actor IPTVRequestManager {
         while attempts < maxRetries {
             do {
                 let (data, response) = try await session.data(from: url)
-                if let httpResponse = response as? HTTPURLResponse, !(200...299).contains(httpResponse.statusCode) {
-                    throw URLError(URLError.Code(rawValue: httpResponse.statusCode))
+                if let httpResponse = response as? HTTPURLResponse {
+                    if (400...499).contains(httpResponse.statusCode) {
+                        // Do not retry client errors like 404 Not Found or 401 Unauthorized
+                        throw URLError(URLError.Code(rawValue: httpResponse.statusCode))
+                    } else if !(200...299).contains(httpResponse.statusCode) {
+                        throw URLError(URLError.Code(rawValue: httpResponse.statusCode))
+                    }
                 }
                 return data
             } catch {
+                if let urlError = error as? URLError, (400...499).contains(urlError.code.rawValue) {
+                    // Fast fail for 4xx errors
+                    throw error
+                }
+                
                 attempts += 1
                 if attempts >= maxRetries {
                     throw error
