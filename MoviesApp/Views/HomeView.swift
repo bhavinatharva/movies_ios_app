@@ -14,6 +14,7 @@ struct HomeView: View {
     @State private var detailNavigationPath = NavigationPath()
     @State private var selectedPlayableItem: UnifiedMediaItem?
     @State private var selectedMovieForDetail: UnifiedMediaItem?
+    @State private var selectedCollectionForDetail: MovieCollection?
     
     var body: some View {
         NavigationStack(path: $detailNavigationPath) {
@@ -83,6 +84,15 @@ struct HomeView: View {
             }
             .fullScreenCover(item: $selectedMovieForDetail) { item in
                 UnifiedMediaDetailView(item: item)
+            }
+            .fullScreenCover(item: $selectedCollectionForDetail) { collection in
+                MovieCollectionDetailView(collection: collection) { movie in
+                    selectedCollectionForDetail = nil
+                    // Delay slightly to allow the collection cover to dismiss before showing movie detail
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        selectedMovieForDetail = movie
+                    }
+                }
             }
             .fullScreenCover(item: $selectedPlayableItem) { item in
                 if let url = item.streamUrl {
@@ -217,6 +227,17 @@ struct HomeView: View {
                         header: "Trending Movies",
                         items: viewModel.trendingMovies,
                         onSelect: handleMediaSelection
+                    )
+                }
+                
+                // 4.5. Movie Collections
+                if !viewModel.movieCollections.isEmpty {
+                    MovieCollectionListView(
+                        header: "Movie Collections",
+                        collections: viewModel.movieCollections,
+                        onSelect: { collection in
+                            selectedCollectionForDetail = collection
+                        }
                     )
                 }
                 

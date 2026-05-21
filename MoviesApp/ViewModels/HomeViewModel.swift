@@ -11,6 +11,7 @@ class HomeViewModel {
     var dataManager = IPTVDataManager.shared
     
     var trendingMovies: [UnifiedMediaItem] = []
+    var movieCollections: [MovieCollection] = []
     var top10Movies: [UnifiedMediaItem] = []
     var recentlyAdded: [UnifiedMediaItem] = []
     var recommended: [UnifiedMediaItem] = []
@@ -121,6 +122,15 @@ class HomeViewModel {
                 self.recentlyAdded = []
             }
             self.uncategorized = self.dataManager.uncategorized
+        }
+        
+        // Priority 5: Group movies into smart collections (Background thread)
+        Task.detached(priority: .background) {
+            let playlistMovies = await self.dataManager.movies
+            let grouped = CollectionGroupingService.shared.groupMovies(playlistMovies)
+            await MainActor.run {
+                self.movieCollections = grouped
+            }
         }
     }
 }
