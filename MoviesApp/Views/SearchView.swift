@@ -100,7 +100,9 @@ struct SearchView: View {
                 MovieDetailView(title: trendingModel)
             }
             .fullScreenCover(item: $selectedPlayableItem) { item in
-                if let url = item.streamUrl {
+                if item.mediaType == .movie || item.mediaType == .tvSeries {
+                    UnifiedMediaDetailView(item: item)
+                } else if let url = item.streamUrl {
                     StreamingPlayerView(url: url, title: item.title, streamId: item.id)
                 } else {
                     ZStack(alignment: .topTrailing) {
