@@ -78,6 +78,11 @@ struct XtreamCategory: Codable, Identifiable {
         case name = "category_name"
     }
     
+    init(id: String, name: String) {
+        self.id = id
+        self.name = name
+    }
+    
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         name = (try? container.decodeIfPresent(String.self, forKey: .name)) ?? "Unknown"
