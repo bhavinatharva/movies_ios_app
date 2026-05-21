@@ -194,72 +194,7 @@ class IPTVDataManager {
         do {
             switch validation.type {
             case .m3uPlaylist, .directHLS, .directDASH:
-                // 1. Fetch & Parse M3U playlist file using streaming parser (minimizing memory usage in background)
-                let channels = try await fetchWithRetry {
-                    try await Task.detached(priority: .userInitiated) {
-                        var parsedChannels: [IPTVChannel] = []
-                        let stream = try await M3UParser.parseStream(from: url)
-                        for try await channel in stream {
-                            parsedChannels.append(channel)
-                        }
-                        return parsedChannels
-                    }.value
-                }
-                
-                // 2. Classify raw channels dynamically in the background to prevent main thread stutters
-                let (tempLive, tempMovies, tempUncategorized, parsedSeriesResult) = try await Task.detached(priority: .userInitiated) {
-                    var tempLive: [IPTVChannel] = []
-                    var tempMovies: [UnifiedMediaItem] = []
-                    var tempSeriesRaw: [IPTVChannel] = []
-                    var tempUncategorized: [UnifiedMediaItem] = []
-                    
-                    for channel in channels {
-                        switch channel.mediaType {
-                        case .liveTV:
-                            tempLive.append(channel)
-                        case .movie:
-                            tempMovies.append(channel.toUnified)
-                        case .tvSeries:
-                            tempSeriesRaw.append(channel)
-                        case .uncategorized:
-                            tempUncategorized.append(channel.toUnified)
-                        }
-                    }
-                    
-                    // 3. Process flat TV series into clean Netflix hierarchies
-                    let parsed = Self.parseM3USeries(tempSeriesRaw)
-                    return (tempLive, tempMovies, tempUncategorized, parsed)
-                }.value
-                
-                await MainActor.run {
-                    self.liveChannels = tempLive
-                    self.movies = tempMovies
-                    self.series = parsedSeriesResult.seriesList
-                    self.uncategorized = tempUncategorized
-                    self.m3uEpisodes = parsedSeriesResult.episodesMap
-                    
-                    self.categorizedChannels = Dictionary(grouping: tempLive) { $0.category ?? "General" }
-                    self.categorizedMovies = Dictionary(grouping: tempMovies) { $0.genres?.first ?? "General" }
-                    
-                    // 4. Adapt tabs dynamically based on contents parsed!
-                    var tabs: [IPTVTab] = [.home]
-                    if !tempLive.isEmpty { 
-                        tabs.append(.liveTV)
-                    }
-                    if !tempMovies.isEmpty || !parsedSeriesResult.seriesList.isEmpty { 
-                        tabs.append(.vod) 
-                    }
-                    tabs.append(.settings)
-                    
-                    self.availableTabs = tabs
-                    self.homeStatus = .success
-                }
-                
-                // Batch save the loaded results to our persistent local database stack
-                IPTVLocalDatabase.shared.saveChannels(tempLive) {}
-                IPTVLocalDatabase.shared.saveMediaItems(tempMovies + parsedSeriesResult.seriesList + tempUncategorized) {}
-                
-                self.loadEPGInBackground()
+                try await processAsM3U(url: url)
                 
             case .xtreamCodes:
                 // 1. Parse Xtream query credentials
@@ -286,6 +221,14 @@ class IPTVDataManager {
                 let fetchedChannels = fetchedChannelsResult ?? []
                 let fetchedVODs = fetchedVODsResult ?? []
                 let fetchedSeries = fetchedSeriesResult ?? []
+                
+                if fetchedChannels.isEmpty && fetchedVODs.isEmpty && fetchedSeries.isEmpty {
+                    #if DEBUG
+                    print("🌐 [IPTVDataManager] Xtream Codes JSON API failed or yielded empty results. Falling back to M3U Playlist parsing...")
+                    #endif
+                    try await processAsM3U(url: url)
+                    return
+                }
                 
                 // Process metadata mapping in background to prevent stutter
                 let (unifiedVODs, unifiedSeries) = await Task.detached(priority: .userInitiated) {
@@ -335,6 +278,75 @@ class IPTVDataManager {
                 self.homeStatus = .error(underlyingError: error)
             }
         }
+    }
+    
+    private func processAsM3U(url: URL) async throws {
+        // 1. Fetch & Parse M3U playlist file using streaming parser (minimizing memory usage in background)
+        let channels = try await fetchWithRetry {
+            try await Task.detached(priority: .userInitiated) {
+                var parsedChannels: [IPTVChannel] = []
+                let stream = try await M3UParser.parseStream(from: url)
+                for try await channel in stream {
+                    parsedChannels.append(channel)
+                }
+                return parsedChannels
+            }.value
+        }
+        
+        // 2. Classify raw channels dynamically in the background to prevent main thread stutters
+        let (tempLive, tempMovies, tempUncategorized, parsedSeriesResult) = try await Task.detached(priority: .userInitiated) {
+            var tempLive: [IPTVChannel] = []
+            var tempMovies: [UnifiedMediaItem] = []
+            var tempSeriesRaw: [IPTVChannel] = []
+            var tempUncategorized: [UnifiedMediaItem] = []
+            
+            for channel in channels {
+                switch channel.mediaType {
+                case .liveTV:
+                    tempLive.append(channel)
+                case .movie:
+                    tempMovies.append(channel.toUnified)
+                case .tvSeries:
+                    tempSeriesRaw.append(channel)
+                case .uncategorized:
+                    tempUncategorized.append(channel.toUnified)
+                }
+            }
+            
+            // 3. Process flat TV series into clean Netflix hierarchies
+            let parsed = Self.parseM3USeries(tempSeriesRaw)
+            return (tempLive, tempMovies, tempUncategorized, parsed)
+        }.value
+        
+        await MainActor.run {
+            self.liveChannels = tempLive
+            self.movies = tempMovies
+            self.series = parsedSeriesResult.seriesList
+            self.uncategorized = tempUncategorized
+            self.m3uEpisodes = parsedSeriesResult.episodesMap
+            
+            self.categorizedChannels = Dictionary(grouping: tempLive) { $0.category ?? "General" }
+            self.categorizedMovies = Dictionary(grouping: tempMovies) { $0.genres?.first ?? "General" }
+            
+            // 4. Adapt tabs dynamically based on contents parsed!
+            var tabs: [IPTVTab] = [.home]
+            if !tempLive.isEmpty { 
+                tabs.append(.liveTV)
+            }
+            if !tempMovies.isEmpty || !parsedSeriesResult.seriesList.isEmpty { 
+                tabs.append(.vod) 
+            }
+            tabs.append(.settings)
+            
+            self.availableTabs = tabs
+            self.homeStatus = .success
+        }
+        
+        // Batch save the loaded results to our persistent local database stack
+        IPTVLocalDatabase.shared.saveChannels(tempLive) {}
+        IPTVLocalDatabase.shared.saveMediaItems(tempMovies + parsedSeriesResult.seriesList + tempUncategorized) {}
+        
+        self.loadEPGInBackground()
     }
     
     private struct ParsedSeriesResult {

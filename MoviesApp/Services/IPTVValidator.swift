@@ -59,13 +59,17 @@ struct IPTVValidator {
             return .unknown
         }
         
-        // 2. Auto-detect: Xtream Codes API (Contains username and password query parameters)
+        // 2. Auto-detect: DASH streams (.mpd)
+        if url.pathExtension.lowercased() == "mpd" || lowercased.contains(".mpd") {
+            return .directDASH
+        }
+        
+        // 2. Auto-detect: Xtream Codes API
         let queryParams = url.queryParameters
         if queryParams["username"] != nil && queryParams["password"] != nil {
             return .xtreamCodes
         }
         
-        // Path contains typical player_api.php Xtream Codes gateway
         if url.path.contains("player_api.php") {
             return .xtreamCodes
         }
@@ -76,11 +80,7 @@ struct IPTVValidator {
         }
         
         // 4. Auto-detect: M3U / M3U8 Playlist
-        // M3U lists usually end with .m3u / .m3u8 or hit the standard get.php endpoint
         if url.pathExtension.lowercased() == "m3u" || url.pathExtension.lowercased() == "m3u8" {
-            // Note: If it's a direct stream it may also end with m3u8, but in standard lists, 
-            // the get.php or typical playlist endpoint denotes a full feed.
-            // Under Requirement 6, if the URL ends with .m3u / .m3u8 we prioritize treating as playlist.
             return .m3uPlaylist
         }
         
