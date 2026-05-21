@@ -6,9 +6,13 @@
 import SwiftUI
 
 struct UnifiedMediaDetailView: View {
-    let item: UnifiedMediaItem
+    @State private var viewModel: UnifiedMediaDetailViewModel
     @State private var isPlaying = false
     @Environment(\.dismiss) var dismiss
+    
+    init(item: UnifiedMediaItem) {
+        _viewModel = State(initialValue: UnifiedMediaDetailViewModel(item: item))
+    }
     
     var body: some View {
         ZStack {
@@ -18,7 +22,7 @@ struct UnifiedMediaDetailView: View {
                 VStack(alignment: .leading, spacing: 20) {
                     // Hero Backdrop
                     ZStack(alignment: .bottomLeading) {
-                        let imageUrl = item.backdropPath ?? item.posterPath ?? ""
+                        let imageUrl = viewModel.item.backdropPath ?? viewModel.item.posterPath ?? ""
                         if let url = URL(string: imageUrl), !imageUrl.isEmpty {
                             AsyncImage(url: url) { phase in
                                 switch phase {
@@ -49,13 +53,13 @@ struct UnifiedMediaDetailView: View {
                         }
                         
                         VStack(alignment: .leading, spacing: 8) {
-                            Text(item.title)
+                            Text(viewModel.item.title)
                                 .font(.system(size: 32, weight: .black))
                                 .foregroundColor(.white)
                                 .shadow(radius: 4)
                             
                             HStack(spacing: 12) {
-                                if item.isAdult {
+                                if viewModel.item.isAdult {
                                     Text("18+")
                                         .font(.caption2)
                                         .fontWeight(.bold)
@@ -64,19 +68,19 @@ struct UnifiedMediaDetailView: View {
                                         .cornerRadius(2)
                                 }
                                 
-                                if let releaseDate = item.releaseDate, !releaseDate.isEmpty {
+                                if let releaseDate = viewModel.item.releaseDate, !releaseDate.isEmpty {
                                     Text(releaseDate)
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
                                 
-                                if let runtime = item.runtime {
+                                if let runtime = viewModel.item.runtime {
                                     Text("\(runtime) min")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
                                 
-                                if let rating = item.voteAverage {
+                                if let rating = viewModel.item.voteAverage {
                                     HStack(spacing: 4) {
                                         Image(systemName: "star.fill")
                                             .foregroundColor(.yellow)
@@ -85,6 +89,12 @@ struct UnifiedMediaDetailView: View {
                                     }
                                     .font(.caption)
                                 }
+                                
+                                if let country = viewModel.item.country, !country.isEmpty {
+                                    Text(country)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
                             }
                         }
                         .padding(20)
@@ -92,7 +102,7 @@ struct UnifiedMediaDetailView: View {
                     .frame(height: 450)
                     
                     // Genres
-                    if let genres = item.genres, !genres.isEmpty {
+                    if let genres = viewModel.item.genres, !genres.isEmpty {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack {
                                 ForEach(genres, id: \.self) { genre in
@@ -113,12 +123,12 @@ struct UnifiedMediaDetailView: View {
                     // Action Buttons
                     HStack(spacing: 16) {
                         Button(action: {
-                            UserDataManager.shared.addToHistory(item)
+                            UserDataManager.shared.addToHistory(viewModel.item)
                             isPlaying = true
                         }) {
                             HStack {
                                 Image(systemName: "play.fill")
-                                Text("Play \(item.mediaType == .tvSeries ? "Series" : "Movie")")
+                                Text("Play \(viewModel.item.mediaType == .tvSeries ? "Series" : "Movie")")
                             }
                             .font(.headline)
                             .frame(maxWidth: .infinity)
@@ -138,7 +148,7 @@ struct UnifiedMediaDetailView: View {
                             .fontWeight(.bold)
                             .foregroundColor(.primary)
                         
-                        Text(item.overview ?? "No description available.")
+                        Text(viewModel.item.overview ?? "No description available.")
                             .font(.body)
                             .foregroundColor(.secondary)
                             .lineSpacing(4)
@@ -146,84 +156,124 @@ struct UnifiedMediaDetailView: View {
                     .padding(.horizontal, 20)
                     .padding(.top, 10)
                     
-                    // Mock Trailer Section
-                    VStack(alignment: .leading, spacing: 15) {
-                        Text("Trailer")
-                            .font(.title3)
-                            .fontWeight(.bold)
-                            .foregroundColor(.primary)
-                            .padding(.horizontal, 20)
-                        
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(Color.appCardBackground)
-                                .frame(height: 200)
+                    // Trailer Section
+                    if let trailerUrl = viewModel.item.trailerUrl {
+                        VStack(alignment: .leading, spacing: 15) {
+                            Text("Trailer")
+                                .font(.title3)
+                                .fontWeight(.bold)
+                                .foregroundColor(.primary)
+                                .padding(.horizontal, 20)
                             
-                            Image(systemName: "play.circle.fill")
-                                .font(.system(size: 50))
-                                .foregroundColor(.white.opacity(0.8))
-                            
-                            VStack {
-                                Spacer()
-                                HStack {
-                                    Text("Official Trailer")
-                                        .font(.caption)
-                                        .fontWeight(.bold)
-                                        .foregroundColor(.white)
-                                    Spacer()
+                            Link(destination: trailerUrl) {
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color.appCardBackground)
+                                        .frame(height: 200)
+                                    
+                                    Image(systemName: "play.rectangle.fill")
+                                        .font(.system(size: 50))
+                                        .foregroundColor(.red.opacity(0.8))
+                                    
+                                    VStack {
+                                        Spacer()
+                                        HStack {
+                                            Text("Watch Official Trailer")
+                                                .font(.caption)
+                                                .fontWeight(.bold)
+                                                .foregroundColor(.white)
+                                            Spacer()
+                                        }
+                                        .padding()
+                                        .background(
+                                            LinearGradient(colors: [.black.opacity(0.8), .clear], startPoint: .bottom, endPoint: .top)
+                                        )
+                                        .cornerRadius(12)
+                                    }
                                 }
-                                .padding()
-                                .cornerRadius(12)
                             }
+                            .buttonStyle(PlainButtonStyle())
+                            .padding(.horizontal, 20)
+                        }
+                        .padding(.top, 10)
+                    }
+                    
+                    // Director & Cast Section
+                    if let director = viewModel.item.director, !director.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Director")
+                                .font(.title3)
+                                .fontWeight(.bold)
+                                .foregroundColor(.primary)
+                            Text(director)
+                                .font(.body)
+                                .foregroundColor(.secondary)
                         }
                         .padding(.horizontal, 20)
+                        .padding(.top, 10)
                     }
-                    .padding(.top, 10)
                     
-                    // Mock Cast & Crew Section
-                    VStack(alignment: .leading, spacing: 15) {
-                        Text("Cast & Crew")
-                            .font(.title3)
-                            .fontWeight(.bold)
-                            .foregroundColor(.primary)
-                            .padding(.horizontal, 20)
-                        
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 16) {
-                                ForEach(1...5, id: \.self) { index in
-                                    VStack {
-                                        Circle()
-                                            .fill(Color.gray.opacity(0.3))
-                                            .frame(width: 70, height: 70)
-                                            .overlay(
-                                                Image(systemName: "person.fill")
-                                                    .foregroundColor(.white.opacity(0.5))
-                                                    .font(.title)
-                                            )
-                                        
-                                        Text("Actor \(index)")
-                                            .font(.caption)
-                                            .fontWeight(.bold)
-                                            .foregroundColor(.white)
-                                            .lineLimit(1)
-                                        
-                                        Text("Character")
-                                            .font(.caption2)
-                                            .foregroundColor(.secondary)
-                                            .lineLimit(1)
+                    if let castStr = viewModel.item.cast, !castStr.isEmpty {
+                        VStack(alignment: .leading, spacing: 15) {
+                            Text("Cast")
+                                .font(.title3)
+                                .fontWeight(.bold)
+                                .foregroundColor(.primary)
+                                .padding(.horizontal, 20)
+                            
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 16) {
+                                    let actors = castStr.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+                                    ForEach(actors, id: \.self) { actor in
+                                        VStack {
+                                            Circle()
+                                                .fill(Color.gray.opacity(0.3))
+                                                .frame(width: 70, height: 70)
+                                                .overlay(
+                                                    Image(systemName: "person.fill")
+                                                        .foregroundColor(.white.opacity(0.5))
+                                                        .font(.title)
+                                                )
+                                            
+                                            Text(actor)
+                                                .font(.caption)
+                                                .fontWeight(.bold)
+                                                .foregroundColor(.white)
+                                                .lineLimit(2)
+                                                .multilineTextAlignment(.center)
+                                                .frame(width: 80)
+                                        }
                                     }
-                                    .frame(width: 80)
                                 }
+                                .padding(.horizontal, 20)
                             }
-                            .padding(.horizontal, 20)
                         }
+                        .padding(.top, 10)
                     }
-                    .padding(.top, 10)
                     
                     Spacer(minLength: 40)
                 }
             }
             .ignoresSafeArea(edges: .top)
+            .task {
+                await viewModel.loadDetails()
+            }
+            
+            // Loading Overlay
+            if viewModel.isLoading {
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .scaleEffect(1.5)
+                        Spacer()
+                    }
+                    Spacer()
+                }
+                .background(Color.black.opacity(0.3))
+            }
             
             // Custom Dismiss Button
             VStack {
@@ -244,8 +294,8 @@ struct UnifiedMediaDetailView: View {
             }
         }
         .fullScreenCover(isPresented: $isPlaying) {
-            if let url = item.streamUrl {
-                StreamingPlayerView(url: url, title: item.title, streamId: item.id)
+            if let url = viewModel.item.streamUrl {
+                StreamingPlayerView(url: url, title: viewModel.item.title, streamId: viewModel.item.id)
             } else {
                 ContentUnavailableView("Stream Unavailable", systemImage: "play.slash", description: Text("No playable link found for this item."))
             }

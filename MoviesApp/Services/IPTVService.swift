@@ -25,8 +25,7 @@ class IPTVService {
 
         public init(from decoder: Decoder) throws {
             do {
-                let container = try decoder.singleValueContainer()
-                self.value = try container.decode(Base.self)
+                self.value = try Base(from: decoder)
             } catch {
                 #if DEBUG
                 print("⚠️ [IPTVService] Skipped malformed item during decoding: \(error)")
@@ -135,6 +134,13 @@ class IPTVService {
         return try await safeDecodeArrayInBackground(XtreamVODStream.self, from: data)
     }
     
+    func fetchVODInfo(creds: XtreamCredentials, vodId: Int) async throws -> XtreamVODInfoResponse {
+        let urlString = "\(creds.serverUrl)/player_api.php?username=\(creds.username)&password=\(creds.password)&action=get_vod_info&vod_id=\(vodId)"
+        guard let url = URL(string: urlString) else { throw URLError(.badURL) }
+        let data = try await IPTVRequestManager.shared.performFetch(url: url, type: .vod)
+        return try await decodeInBackground(XtreamVODInfoResponse.self, from: data)
+    }
+    
     func fetchSeriesCategories(creds: XtreamCredentials) async throws -> [XtreamCategory] {
         let urlString = "\(creds.serverUrl)/player_api.php?username=\(creds.username)&password=\(creds.password)&action=get_series_categories"
         guard let url = URL(string: urlString) else { return [] }
@@ -183,5 +189,30 @@ struct XtreamStream: Codable {
         case streamIcon = "stream_icon"
         case categoryId = "category_id"
         case epgChannelId = "epg_channel_id"
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        name = (try? container.decodeIfPresent(String.self, forKey: .name)) ?? "Unknown"
+        
+        if let idInt = try? container.decode(Int.self, forKey: .streamId) {
+            streamId = idInt
+        } else if let idStr = try? container.decode(String.self, forKey: .streamId), let idInt = Int(idStr) {
+            streamId = idInt
+        } else {
+            streamId = 0
+        }
+        
+        streamIcon = (try? container.decodeIfPresent(String.self, forKey: .streamIcon)) ?? ""
+        
+        if let catStr = try? container.decode(String.self, forKey: .categoryId) {
+            categoryId = catStr
+        } else if let catInt = try? container.decode(Int.self, forKey: .categoryId) {
+            categoryId = String(catInt)
+        } else {
+            categoryId = ""
+        }
+        
+        epgChannelId = try? container.decodeIfPresent(String.self, forKey: .epgChannelId)
     }
 }

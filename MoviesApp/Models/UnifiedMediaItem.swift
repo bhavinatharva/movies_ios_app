@@ -21,10 +21,10 @@ enum MediaSource: String, Codable {
 
 struct UnifiedMediaItem: Identifiable, Hashable, Codable {
     let id: String
-    let title: String
-    let overview: String?
-    let posterPath: String?
-    let backdropPath: String?
+    var title: String
+    var overview: String?
+    var posterPath: String?
+    var backdropPath: String?
     let mediaType: MediaType
     let source: MediaSource
     
@@ -36,6 +36,12 @@ struct UnifiedMediaItem: Identifiable, Hashable, Codable {
     var streamUrl: URL? // For IPTV HLS streams
     var epgId: String? // For EPG matching
     var adult: Bool?
+    
+    // Detailed Metadata
+    var cast: String?
+    var director: String?
+    var country: String?
+    var trailerUrl: URL?
     
     // General Initializer
     init(id: String,
@@ -51,7 +57,11 @@ struct UnifiedMediaItem: Identifiable, Hashable, Codable {
          genres: [String]? = nil,
          streamUrl: URL? = nil,
          epgId: String? = nil,
-         adult: Bool? = false) {
+         adult: Bool? = false,
+         cast: String? = nil,
+         director: String? = nil,
+         country: String? = nil,
+         trailerUrl: URL? = nil) {
         self.id = id
         self.title = title
         self.overview = overview
@@ -66,6 +76,26 @@ struct UnifiedMediaItem: Identifiable, Hashable, Codable {
         self.streamUrl = streamUrl
         self.epgId = epgId
         self.adult = adult
+        self.cast = cast
+        self.director = director
+        self.country = country
+        self.trailerUrl = trailerUrl
+    }
+    
+    func merged(with details: UnifiedMediaItem) -> UnifiedMediaItem {
+        var copy = self
+        copy.overview = details.overview ?? self.overview
+        copy.posterPath = details.posterPath ?? self.posterPath
+        copy.backdropPath = details.backdropPath ?? self.backdropPath
+        copy.releaseDate = details.releaseDate ?? self.releaseDate
+        copy.voteAverage = details.voteAverage ?? self.voteAverage
+        copy.runtime = details.runtime ?? self.runtime
+        copy.genres = details.genres ?? self.genres
+        copy.cast = details.cast ?? self.cast
+        copy.director = details.director ?? self.director
+        copy.country = details.country ?? self.country
+        copy.trailerUrl = details.trailerUrl ?? self.trailerUrl
+        return copy
     }
 
     // Initializer from TrendingModel (TMDB)
@@ -137,6 +167,25 @@ struct UnifiedMediaItem: Identifiable, Hashable, Codable {
         self.streamUrl = channel.streamUrl
         self.epgId = channel.epgId
         self.adult = false
+    }
+
+    // Initializer from XtreamVODInfo (Details fetch)
+    init(from info: XtreamVODInfo) {
+        self.id = "" // Handled by merge
+        self.title = "" // Handled by merge
+        self.overview = info.plot
+        self.posterPath = info.movieImage
+        self.backdropPath = info.backdropPath?.first
+        self.mediaType = .movie
+        self.source = .iptv
+        self.releaseDate = info.releaseDate
+        self.voteAverage = Double(info.rating ?? "") ?? nil
+        self.runtime = Int(info.duration ?? "") ?? nil
+        self.genres = info.genre != nil ? [info.genre!] : nil
+        self.cast = info.cast
+        self.director = info.director
+        self.country = info.country
+        self.trailerUrl = info.youtubeTrailer != nil ? URL(string: "https://youtube.com/watch?v=\(info.youtubeTrailer!)") : nil
     }
 
     // Initializer from XtreamEpisode

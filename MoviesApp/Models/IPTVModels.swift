@@ -77,6 +77,135 @@ struct XtreamCategory: Codable, Identifiable {
         case id = "category_id"
         case name = "category_name"
     }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        name = (try? container.decodeIfPresent(String.self, forKey: .name)) ?? "Unknown"
+        
+        if let idStr = try? container.decode(String.self, forKey: .id) {
+            id = idStr
+        } else if let idInt = try? container.decode(Int.self, forKey: .id) {
+            id = String(idInt)
+        } else {
+            id = UUID().uuidString
+        }
+    }
+}
+
+struct XtreamVODInfoResponse: Codable {
+    let info: XtreamVODInfo?
+    let movieData: XtreamVODMovieData?
+    
+    enum CodingKeys: String, CodingKey {
+        case info
+        case movieData = "movie_data"
+    }
+}
+
+struct XtreamVODMovieData: Codable {
+    let streamId: Int?
+    let name: String?
+    let added: String?
+    let categoryId: String?
+    let containerExtension: String?
+    let rating: Double?
+    
+    enum CodingKeys: String, CodingKey {
+        case streamId = "stream_id"
+        case name
+        case added
+        case categoryId = "category_id"
+        case containerExtension = "container_extension"
+        case rating
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        name = try? container.decodeIfPresent(String.self, forKey: .name)
+        
+        if let idInt = try? container.decode(Int.self, forKey: .streamId) { streamId = idInt }
+        else if let idStr = try? container.decode(String.self, forKey: .streamId), let idInt = Int(idStr) { streamId = idInt }
+        else { streamId = nil }
+        
+        if let aS = try? container.decode(String.self, forKey: .added) { added = aS }
+        else if let aI = try? container.decode(Int.self, forKey: .added) { added = String(aI) }
+        else { added = nil }
+        
+        if let cS = try? container.decode(String.self, forKey: .categoryId) { categoryId = cS }
+        else if let cI = try? container.decode(Int.self, forKey: .categoryId) { categoryId = String(cI) }
+        else { categoryId = nil }
+        
+        containerExtension = try? container.decodeIfPresent(String.self, forKey: .containerExtension)
+        
+        if let rD = try? container.decode(Double.self, forKey: .rating) { rating = rD }
+        else if let rS = try? container.decode(String.self, forKey: .rating), let rD = Double(rS) { rating = rD }
+        else if let rI = try? container.decode(Int.self, forKey: .rating) { rating = Double(rI) }
+        else { rating = nil }
+    }
+}
+
+struct XtreamVODInfo: Codable {
+    let movieImage: String?
+    let plot: String?
+    let cast: String?
+    let director: String?
+    let genre: String?
+    let releaseDate: String?
+    let rating: String?
+    let duration: String?
+    let tmdbId: String?
+    let country: String?
+    let backdropPath: [String]?
+    let youtubeTrailer: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case movieImage = "movie_image"
+        case plot
+        case cast
+        case director
+        case genre
+        case releaseDate = "releasedate"
+        case rating
+        case duration
+        case tmdbId = "tmdb_id"
+        case country
+        case backdropPath = "backdrop_path"
+        case youtubeTrailer = "youtube_trailer"
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        movieImage = try? container.decodeIfPresent(String.self, forKey: .movieImage)
+        plot = try? container.decodeIfPresent(String.self, forKey: .plot)
+        cast = try? container.decodeIfPresent(String.self, forKey: .cast)
+        director = try? container.decodeIfPresent(String.self, forKey: .director)
+        genre = try? container.decodeIfPresent(String.self, forKey: .genre)
+        releaseDate = try? container.decodeIfPresent(String.self, forKey: .releaseDate)
+        
+        if let rS = try? container.decode(String.self, forKey: .rating) { rating = rS }
+        else if let rD = try? container.decode(Double.self, forKey: .rating) { rating = String(rD) }
+        else if let rI = try? container.decode(Int.self, forKey: .rating) { rating = String(rI) }
+        else { rating = nil }
+        
+        if let dS = try? container.decode(String.self, forKey: .duration) { duration = dS }
+        else if let dI = try? container.decode(Int.self, forKey: .duration) { duration = String(dI) }
+        else { duration = nil }
+        
+        if let tS = try? container.decode(String.self, forKey: .tmdbId) { tmdbId = tS }
+        else if let tI = try? container.decode(Int.self, forKey: .tmdbId) { tmdbId = String(tI) }
+        else { tmdbId = nil }
+        
+        country = try? container.decodeIfPresent(String.self, forKey: .country)
+        youtubeTrailer = try? container.decodeIfPresent(String.self, forKey: .youtubeTrailer)
+        
+        if let bArray = try? container.decode([String].self, forKey: .backdropPath) {
+            backdropPath = bArray
+        } else if let bString = try? container.decode(String.self, forKey: .backdropPath) {
+            backdropPath = [bString]
+        } else {
+            backdropPath = nil
+        }
+    }
 }
 
 struct XtreamVODStream: Codable {
@@ -166,6 +295,22 @@ struct XtreamSeries: Codable {
         case seriesId = "series_id"
         case cover
         case categoryId = "category_id"
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        name = (try? container.decodeIfPresent(String.self, forKey: .name)) ?? "Unknown"
+        
+        if let idInt = try? container.decode(Int.self, forKey: .seriesId) {
+            seriesId = idInt
+        } else if let idStr = try? container.decode(String.self, forKey: .seriesId), let idInt = Int(idStr) {
+            seriesId = idInt
+        } else {
+            seriesId = 0
+        }
+        
+        cover = try? container.decodeIfPresent(String.self, forKey: .cover)
+        categoryId = try? container.decodeIfPresent(String.self, forKey: .categoryId)
     }
 }
 
