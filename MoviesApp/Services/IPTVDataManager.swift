@@ -12,6 +12,7 @@ import Combine
 enum IPTVTab: String, CaseIterable, Identifiable, Codable {
     case home
     case liveTV
+    case epg
     case movies
     case series
     case settings
@@ -22,6 +23,7 @@ enum IPTVTab: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .home: return "Home"
         case .liveTV: return "Live TV"
+        case .epg: return "TV Guide"
         case .movies: return "Movies"
         case .series: return "Series"
         case .settings: return "Settings"
@@ -32,6 +34,7 @@ enum IPTVTab: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .home: return "house.fill"
         case .liveTV: return "tv.fill"
+        case .epg: return "calendar.badge.clock"
         case .movies: return "film.fill"
         case .series: return "play.tv.fill"
         case .settings: return "gearshape.fill"
@@ -89,7 +92,12 @@ class IPTVDataManager {
             self.categorizedMovies = Dictionary(grouping: cachedMovies) { $0.genres?.first ?? "General" }
             
             var tabs: [IPTVTab] = [.home]
-            if !cachedChannels.isEmpty { tabs.append(.liveTV) }
+            if !cachedChannels.isEmpty { 
+                tabs.append(.liveTV)
+                if UserDefaults.standard.bool(forKey: "epg_display") {
+                    tabs.append(.epg)
+                }
+            }
             if !cachedMovies.isEmpty { tabs.append(.movies) }
             if !cachedSeries.isEmpty { tabs.append(.series) }
             tabs.append(.settings)
@@ -243,7 +251,12 @@ class IPTVDataManager {
                     
                     // 4. Adapt tabs dynamically based on contents parsed!
                     var tabs: [IPTVTab] = [.home]
-                    if !tempLive.isEmpty { tabs.append(.liveTV) }
+                    if !tempLive.isEmpty { 
+                        tabs.append(.liveTV)
+                        if UserDefaults.standard.bool(forKey: "epg_display") {
+                            tabs.append(.epg)
+                        }
+                    }
                     if !tempMovies.isEmpty { tabs.append(.movies) }
                     if !parsedSeriesResult.seriesList.isEmpty { tabs.append(.series) }
                     tabs.append(.settings)
@@ -306,7 +319,12 @@ class IPTVDataManager {
                     
                     // 4. Dynamically generate tabs based on Xtream API configuration
                     var tabs: [IPTVTab] = [.home]
-                    if !(liveCats ?? []).isEmpty || !fetchedChannels.isEmpty { tabs.append(.liveTV) }
+                    if !(liveCats ?? []).isEmpty || !fetchedChannels.isEmpty { 
+                        tabs.append(.liveTV)
+                        if UserDefaults.standard.bool(forKey: "epg_display") {
+                            tabs.append(.epg)
+                        }
+                    }
                     if !(vodCats ?? []).isEmpty || !unifiedVODs.isEmpty { tabs.append(.movies) }
                     if !(seriesCats ?? []).isEmpty || !unifiedSeries.isEmpty { tabs.append(.series) }
                     tabs.append(.settings)

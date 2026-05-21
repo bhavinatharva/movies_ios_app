@@ -25,6 +25,15 @@ struct IPTVValidator {
         let type: IPTVSourceType
         let sanitizedUrl: String?
         let errorMessage: String?
+        
+        var credentials: XtreamCredentials? {
+            guard type == .xtreamCodes, let sanitizedUrl = sanitizedUrl, let url = URL(string: sanitizedUrl) else { return nil }
+            let queryParams = url.queryParameters
+            let username = queryParams["username"] ?? ""
+            let password = queryParams["password"] ?? ""
+            let serverUrl = "\(url.scheme ?? "http")://\(url.host ?? "")\(url.port != nil ? ":\(url.port!)" : "")"
+            return XtreamCredentials(serverUrl: serverUrl, username: username, password: password)
+        }
     }
     
     /// Detects the target IPTV source type based on standard suffix, structure, and query parameter patterns

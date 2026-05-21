@@ -20,9 +20,11 @@ class EPGService {
     static let shared = EPGService()
     private init() {}
     
-    // In a real app, this would parse XMLTV format
-    func fetchEPG(url: URL) async throws -> [EPGProgram] {
-        // Placeholder for XMLTV parsing logic
-        return []
+    // Parse XMLTV format in background
+    func parseXMLTV(data: Data) async throws -> [EPGProgram] {
+        return try await Task.detached(priority: .userInitiated) {
+            let parser = XMLTVParser()
+            return parser.parse(data: data)
+        }.value
     }
 }
