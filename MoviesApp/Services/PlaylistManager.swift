@@ -175,6 +175,24 @@ class PlaylistManager {
         }
     }
     
+    // MARK: - Adult Content
+    
+    func markAdultContentDetected(for playlistId: String) {
+        var playlists = fetchAllPlaylists()
+        if let index = playlists.firstIndex(where: { $0.id == playlistId }) {
+            playlists[index].hasAdultContent = true
+            savePlaylists(playlists)
+        }
+    }
+    
+    func updateAdultConsent(for playlistId: String, consented: Bool) {
+        var playlists = fetchAllPlaylists()
+        if let index = playlists.firstIndex(where: { $0.id == playlistId }) {
+            playlists[index].userConsentedAdult = consented
+            savePlaylists(playlists)
+        }
+    }
+    
     // MARK: - Channel Caching
     
     private func getCacheFileUrl(forUrl url: String) -> URL? {

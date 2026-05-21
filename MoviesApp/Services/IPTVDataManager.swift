@@ -44,6 +44,10 @@ class IPTVDataManager {
     var homeStatus: ApiFetchStatus = .notstarted
     var availableTabs: [IPTVTab] = [.home, .settings]
     
+    // Adult Content Consent State
+    var showAdultConsentPrompt: Bool = false
+    var pendingAdultConsentPlaylist: Playlist? = nil
+    
     // Classified data arrays
     var liveChannels: [IPTVChannel] = []
     var movies: [UnifiedMediaItem] = []
@@ -141,6 +145,20 @@ class IPTVDataManager {
         activeRefreshTask = nil
     }
     
+    func handleAdultConsent(consented: Bool) {
+        guard let playlist = pendingAdultConsentPlaylist else { return }
+        playlistManager.updateAdultConsent(for: playlist.id, consented: consented)
+        
+        self.showAdultConsentPrompt = false
+        self.pendingAdultConsentPlaylist = nil
+        
+        if consented {
+            Task {
+                await refreshContent(clearFirst: true)
+            }
+        }
+    }
+    
     private func performRefreshContent(clearFirst: Bool) async {
         if clearFirst {
             await MainActor.run {
@@ -198,7 +216,7 @@ class IPTVDataManager {
         do {
             switch validation.type {
             case .m3uPlaylist, .directHLS, .directDASH:
-                try await processAsM3U(url: url)
+                try await processAsM3U(url: url, defaultPlaylist: defaultPlaylist)
                 
             case .xtreamCodes:
                 // 1. Parse Xtream query credentials
@@ -230,7 +248,7 @@ class IPTVDataManager {
                     #if DEBUG
                     print("🌐 [IPTVDataManager] Xtream Codes JSON API failed or yielded empty results. Falling back to M3U Playlist parsing...")
                     #endif
-                    try await processAsM3U(url: url)
+                    try await processAsM3U(url: url, defaultPlaylist: defaultPlaylist)
                     return
                 }
                 
@@ -241,25 +259,48 @@ class IPTVDataManager {
                     return (v, s)
                 }.value
                 
+                // 1. Adult Content Detection
+                let hasAdult = AdultContentDetector.hasAdultContent(channels: fetchedChannels, media: unifiedVODs + unifiedSeries)
+                if hasAdult && !defaultPlaylist.hasAdultContent {
+                    self.playlistManager.markAdultContentDetected(for: defaultPlaylist.id)
+                }
+                
+                // 2. Fetch updated consent
+                let updatedPlaylist = self.playlistManager.fetchAllPlaylists().first { $0.id == defaultPlaylist.id } ?? defaultPlaylist
+                let consented = updatedPlaylist.userConsentedAdult
+                
+                // 3. Prompt if needed
+                if hasAdult && consented == nil {
+                    await MainActor.run {
+                        self.pendingAdultConsentPlaylist = updatedPlaylist
+                        self.showAdultConsentPrompt = true
+                    }
+                }
+                
+                // 4. Filter
+                let finalChannels = AdultContentDetector.filterAdultChannels(fetchedChannels, consented: consented)
+                let finalVODs = AdultContentDetector.filterAdultMedia(unifiedVODs, consented: consented)
+                let finalSeries = AdultContentDetector.filterAdultMedia(unifiedSeries, consented: consented)
+                
                 await MainActor.run {
                     // Sync loaded channels and media items
-                    self.liveChannels = fetchedChannels
-                    self.categorizedChannels = Dictionary(grouping: fetchedChannels) { $0.category ?? "General" }
+                    self.liveChannels = finalChannels
+                    self.categorizedChannels = Dictionary(grouping: finalChannels) { $0.category ?? "General" }
                     
-                    self.movies = unifiedVODs
-                    self.categorizedMovies = Dictionary(grouping: unifiedVODs) { $0.genres?.first ?? "General" }
+                    self.movies = finalVODs
+                    self.categorizedMovies = Dictionary(grouping: finalVODs) { $0.genres?.first ?? "General" }
                     
-                    self.series = unifiedSeries
+                    self.series = finalSeries
                     
                     // Save credentials in AuthManager so sub-viewmodels can fetch VOD/Series details later
                     AuthManager.shared.saveCredentials(creds)
                     
                     // 4. Dynamically generate tabs based on Xtream API configuration
                     var tabs: [IPTVTab] = [.home]
-                    if !(liveCats ?? []).isEmpty || !fetchedChannels.isEmpty { 
+                    if !(liveCats ?? []).isEmpty || !finalChannels.isEmpty { 
                         tabs.append(.liveTV)
                     }
-                    if !(vodCats ?? []).isEmpty || !unifiedVODs.isEmpty || !(seriesCats ?? []).isEmpty || !unifiedSeries.isEmpty { 
+                    if !(vodCats ?? []).isEmpty || !finalVODs.isEmpty || !(seriesCats ?? []).isEmpty || !finalSeries.isEmpty { 
                         tabs.append(.vod) 
                     }
                     tabs.append(.settings)
@@ -269,8 +310,8 @@ class IPTVDataManager {
                 }
                 
                 // Batch save the loaded results to our persistent local database stack
-                IPTVLocalDatabase.shared.saveChannels(fetchedChannels) {}
-                IPTVLocalDatabase.shared.saveMediaItems(unifiedVODs + unifiedSeries) {}
+                IPTVLocalDatabase.shared.saveChannels(finalChannels) {}
+                IPTVLocalDatabase.shared.saveMediaItems(finalVODs + finalSeries) {}
                 
                 self.loadEPGInBackground()
                 
@@ -284,7 +325,7 @@ class IPTVDataManager {
         }
     }
     
-    private func processAsM3U(url: URL) async throws {
+    private func processAsM3U(url: URL, defaultPlaylist: Playlist) async throws {
         // 1. Fetch & Parse M3U playlist file using streaming parser (minimizing memory usage in background)
         let channels = try await fetchWithRetry {
             try await Task.detached(priority: .userInitiated) {
@@ -322,22 +363,50 @@ class IPTVDataManager {
             return (tempLive, tempMovies, tempUncategorized, parsed)
         }.value
         
+        // 1. Adult Content Detection
+        let hasAdult = AdultContentDetector.hasAdultContent(channels: tempLive, media: tempMovies + parsedSeriesResult.seriesList + tempUncategorized)
+        if hasAdult && !defaultPlaylist.hasAdultContent {
+            self.playlistManager.markAdultContentDetected(for: defaultPlaylist.id)
+        }
+        
+        // 2. Fetch updated consent
+        let updatedPlaylist = self.playlistManager.fetchAllPlaylists().first { $0.id == defaultPlaylist.id } ?? defaultPlaylist
+        let consented = updatedPlaylist.userConsentedAdult
+        
+        // 3. Prompt if needed
+        if hasAdult && consented == nil {
+            await MainActor.run {
+                self.pendingAdultConsentPlaylist = updatedPlaylist
+                self.showAdultConsentPrompt = true
+            }
+        }
+        
+        // 4. Filter
+        let finalLive = AdultContentDetector.filterAdultChannels(tempLive, consented: consented)
+        let finalMovies = AdultContentDetector.filterAdultMedia(tempMovies, consented: consented)
+        let finalSeries = AdultContentDetector.filterAdultMedia(parsedSeriesResult.seriesList, consented: consented)
+        let finalUncategorized = AdultContentDetector.filterAdultMedia(tempUncategorized, consented: consented)
+        
+        // Filter episodes map based on series list
+        let finalSeriesIds = Set(finalSeries.map { $0.id })
+        let finalEpisodesMap = parsedSeriesResult.episodesMap.filter { finalSeriesIds.contains($0.key) }
+        
         await MainActor.run {
-            self.liveChannels = tempLive
-            self.movies = tempMovies
-            self.series = parsedSeriesResult.seriesList
-            self.uncategorized = tempUncategorized
-            self.m3uEpisodes = parsedSeriesResult.episodesMap
+            self.liveChannels = finalLive
+            self.movies = finalMovies
+            self.series = finalSeries
+            self.uncategorized = finalUncategorized
+            self.m3uEpisodes = finalEpisodesMap
             
-            self.categorizedChannels = Dictionary(grouping: tempLive) { $0.category ?? "General" }
-            self.categorizedMovies = Dictionary(grouping: tempMovies) { $0.genres?.first ?? "General" }
+            self.categorizedChannels = Dictionary(grouping: finalLive) { $0.category ?? "General" }
+            self.categorizedMovies = Dictionary(grouping: finalMovies) { $0.genres?.first ?? "General" }
             
             // 4. Adapt tabs dynamically based on contents parsed!
             var tabs: [IPTVTab] = [.home]
-            if !tempLive.isEmpty { 
+            if !finalLive.isEmpty { 
                 tabs.append(.liveTV)
             }
-            if !tempMovies.isEmpty || !parsedSeriesResult.seriesList.isEmpty { 
+            if !finalMovies.isEmpty || !finalSeries.isEmpty { 
                 tabs.append(.vod) 
             }
             tabs.append(.settings)
@@ -347,8 +416,8 @@ class IPTVDataManager {
         }
         
         // Batch save the loaded results to our persistent local database stack
-        IPTVLocalDatabase.shared.saveChannels(tempLive) {}
-        IPTVLocalDatabase.shared.saveMediaItems(tempMovies + parsedSeriesResult.seriesList + tempUncategorized) {}
+        IPTVLocalDatabase.shared.saveChannels(finalLive) {}
+        IPTVLocalDatabase.shared.saveMediaItems(finalMovies + finalSeries + finalUncategorized) {}
         
         self.loadEPGInBackground()
     }

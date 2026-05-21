@@ -7,7 +7,7 @@ import SwiftUI
 
 struct MainTabView: View {
     @State private var selectedTab: IPTVTab = .home
-    private var dataManager = IPTVDataManager.shared
+    @Bindable private var dataManager = IPTVDataManager.shared
     
     init() {
         // Configure native iOS TabBar appearance for a premium glass translucent effect
@@ -47,6 +47,14 @@ struct MainTabView: View {
             }
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
+        .sheet(isPresented: $dataManager.showAdultConsentPrompt) {
+            AdultConsentModal(dataManager: dataManager)
+                .presentationDetents([.height(340)])
+                .presentationDragIndicator(.hidden)
+                .presentationCornerRadius(24)
+                .presentationBackground(.thinMaterial)
+                .interactiveDismissDisabled()
+        }
     }
     @ViewBuilder
     private func tabViewContent(for tab: IPTVTab) -> some View {

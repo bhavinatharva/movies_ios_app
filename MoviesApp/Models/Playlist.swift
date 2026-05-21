@@ -14,6 +14,10 @@ struct Playlist: Identifiable, Codable {
     var isDefault: Bool = false
     var createdAt: Date = Date()
     
+    // Adult Content
+    var hasAdultContent: Bool = false
+    var userConsentedAdult: Bool? = nil
+    
     init(name: String, url: String, isDefault: Bool = false) {
         self.name = name
         self.url = url

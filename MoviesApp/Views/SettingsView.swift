@@ -10,7 +10,9 @@ import CoreData
 
 struct SettingsView: View {
     @AppStorage("has_default_playlist") private var hasDefaultPlaylist = false
-    @AppStorage("show_adult_content") private var showAdultContent = false
+    
+    @State private var activePlaylist: Playlist?
+    @State private var allowAdultContent: Bool = false
     
     // Playback and Custom Settings preferences (persisted persistently)
     @AppStorage("resume_playback") private var resumePlayback = true
@@ -104,23 +106,34 @@ struct SettingsView: View {
                     }
                     .padding(.vertical, 4)
                     
-                    Toggle(isOn: $showAdultContent) {
-                        HStack(spacing: 12) {
-                            Image(systemName: "exclamationmark.shield.fill")
-                                .foregroundColor(.red)
-                                .font(.title3)
-                            
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Show Adult Content (18+)")
-                                    .foregroundColor(.primary)
-                                    .fontWeight(.medium)
-                                Text("Toggle to blur adult content")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
+                    if let playlist = activePlaylist, playlist.hasAdultContent {
+                        Toggle(isOn: Binding(
+                            get: { self.allowAdultContent },
+                            set: { newValue in
+                                self.allowAdultContent = newValue
+                                PlaylistManager.shared.updateAdultConsent(for: playlist.id, consented: newValue)
+                                Task {
+                                    await IPTVDataManager.shared.refreshContent(clearFirst: true)
+                                }
+                            }
+                        )) {
+                            HStack(spacing: 12) {
+                                Image(systemName: "exclamationmark.shield.fill")
+                                    .foregroundColor(.red)
+                                    .font(.title3)
+                                
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Allow Adult Content (18+)")
+                                        .foregroundColor(.primary)
+                                        .fontWeight(.medium)
+                                    Text("Enable access to 18+ categories for this playlist")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
                             }
                         }
+                        .toggleStyle(SwitchToggleStyle(tint: .accentColor))
                     }
-                    .toggleStyle(SwitchToggleStyle(tint: .accentColor))
                 }
                 
                 // Section 3: PLAYBACK PREFERENCES
@@ -311,6 +324,10 @@ struct SettingsView: View {
             }
             .navigationTitle(Constants.StringConstants.tabSettings)
             .navigationBarTitleDisplayMode(.large)
+            .onAppear {
+                activePlaylist = PlaylistManager.shared.fetchDefaultPlaylist()
+                allowAdultContent = activePlaylist?.userConsentedAdult ?? false
+            }
         }
     }
 }

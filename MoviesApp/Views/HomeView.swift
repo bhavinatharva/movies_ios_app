@@ -9,7 +9,7 @@ struct HomeView: View {
     @Environment(\.colorScheme) var colorScheme
     @AppStorage("has_default_playlist") private var hasDefaultPlaylist = false
     @AppStorage("active_playlist_url") private var activePlaylistUrl = ""
-    @AppStorage("show_adult_content") private var showAdultContent = false
+    @State private var userDataManager = UserDataManager.shared
     @State private var viewModel = HomeViewModel()
     @State private var detailNavigationPath = NavigationPath()
     @State private var selectedPlayableItem: UnifiedMediaItem?
@@ -143,7 +143,7 @@ struct HomeView: View {
             Spacer()
             
             HStack(spacing: 20) {
-                if showAdultContent {
+                if PlaylistManager.shared.fetchDefaultPlaylist()?.userConsentedAdult == true {
                     NavigationLink(destination: AdultView()) {
                         Text("Adult(18+)")
                             .font(.system(size: 14, weight: .bold))
