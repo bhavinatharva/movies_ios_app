@@ -17,6 +17,11 @@ class AdultViewModel {
     var adultMovies: [UnifiedMediaItem] = []
     var adultSeries: [UnifiedMediaItem] = []
     
+    // Grouped by category for horizontal listing
+    var groupedLive: [(category: String, items: [UnifiedMediaItem])] = []
+    var groupedMovies: [(category: String, items: [UnifiedMediaItem])] = []
+    var groupedSeries: [(category: String, items: [UnifiedMediaItem])] = []
+    
     enum AdultTab: String, CaseIterable, Identifiable {
         case live = "Live Channels"
         case movies = "Movies"
@@ -54,11 +59,20 @@ class AdultViewModel {
         }
         
         // 1. Get adult live channels
-        let liveChs = IPTVDataManager.shared.liveChannels
+        let allLive = IPTVDataManager.shared.liveChannels
+        let liveChs = allLive
             .filter { $0.isAdult }
             .map { $0.toUnified }
         
+        var tempGroupedLive: [String: [UnifiedMediaItem]] = [:]
+        for channel in allLive where channel.isAdult {
+            let catName = channel.category ?? "Live"
+            tempGroupedLive[catName, default: []].append(channel.toUnified)
+        }
+        
         // 2. Fetch/Filter Movies & Series
+        var tempGroupedMovies: [String: [UnifiedMediaItem]] = [:]
+        var tempGroupedSeries: [String: [UnifiedMediaItem]] = [:]
         var moviesList: [UnifiedMediaItem] = []
         var seriesList: [UnifiedMediaItem] = []
         
@@ -74,38 +88,46 @@ class AdultViewModel {
                 let adultSeriesCats = seriesCats.filter { isAdultString($0.name) }
                 
                 // Load VOD streams for adult categories concurrently
-                await withTaskGroup(of: [UnifiedMediaItem].self) { group in
+                await withTaskGroup(of: (String, [UnifiedMediaItem]).self) { group in
                     for cat in adultVodCats {
                         group.addTask {
                             do {
                                 let streams = try await self.iptvService.fetchVODStreams(creds: creds, categoryId: cat.id)
-                                return streams.map { UnifiedMediaItem(from: $0, creds: creds) }
+                                let mapped = await MainActor.run { streams.map { UnifiedMediaItem(from: $0, creds: creds) } }
+                                return (cat.name, mapped)
                             } catch {
-                                return []
+                                return (cat.name, [])
                             }
                         }
                     }
                     
-                    for await items in group {
-                        moviesList.append(contentsOf: items)
+                    for await (catName, items) in group {
+                        if !items.isEmpty {
+                            moviesList.append(contentsOf: items)
+                            tempGroupedMovies[catName, default: []].append(contentsOf: items)
+                        }
                     }
                 }
                 
                 // Load series for adult categories concurrently
-                await withTaskGroup(of: [UnifiedMediaItem].self) { group in
+                await withTaskGroup(of: (String, [UnifiedMediaItem]).self) { group in
                     for cat in adultSeriesCats {
                         group.addTask {
                             do {
                                 let series = try await self.iptvService.fetchSeries(creds: creds, categoryId: cat.id)
-                                return series.map { UnifiedMediaItem(from: $0) }
+                                let mapped = await MainActor.run { series.map { UnifiedMediaItem(from: $0) } }
+                                return (cat.name, mapped)
                             } catch {
-                                return []
+                                return (cat.name, [])
                             }
                         }
                     }
                     
-                    for await items in group {
-                        seriesList.append(contentsOf: items)
+                    for await (catName, items) in group {
+                        if !items.isEmpty {
+                            seriesList.append(contentsOf: items)
+                            tempGroupedSeries[catName, default: []].append(contentsOf: items)
+                        }
                     }
                 }
             } catch {
@@ -116,7 +138,16 @@ class AdultViewModel {
         } else {
             // M3U Playlist: Everything is already in IPTVDataManager
             moviesList = IPTVDataManager.shared.movies.filter { $0.isAdult }
+            for movie in moviesList {
+                let catName = movie.genres?.first ?? "Movies"
+                tempGroupedMovies[catName, default: []].append(movie)
+            }
+            
             seriesList = IPTVDataManager.shared.series.filter { $0.isAdult }
+            for series in seriesList {
+                let catName = series.genres?.first ?? "Series"
+                tempGroupedSeries[catName, default: []].append(series)
+            }
         }
         
         // Also merge with any cached media in IPTVLocalDatabase if they match isAdult
@@ -138,6 +169,10 @@ class AdultViewModel {
             self.adultChannels = liveChs
             self.adultMovies = Array(movieMap.values).sorted(by: { $0.title < $1.title })
             self.adultSeries = Array(seriesMap.values).sorted(by: { $0.title < $1.title })
+            
+            self.groupedLive = tempGroupedLive.map { ($0.key, $0.value) }.sorted(by: { $0.category < $1.category })
+            self.groupedMovies = tempGroupedMovies.map { ($0.key, $0.value) }.sorted(by: { $0.category < $1.category })
+            self.groupedSeries = tempGroupedSeries.map { ($0.key, $0.value) }.sorted(by: { $0.category < $1.category })
             
             // Set default selected tab dynamically
             if !self.adultChannels.isEmpty {

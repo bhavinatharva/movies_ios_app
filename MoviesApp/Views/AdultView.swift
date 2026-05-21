@@ -53,9 +53,7 @@ struct AdultView: View {
                 } else if let error = viewModel.errorMessage {
                     ContentUnavailableView("Error Loading", systemImage: "exclamationmark.triangle", description: Text(error))
                 } else {
-                    let items = currentItems
-                    
-                    if items.isEmpty {
+                    if currentItems.isEmpty {
                         ContentUnavailableView {
                             Label("No Adult Content Found", systemImage: "eye.slash.fill")
                         } description: {
@@ -63,16 +61,40 @@ struct AdultView: View {
                         }
                     } else {
                         ScrollView {
-                            LazyVGrid(columns: columns, spacing: 16) {
-                                ForEach(items) { item in
-                                    UnifiedMediaCardView(item: item, width: nil)
-                                        .onTapGesture {
-                                            UserDataManager.shared.addToHistory(item)
-                                            selectedPlayableItem = item
+                            LazyVStack(spacing: 28) {
+                                if viewModel.searchText.isEmpty {
+                                    ForEach(groupedItems, id: \.category) { group in
+                                        UnifiedMediaListView(
+                                            header: group.category,
+                                            items: group.items,
+                                            onSelect: { item in
+                                                UserDataManager.shared.addToHistory(item)
+                                                selectedPlayableItem = item
+                                            }
+                                        )
+                                    }
+                                } else {
+                                    VStack(alignment: .leading, spacing: 16) {
+                                        Text("Search Results")
+                                            .font(.title3)
+                                            .fontWeight(.bold)
+                                            .foregroundColor(.white)
+                                            .padding(.horizontal)
+                                        
+                                        LazyVGrid(columns: columns, spacing: 16) {
+                                            ForEach(currentItems) { item in
+                                                UnifiedMediaCardView(item: item, width: nil)
+                                                    .onTapGesture {
+                                                        UserDataManager.shared.addToHistory(item)
+                                                        selectedPlayableItem = item
+                                                    }
+                                            }
                                         }
+                                        .padding(.horizontal)
+                                    }
+                                    .padding(.top, 12)
                                 }
                             }
-                            .padding(.horizontal)
                             .padding(.bottom, 30)
                         }
                     }
@@ -133,6 +155,17 @@ struct AdultView: View {
             return viewModel.filteredMovies
         case .series:
             return viewModel.filteredSeries
+        }
+    }
+    
+    private var groupedItems: [(category: String, items: [UnifiedMediaItem])] {
+        switch viewModel.selectedTab {
+        case .live:
+            return viewModel.groupedLive
+        case .movies:
+            return viewModel.groupedMovies
+        case .series:
+            return viewModel.groupedSeries
         }
     }
 }
