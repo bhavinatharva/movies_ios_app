@@ -114,66 +114,49 @@ class M3UParser {
     private static func parseExtInf(_ line: String) -> [String: String] {
         var info: [String: String] = [:]
         
+        // Extract all key="value" or key='value' pairs using regex
+        let pattern = "([a-zA-Z0-9\\-]+)=[\"']([^\"']*)[\"']"
+        if let regex = try? NSRegularExpression(pattern: pattern, options: []) {
+            let matches = regex.matches(in: line, options: [], range: NSRange(location: 0, length: line.utf16.count))
+            for match in matches {
+                if let keyRange = Range(match.range(at: 1), in: line),
+                   let valRange = Range(match.range(at: 2), in: line) {
+                    let key = String(line[keyRange])
+                    let val = String(line[valRange])
+                    
+                    let normalizedKey = key.replacingOccurrences(of: "tvg-", with: "")
+                                           .replacingOccurrences(of: "group-title", with: "group")
+                    info[normalizedKey] = val
+                }
+            }
+        }
+        
+        // Find the channel name which comes after the first unquoted comma
         var commaIndex: String.Index? = nil
-        var insideQuotes = false
-        var insideSingleQuotes = false
+        var inQuotes = false
+        var inSingleQuotes = false
         
         for idx in line.indices {
             let char = line[idx]
             if char == "\"" {
-                insideQuotes.toggle()
+                inQuotes.toggle()
             } else if char == "'" {
-                insideSingleQuotes.toggle()
-            } else if char == "," && !insideQuotes && !insideSingleQuotes {
+                inSingleQuotes.toggle()
+            } else if char == "," && !inQuotes && !inSingleQuotes {
                 commaIndex = idx
                 break
-            }
-        }
-        
-        let divider = commaIndex ?? line.endIndex
-        let attributePart = line[line.startIndex..<divider]
-        
-        let scanner = Scanner(string: String(attributePart))
-        scanner.charactersToBeSkipped = .whitespaces
-        
-        _ = scanner.scanString("#EXTINF:")
-        _ = scanner.scanInt()
-        
-        while !scanner.isAtEnd {
-            guard let key = scanner.scanUpToString("=") else { break }
-            _ = scanner.scanString("=")
-            
-            var value = ""
-            if scanner.scanString("\"") != nil {
-                if let val = scanner.scanUpToString("\"") {
-                    value = val
-                }
-                _ = scanner.scanString("\"")
-            } else if scanner.scanString("'") != nil {
-                if let val = scanner.scanUpToString("'") {
-                    value = val
-                }
-                _ = scanner.scanString("'")
-            } else {
-                if let val = scanner.scanUpToCharacters(from: .whitespaces) {
-                    value = val
-                }
-            }
-            
-            let trimmedKey = key.trimmingCharacters(in: .whitespacesAndNewlines)
-            let trimmedVal = value.trimmingCharacters(in: .whitespacesAndNewlines)
-            
-            if !trimmedKey.isEmpty {
-                let normalizedKey = trimmedKey.replacingOccurrences(of: "tvg-", with: "")
-                                              .replacingOccurrences(of: "group-title", with: "group")
-                info[normalizedKey] = trimmedVal
             }
         }
         
         if let commaIndex = commaIndex {
             let name = String(line[line.index(after: commaIndex)...]).trimmingCharacters(in: .whitespacesAndNewlines)
             if !name.isEmpty {
-                info["name"] = name
+                // If it starts with a hyphen (some providers do this), trim it
+                if name.hasPrefix("- ") {
+                    info["name"] = String(name.dropFirst(2))
+                } else {
+                    info["name"] = name
+                }
             }
         }
         

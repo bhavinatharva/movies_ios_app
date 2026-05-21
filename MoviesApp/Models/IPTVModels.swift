@@ -84,12 +84,74 @@ struct XtreamVODStream: Codable {
     let streamId: Int
     let streamIcon: String?
     let categoryId: String?
+    let rating: Double?
+    let rating5based: Double?
+    let added: String?
+    let year: String?
+    let containerExtension: String?
     
     enum CodingKeys: String, CodingKey {
         case name
         case streamId = "stream_id"
         case streamIcon = "stream_icon"
         case categoryId = "category_id"
+        case rating
+        case rating5based = "rating_5based"
+        case added
+        case year
+        case containerExtension = "container_extension"
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        name = (try? container.decodeIfPresent(String.self, forKey: .name)) ?? "Unknown"
+        
+        if let idInt = try? container.decode(Int.self, forKey: .streamId) {
+            streamId = idInt
+        } else if let idStr = try? container.decode(String.self, forKey: .streamId), let idInt = Int(idStr) {
+            streamId = idInt
+        } else {
+            streamId = 0
+        }
+        
+        streamIcon = try? container.decodeIfPresent(String.self, forKey: .streamIcon)
+        categoryId = try? container.decodeIfPresent(String.self, forKey: .categoryId)
+        
+        if let rD = try? container.decode(Double.self, forKey: .rating) {
+            rating = rD
+        } else if let rS = try? container.decode(String.self, forKey: .rating), let rD = Double(rS) {
+            rating = rD
+        } else if let rI = try? container.decode(Int.self, forKey: .rating) {
+            rating = Double(rI)
+        } else {
+            rating = nil
+        }
+        
+        if let r5D = try? container.decode(Double.self, forKey: .rating5based) {
+            rating5based = r5D
+        } else if let r5S = try? container.decode(String.self, forKey: .rating5based), let r5D = Double(r5S) {
+            rating5based = r5D
+        } else {
+            rating5based = nil
+        }
+        
+        if let aS = try? container.decode(String.self, forKey: .added) {
+            added = aS
+        } else if let aI = try? container.decode(Int.self, forKey: .added) {
+            added = String(aI)
+        } else {
+            added = nil
+        }
+        
+        if let yS = try? container.decode(String.self, forKey: .year) {
+            year = yS
+        } else if let yI = try? container.decode(Int.self, forKey: .year) {
+            year = String(yI)
+        } else {
+            year = nil
+        }
+        
+        containerExtension = try? container.decodeIfPresent(String.self, forKey: .containerExtension)
     }
 }
 

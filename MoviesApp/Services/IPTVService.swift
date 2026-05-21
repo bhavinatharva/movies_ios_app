@@ -19,6 +19,30 @@ class IPTVService {
         }.value
     }
     
+    // Wrapper to prevent a single malformed element from failing the entire array
+    private struct Safe<Base: Decodable>: Decodable {
+        public let value: Base?
+
+        public init(from decoder: Decoder) throws {
+            do {
+                let container = try decoder.singleValueContainer()
+                self.value = try container.decode(Base.self)
+            } catch {
+                #if DEBUG
+                print("⚠️ [IPTVService] Skipped malformed item during decoding: \(error)")
+                #endif
+                self.value = nil
+            }
+        }
+    }
+    
+    private func safeDecodeArrayInBackground<T: Decodable>(_ type: T.Type, from data: Data) async throws -> [T] {
+        return try await Task.detached(priority: .userInitiated) {
+            let safeArray = try JSONDecoder().decode([Safe<T>].self, from: data)
+            return safeArray.compactMap { $0.value }
+        }.value
+    }
+    
     func fetchM3U(url: URL) async throws -> [IPTVChannel] {
         let data = try await IPTVRequestManager.shared.performFetch(url: url, type: .m3u)
         guard let content = String(data: data, encoding: .utf8) else {
@@ -37,14 +61,14 @@ class IPTVService {
         let urlString = "\(creds.serverUrl)/movie.php?username=\(creds.username)&password=\(creds.password)"
         guard let url = URL(string: urlString) else { return [] }
         let data = try await IPTVRequestManager.shared.performFetch(url: url, type: .vod)
-        return try await decodeInBackground([XtreamVODStream].self, from: data)
+        return try await safeDecodeArrayInBackground(XtreamVODStream.self, from: data)
     }
     
     func fetchSeriesPHP(creds: XtreamCredentials) async throws -> [XtreamSeries] {
         let urlString = "\(creds.serverUrl)/series.php?username=\(creds.username)&password=\(creds.password)"
         guard let url = URL(string: urlString) else { return [] }
         let data = try await IPTVRequestManager.shared.performFetch(url: url, type: .series)
-        return try await decodeInBackground([XtreamSeries].self, from: data)
+        return try await safeDecodeArrayInBackground(XtreamSeries.self, from: data)
     }
     
     func fetchEPG(creds: XtreamCredentials) async throws -> Data {
@@ -73,7 +97,7 @@ class IPTVService {
         }
         #endif
         
-        let streams = try await decodeInBackground([XtreamStream].self, from: data)
+        let streams = try await safeDecodeArrayInBackground(XtreamStream.self, from: data)
         return streams.compactMap { stream in
             guard let streamUrl = URL(string: "\(creds.serverUrl)/live/\(creds.username)/\(creds.password)/\(stream.streamId).m3u8") else {
                 return nil
@@ -93,14 +117,14 @@ class IPTVService {
         let urlString = "\(creds.serverUrl)/player_api.php?username=\(creds.username)&password=\(creds.password)&action=get_live_categories"
         guard let url = URL(string: urlString) else { return [] }
         let data = try await IPTVRequestManager.shared.performFetch(url: url, type: .live)
-        return try await decodeInBackground([XtreamCategory].self, from: data)
+        return try await safeDecodeArrayInBackground(XtreamCategory.self, from: data)
     }
     
     func fetchVODCategories(creds: XtreamCredentials) async throws -> [XtreamCategory] {
         let urlString = "\(creds.serverUrl)/player_api.php?username=\(creds.username)&password=\(creds.password)&action=get_vod_categories"
         guard let url = URL(string: urlString) else { return [] }
         let data = try await IPTVRequestManager.shared.performFetch(url: url, type: .vod)
-        return try await decodeInBackground([XtreamCategory].self, from: data)
+        return try await safeDecodeArrayInBackground(XtreamCategory.self, from: data)
     }
     
     func fetchVODStreams(creds: XtreamCredentials, categoryId: String? = nil) async throws -> [XtreamVODStream] {
@@ -108,14 +132,14 @@ class IPTVService {
         if let catId = categoryId { urlString += "&category_id=\(catId)" }
         guard let url = URL(string: urlString) else { return [] }
         let data = try await IPTVRequestManager.shared.performFetch(url: url, type: .vod)
-        return try await decodeInBackground([XtreamVODStream].self, from: data)
+        return try await safeDecodeArrayInBackground(XtreamVODStream.self, from: data)
     }
     
     func fetchSeriesCategories(creds: XtreamCredentials) async throws -> [XtreamCategory] {
         let urlString = "\(creds.serverUrl)/player_api.php?username=\(creds.username)&password=\(creds.password)&action=get_series_categories"
         guard let url = URL(string: urlString) else { return [] }
         let data = try await IPTVRequestManager.shared.performFetch(url: url, type: .series)
-        return try await decodeInBackground([XtreamCategory].self, from: data)
+        return try await safeDecodeArrayInBackground(XtreamCategory.self, from: data)
     }
     
     func fetchSeries(creds: XtreamCredentials, categoryId: String? = nil) async throws -> [XtreamSeries] {
@@ -123,7 +147,7 @@ class IPTVService {
         if let catId = categoryId { urlString += "&category_id=\(catId)" }
         guard let url = URL(string: urlString) else { return [] }
         let data = try await IPTVRequestManager.shared.performFetch(url: url, type: .series)
-        return try await decodeInBackground([XtreamSeries].self, from: data)
+        return try await safeDecodeArrayInBackground(XtreamSeries.self, from: data)
     }
     
     func fetchSeriesInfo(creds: XtreamCredentials, seriesId: Int) async throws -> XtreamSeriesInfoResponse {

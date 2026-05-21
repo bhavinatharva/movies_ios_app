@@ -273,22 +273,42 @@ class IPTVDataManager {
                 
                 let (liveCats, vodCats, seriesCats) = await (liveCatsTask, vodCatsTask, seriesCatsTask)
                 
-                // 3. Fetch Live streams to immediately satisfy Home screen layout
-                let fetchedChannels = try await self.iptvService.fetchXtreamChannels(creds: creds)
+                // 3. Fetch Live streams, VODs, and Series concurrently to immediately satisfy Home screen layout
+                async let liveTask = try? self.fetchWithRetry { try await self.iptvService.fetchXtreamChannels(creds: creds) }
+                async let vodTask = try? self.fetchWithRetry { try await self.iptvService.fetchVODStreams(creds: creds) }
+                async let seriesTask = try? self.fetchWithRetry { try await self.iptvService.fetchSeries(creds: creds) }
+                
+                let (fetchedChannelsResult, fetchedVODsResult, fetchedSeriesResult) = await (liveTask, vodTask, seriesTask)
+                
+                let fetchedChannels = fetchedChannelsResult ?? []
+                let fetchedVODs = fetchedVODsResult ?? []
+                let fetchedSeries = fetchedSeriesResult ?? []
+                
+                // Process metadata mapping in background to prevent stutter
+                let (unifiedVODs, unifiedSeries) = await Task.detached(priority: .userInitiated) {
+                    let v = fetchedVODs.map { UnifiedMediaItem(from: $0, creds: creds) }
+                    let s = fetchedSeries.map { UnifiedMediaItem(from: $0) }
+                    return (v, s)
+                }.value
                 
                 await MainActor.run {
-                    // Sync loaded live channels
+                    // Sync loaded channels and media items
                     self.liveChannels = fetchedChannels
                     self.categorizedChannels = Dictionary(grouping: fetchedChannels) { $0.category ?? "General" }
                     
-                    // Save credentials in AuthManager so sub-viewmodels can fetch VOD/Series
+                    self.movies = unifiedVODs
+                    self.categorizedMovies = Dictionary(grouping: unifiedVODs) { $0.genres?.first ?? "General" }
+                    
+                    self.series = unifiedSeries
+                    
+                    // Save credentials in AuthManager so sub-viewmodels can fetch VOD/Series details later
                     AuthManager.shared.saveCredentials(creds)
                     
                     // 4. Dynamically generate tabs based on Xtream API configuration
                     var tabs: [IPTVTab] = [.home]
                     if !(liveCats ?? []).isEmpty || !fetchedChannels.isEmpty { tabs.append(.liveTV) }
-                    if !(vodCats ?? []).isEmpty { tabs.append(.movies) }
-                    if !(seriesCats ?? []).isEmpty { tabs.append(.series) }
+                    if !(vodCats ?? []).isEmpty || !unifiedVODs.isEmpty { tabs.append(.movies) }
+                    if !(seriesCats ?? []).isEmpty || !unifiedSeries.isEmpty { tabs.append(.series) }
                     tabs.append(.settings)
                     
                     self.availableTabs = tabs
@@ -297,6 +317,7 @@ class IPTVDataManager {
                 
                 // Batch save the loaded results to our persistent local database stack
                 IPTVLocalDatabase.shared.saveChannels(fetchedChannels) {}
+                IPTVLocalDatabase.shared.saveMediaItems(unifiedVODs + unifiedSeries) {}
                 
                 self.loadEPGInBackground()
                 

@@ -95,11 +95,12 @@ struct UnifiedMediaItem: Identifiable, Hashable, Codable {
         self.backdropPath = nil
         self.mediaType = .movie
         self.source = .iptv
-        self.releaseDate = nil
-        self.voteAverage = nil
+        self.releaseDate = vod.year
+        self.voteAverage = vod.rating ?? (vod.rating5based != nil ? vod.rating5based! * 2 : nil)
         self.runtime = nil
         self.genres = vod.categoryId != nil ? [vod.categoryId!] : nil
-        self.streamUrl = URL(string: "\(creds.serverUrl)/movie/\(creds.username)/\(creds.password)/\(vod.streamId).mp4")
+        let ext = vod.containerExtension ?? "mp4"
+        self.streamUrl = URL(string: "\(creds.serverUrl)/movie/\(creds.username)/\(creds.password)/\(vod.streamId).\(ext)")
         self.epgId = nil
     }
     
