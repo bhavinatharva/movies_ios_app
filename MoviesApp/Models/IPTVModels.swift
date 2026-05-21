@@ -28,7 +28,7 @@ struct IPTVChannel: Identifiable, Hashable {
         let streamStr = streamUrl.absoluteString.lowercased()
         let nameLower = name.lowercased()
         
-        var type: MediaType = .uncategorized
+        var type: MediaType = .liveTV
         
         let seriesKeywords = ["series", "tv show", "shows", "season", "episodes", "netflix", "hulu", "amazon prime", "apple tv+", "web series"]
         let hasSeriesKeyword = seriesKeywords.contains(where: { group.contains($0) })
