@@ -13,6 +13,7 @@ struct HomeView: View {
     @State private var viewModel = HomeViewModel()
     @State private var detailNavigationPath = NavigationPath()
     @State private var selectedPlayableItem: UnifiedMediaItem?
+    @State private var selectedMovieForDetail: UnifiedMediaItem?
     
     var body: some View {
         NavigationStack(path: $detailNavigationPath) {
@@ -79,6 +80,9 @@ struct HomeView: View {
             }
             .onChange(of: UserDataManager.shared.favorites) { _, _ in
                 viewModel.updateFavorites()
+            }
+            .fullScreenCover(item: $selectedMovieForDetail) { item in
+                UnifiedMediaDetailView(item: item)
             }
             .fullScreenCover(item: $selectedPlayableItem) { item in
                 if let url = item.streamUrl {
@@ -162,6 +166,15 @@ struct HomeView: View {
         )
     }
     
+    private func handleMediaSelection(_ item: UnifiedMediaItem) {
+        if item.mediaType == .movie || item.mediaType == .tvSeries {
+            selectedMovieForDetail = item
+        } else {
+            UserDataManager.shared.addToHistory(item)
+            selectedPlayableItem = item
+        }
+    }
+    
     private var emptyPlaylistView: some View {
         ContentUnavailableView {
             Label("No Playlist Loaded", systemImage: "tv.slash")
@@ -176,8 +189,7 @@ struct HomeView: View {
                 // 1. Featured Banner
                 if let featured = viewModel.featuredItem {
                     IPTVHeroHeaderView(item: featured) {
-                        UserDataManager.shared.addToHistory(featured)
-                        selectedPlayableItem = featured
+                        handleMediaSelection(featured)
                     }
                 }
                 
@@ -186,10 +198,7 @@ struct HomeView: View {
                     UnifiedMediaListView(
                         header: "Continue Watching",
                         items: viewModel.continueWatching,
-                        onSelect: { item in
-                            UserDataManager.shared.addToHistory(item)
-                            selectedPlayableItem = item
-                        }
+                        onSelect: handleMediaSelection
                     )
                 }
                 
@@ -198,10 +207,7 @@ struct HomeView: View {
                     UnifiedMediaListView(
                         header: "Live Channels",
                         items: Array(viewModel.liveChannels.prefix(15)).map { $0.toUnified },
-                        onSelect: { item in
-                            UserDataManager.shared.addToHistory(item)
-                            selectedPlayableItem = item
-                        }
+                        onSelect: handleMediaSelection
                     )
                 }
                 
@@ -210,10 +216,7 @@ struct HomeView: View {
                     UnifiedMediaListView(
                         header: "Trending Movies",
                         items: viewModel.trendingMovies,
-                        onSelect: { item in
-                            UserDataManager.shared.addToHistory(item)
-                            selectedPlayableItem = item
-                        }
+                        onSelect: handleMediaSelection
                     )
                 }
                 
@@ -222,10 +225,7 @@ struct HomeView: View {
                     UnifiedMediaListView(
                         header: "Top 10 Movies",
                         items: viewModel.top10Movies,
-                        onSelect: { item in
-                            UserDataManager.shared.addToHistory(item)
-                            selectedPlayableItem = item
-                        }
+                        onSelect: handleMediaSelection
                     )
                 }
                 
@@ -234,10 +234,7 @@ struct HomeView: View {
                     UnifiedMediaListView(
                         header: "Recently Added",
                         items: viewModel.recentlyAdded,
-                        onSelect: { item in
-                            UserDataManager.shared.addToHistory(item)
-                            selectedPlayableItem = item
-                        }
+                        onSelect: handleMediaSelection
                     )
                 }
                 
@@ -246,10 +243,7 @@ struct HomeView: View {
                     UnifiedMediaListView(
                         header: "Sports Live Now",
                         items: viewModel.sportsLiveNow,
-                        onSelect: { item in
-                            UserDataManager.shared.addToHistory(item)
-                            selectedPlayableItem = item
-                        }
+                        onSelect: handleMediaSelection
                     )
                 }
                 
@@ -258,10 +252,7 @@ struct HomeView: View {
                     UnifiedMediaListView(
                         header: "Recommended For You",
                         items: viewModel.recommended,
-                        onSelect: { item in
-                            UserDataManager.shared.addToHistory(item)
-                            selectedPlayableItem = item
-                        }
+                        onSelect: handleMediaSelection
                     )
                 }
                 
@@ -270,10 +261,7 @@ struct HomeView: View {
                     UnifiedMediaListView(
                         header: "Series Continue Watching",
                         items: viewModel.seriesContinueWatching,
-                        onSelect: { item in
-                            UserDataManager.shared.addToHistory(item)
-                            selectedPlayableItem = item
-                        }
+                        onSelect: handleMediaSelection
                     )
                 }
                 
@@ -282,10 +270,7 @@ struct HomeView: View {
                     UnifiedMediaListView(
                         header: "My Favorites",
                         items: viewModel.favorites,
-                        onSelect: { item in
-                            UserDataManager.shared.addToHistory(item)
-                            selectedPlayableItem = item
-                        }
+                        onSelect: handleMediaSelection
                     )
                 }
                 
@@ -294,10 +279,7 @@ struct HomeView: View {
                     UnifiedMediaListView(
                         header: "Uncategorized",
                         items: viewModel.uncategorized,
-                        onSelect: { item in
-                            UserDataManager.shared.addToHistory(item)
-                            selectedPlayableItem = item
-                        }
+                        onSelect: handleMediaSelection
                     )
                 }
                 
