@@ -74,25 +74,29 @@ struct AdultView: View {
                                         )
                                     }
                                 } else {
-                                    VStack(alignment: .leading, spacing: 16) {
-                                        Text("Search Results")
-                                            .font(.title3)
-                                            .fontWeight(.bold)
-                                            .foregroundColor(.white)
-                                            .padding(.horizontal)
-                                        
-                                        LazyVGrid(columns: columns, spacing: 16) {
-                                            ForEach(currentItems) { item in
-                                                UnifiedMediaCardView(item: item, width: nil)
-                                                    .onTapGesture {
-                                                        UserDataManager.shared.addToHistory(item)
-                                                        selectedPlayableItem = item
-                                                    }
+                                    if currentItems.isEmpty {
+                                        ContentUnavailableView.search(text: viewModel.searchText)
+                                    } else {
+                                        VStack(alignment: .leading, spacing: 16) {
+                                            Text("Search Results")
+                                                .font(.title3)
+                                                .fontWeight(.bold)
+                                                .foregroundColor(.white)
+                                                .padding(.horizontal)
+                                            
+                                            LazyVGrid(columns: columns, spacing: 16) {
+                                                ForEach(currentItems) { item in
+                                                    UnifiedMediaCardView(item: item, width: nil)
+                                                        .onTapGesture {
+                                                            UserDataManager.shared.addToHistory(item)
+                                                            selectedPlayableItem = item
+                                                        }
+                                                }
                                             }
+                                            .padding(.horizontal)
                                         }
-                                        .padding(.horizontal)
+                                        .padding(.top, 12)
                                     }
-                                    .padding(.top, 12)
                                 }
                             }
                             .padding(.bottom, 30)

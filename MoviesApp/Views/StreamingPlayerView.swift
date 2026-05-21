@@ -10,14 +10,30 @@ import AVKit
 import AVFoundation
 
 struct StreamingPlayerView: View {
-    let url: URL
-    let title: String
+    let initialUrl: URL
+    let initialTitle: String
     var streamId: String? = nil
     var subtitle: String? = nil
     var isLive: Bool = false
     var logoUrl: String? = nil
     
     @Environment(\.dismiss) var dismiss
+    
+    // Dynamic Properties for Zapping
+    @State private var currentUrl: URL
+    @State private var currentTitle: String
+    
+    init(url: URL, title: String, streamId: String? = nil, subtitle: String? = nil, isLive: Bool = false, logoUrl: String? = nil) {
+        self.initialUrl = url
+        self.initialTitle = title
+        self.streamId = streamId
+        self.subtitle = subtitle
+        self.isLive = isLive
+        self.logoUrl = logoUrl
+        
+        self._currentUrl = State(initialValue: url)
+        self._currentTitle = State(initialValue: title)
+    }
     
     // Player State
     @State private var player = AVPlayer()
@@ -50,7 +66,7 @@ struct StreamingPlayerView: View {
     
     // Detect stream types
     var streamType: MediaType {
-        let path = url.absoluteString.lowercased()
+        let path = currentUrl.absoluteString.lowercased()
         if path.contains("/series/") {
             return .tvSeries
         } else if path.contains("/movie/") || path.hasSuffix(".mp4") || path.hasSuffix(".mkv") {
@@ -69,6 +85,21 @@ struct StreamingPlayerView: View {
                 .onTapGesture {
                     toggleControls()
                 }
+                .gesture(
+                    streamType == .liveTV ? DragGesture(minimumDistance: 50)
+                        .onEnded { value in
+                            if abs(value.translation.height) > abs(value.translation.width) {
+                                if value.translation.height < 0 {
+                                    // Swipe Up -> Next Channel
+                                    zapChannel(forward: true)
+                                } else {
+                                    // Swipe Down -> Previous Channel
+                                    zapChannel(forward: false)
+                                }
+                            }
+                        }
+                    : nil
+                )
             
             // 2. Gesture overlays for Double Tap to Seek
             HStack(spacing: 0) {
@@ -239,7 +270,7 @@ struct StreamingPlayerView: View {
                         .onAppear { isLiveGlow = true }
                     }
                     
-                    Text(title)
+                    Text(currentTitle)
                         .font(.system(size: 18, weight: .black, design: .rounded))
                         .foregroundColor(.white)
                         .lineLimit(1)
@@ -355,7 +386,7 @@ struct StreamingPlayerView: View {
                 .padding(.horizontal)
             } else {
                 // Live EPG program timeline track
-                let epg = getMockEPG(for: title)
+                let epg = getMockEPG(for: currentTitle)
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
                         Text(epg.currentShow)
@@ -509,7 +540,18 @@ struct StreamingPlayerView: View {
                                 }
                             }) {
                                 HStack(spacing: 12) {
-                                    ChannelLogoView(logoUrl: channel.logoUrl, size: 40)
+                                    let encodedLogoUrl = channel.logoUrl?.absoluteString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? channel.logoUrl?.absoluteString
+                                    if let logoUrlString = encodedLogoUrl, let logoUrl = URL(string: logoUrlString) {
+                                        AsyncImage(url: logoUrl) { phase in
+                                            if let image = phase.image {
+                                                image.resizable().scaledToFit().frame(width: 40, height: 40)
+                                            } else {
+                                                Image(systemName: "tv").frame(width: 40, height: 40)
+                                            }
+                                        }
+                                    } else {
+                                        Image(systemName: "tv").frame(width: 40, height: 40)
+                                    }
                                     
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text(channel.name)
@@ -522,14 +564,14 @@ struct StreamingPlayerView: View {
                                     }
                                     Spacer()
                                     
-                                    if channel.name == title {
+                                    if channel.name == currentTitle {
                                         Circle()
                                             .fill(Color.accentColor)
                                             .frame(width: 8, height: 8)
                                     }
                                 }
                                 .padding(10)
-                                .background(channel.name == title ? Color.white.opacity(0.1) : Color.clear)
+                                .background(channel.name == currentTitle ? Color.white.opacity(0.1) : Color.clear)
                                 .cornerRadius(12)
                             }
                             .buttonStyle(PlainButtonStyle())
@@ -599,7 +641,7 @@ struct StreamingPlayerView: View {
     // MARK: - Logic Helpers
     
     private func setupPlayer(with playbackURL: URL? = nil) {
-        let playerItem = AVPlayerItem(url: playbackURL ?? url)
+        let playerItem = AVPlayerItem(url: playbackURL ?? currentUrl)
         player.replaceCurrentItem(with: playerItem)
         
         let timeScale = CMTimeScale(NSEC_PER_SEC)
@@ -640,9 +682,29 @@ struct StreamingPlayerView: View {
     }
     
     private func swapChannel(to channel: IPTVChannel) {
+        currentTitle = channel.name
+        currentUrl = channel.streamUrl
         teardownPlayer()
         setupPlayer(with: channel.streamUrl)
         triggerToast("Swapped to \(channel.name)")
+    }
+    
+    private func zapChannel(forward: Bool) {
+        let channels = IPTVDataManager.shared.liveChannels
+        guard !channels.isEmpty else { return }
+        
+        let generator = UIImpactFeedbackGenerator(style: .heavy)
+        generator.impactOccurred()
+        
+        if let currentIndex = channels.firstIndex(where: { $0.streamUrl == currentUrl }) {
+            var newIndex = forward ? currentIndex + 1 : currentIndex - 1
+            if newIndex < 0 { newIndex = channels.count - 1 }
+            if newIndex >= channels.count { newIndex = 0 }
+            
+            swapChannel(to: channels[newIndex])
+        } else {
+            swapChannel(to: channels[0])
+        }
     }
 
     private func saveProgressIfNeeded(seconds: Double) {

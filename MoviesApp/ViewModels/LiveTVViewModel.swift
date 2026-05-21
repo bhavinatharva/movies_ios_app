@@ -14,6 +14,10 @@ class LiveTVViewModel {
     var selectedCategory: String = "All"
     var searchQuery: String = ""
     
+    // Support for horizontal rails
+    var groupedChannels: [(category: String, channels: [IPTVChannel])] = []
+    var heroChannel: IPTVChannel?
+    
     var activeChannelForMiniPlayer: IPTVChannel?
     var selectedChannelForFullScreen: IPTVChannel?
     
@@ -56,12 +60,30 @@ class LiveTVViewModel {
             self.categories = ["All"] + uniqueCategories
             self.filterChannels()
             
+            // Build groups on a background thread for performance
+            Task.detached(priority: .userInitiated) {
+                var tempGrouped: [String: [IPTVChannel]] = [:]
+                for channel in channels {
+                    let cat = channel.category ?? "General"
+                    tempGrouped[cat, default: []].append(channel)
+                }
+                
+                let sortedGrouped = tempGrouped.map { ($0.key, $0.value) }.sorted(by: { $0.0 < $1.0 })
+                
+                await MainActor.run {
+                    self.groupedChannels = sortedGrouped
+                }
+            }
+            
             // Pre-compute user data
             self.updateUserData()
             
             // Auto-play the first channel in the mini player if none selected yet
             if self.activeChannelForMiniPlayer == nil, let first = channels.first {
                 self.activeChannelForMiniPlayer = first
+            }
+            if self.heroChannel == nil {
+                self.heroChannel = self.trendingChannels.first ?? channels.first
             }
             self.isLoading = false
         }

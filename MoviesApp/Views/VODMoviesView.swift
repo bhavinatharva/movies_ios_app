@@ -123,28 +123,32 @@ struct VODMoviesView: View {
                                     }
                                 } else {
                                     // Search results grid view
-                                    VStack(alignment: .leading, spacing: 16) {
-                                        Text("Search Results")
-                                            .font(.title3)
-                                            .fontWeight(.bold)
-                                            .foregroundColor(.white)
-                                            .padding(.horizontal)
-                                        
-                                        LazyVGrid(columns: columns, spacing: 16) {
-                                            ForEach(viewModel.filteredMovies) { movie in
-                                                GeometryReader { geo in
-                                                    UnifiedMediaCardView(item: movie, width: geo.size.width)
-                                                        .onTapGesture {
-                                                            UserDataManager.shared.addToHistory(movie)
-                                                            selectedMovie = movie
-                                                        }
+                                    if viewModel.filteredMovies.isEmpty {
+                                        ContentUnavailableView.search(text: viewModel.searchText)
+                                    } else {
+                                        VStack(alignment: .leading, spacing: 16) {
+                                            Text("Search Results")
+                                                .font(.title3)
+                                                .fontWeight(.bold)
+                                                .foregroundColor(.white)
+                                                .padding(.horizontal)
+                                            
+                                            LazyVGrid(columns: columns, spacing: 16) {
+                                                ForEach(viewModel.filteredMovies) { movie in
+                                                    GeometryReader { geo in
+                                                        UnifiedMediaCardView(item: movie, width: geo.size.width)
+                                                            .onTapGesture {
+                                                                UserDataManager.shared.addToHistory(movie)
+                                                                selectedMovie = movie
+                                                            }
+                                                    }
+                                                    .aspectRatio(3/4, contentMode: .fit)
                                                 }
-                                                .aspectRatio(3/4, contentMode: .fit)
                                             }
+                                            .padding(.horizontal)
                                         }
-                                        .padding(.horizontal)
+                                        .padding(.top, 12)
                                     }
-                                    .padding(.top, 12)
                                 }
                             }
                             .padding(.bottom, 30) // Clear custom tab bar

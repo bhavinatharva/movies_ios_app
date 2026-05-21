@@ -126,28 +126,32 @@ struct SeriesView: View {
                                         }
                                     }
                                 } else {
-                                    // Search results grid view
-                                    VStack(alignment: .leading, spacing: 16) {
-                                        Text("Search Results")
-                                            .font(.title3)
-                                            .fontWeight(.bold)
-                                            .foregroundColor(.white)
-                                            .padding(.horizontal)
-                                        
-                                        LazyVGrid(columns: columns, spacing: 16) {
-                                            ForEach(viewModel.filteredSeries) { series in
-                                                GeometryReader { geo in
-                                                    UnifiedMediaCardView(item: series, width: geo.size.width)
-                                                        .onTapGesture {
-                                                            selectedDetailSeries = series
-                                                        }
+                                    if viewModel.filteredSeries.isEmpty {
+                                        ContentUnavailableView.search(text: viewModel.searchText)
+                                    } else {
+                                        // Search results grid view
+                                        VStack(alignment: .leading, spacing: 16) {
+                                            Text("Search Results")
+                                                .font(.title3)
+                                                .fontWeight(.bold)
+                                                .foregroundColor(.white)
+                                                .padding(.horizontal)
+                                            
+                                            LazyVGrid(columns: columns, spacing: 16) {
+                                                ForEach(viewModel.filteredSeries) { series in
+                                                    GeometryReader { geo in
+                                                        UnifiedMediaCardView(item: series, width: geo.size.width)
+                                                            .onTapGesture {
+                                                                selectedDetailSeries = series
+                                                            }
+                                                    }
+                                                    .aspectRatio(3/4, contentMode: .fit)
                                                 }
-                                                .aspectRatio(3/4, contentMode: .fit)
                                             }
+                                            .padding(.horizontal)
                                         }
-                                        .padding(.horizontal)
+                                        .padding(.top, 12)
                                     }
-                                    .padding(.top, 12)
                                 }
                             }
                             .padding(.bottom, 30) // Clear tab bar space

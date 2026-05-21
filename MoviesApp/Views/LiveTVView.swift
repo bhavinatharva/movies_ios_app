@@ -4,7 +4,6 @@
 //
 
 import SwiftUI
-import AVKit
 
 struct LiveTVView: View {
     @Environment(\.colorScheme) var colorScheme
@@ -12,23 +11,13 @@ struct LiveTVView: View {
     @AppStorage("active_playlist_url") private var activePlaylistUrl = ""
     @State private var viewModel = LiveTVViewModel()
     
+    // For navigation to detail
+    @State private var selectedChannelForDetail: IPTVChannel?
+    
     var body: some View {
         NavigationStack {
             ZStack {
-                // Dynamic Premium ambient background
-                if colorScheme == .light {
-                    Color.appBackground.ignoresSafeArea()
-                } else {
-                    LinearGradient(
-                        stops: [
-                            .init(color: Color(red: 0.05, green: 0.05, blue: 0.07), location: 0),
-                            .init(color: Color(red: 0.01, green: 0.01, blue: 0.02), location: 1)
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                    .ignoresSafeArea()
-                }
+                Color.appBackground.ignoresSafeArea()
                 
                 if !hasDefaultPlaylist {
                     emptyPlaylistView
@@ -38,69 +27,92 @@ struct LiveTVView: View {
                     ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(error))
                 } else {
                     ScrollView {
-                        LazyVStack(spacing: 24) {
+                        LazyVStack(spacing: 32) {
                             
-                            // 1. Mini Live Player Section
-                            if let activeChannel = viewModel.activeChannelForMiniPlayer {
-                                LiveMiniPlayerView(
-                                    channel: activeChannel,
-                                    selectedFullScreenChannel: $viewModel.selectedChannelForFullScreen
-                                )
-                                .padding(.horizontal, 16)
-                            }
-                            
-                            // 2. Favorites Channels Section
-                            LiveFavoritesListView(
-                                favorites: viewModel.favorites,
-                                activeMiniPlayerChannel: $viewModel.activeChannelForMiniPlayer
-                            )
-                            
-                            // 3. Recently Watched Section
-                            LiveRecentlyWatchedListView(
-                                recentlyWatched: viewModel.recentlyWatched,
-                                activeMiniPlayerChannel: $viewModel.activeChannelForMiniPlayer
-                            )
-                            
-                            // 4. Trending Live Channels Section
-                            LiveTrendingListView(
-                                trendingChannels: viewModel.trendingChannels,
-                                activeMiniPlayerChannel: $viewModel.activeChannelForMiniPlayer
-                            )
-                            
-                            // 5. Category Filters Section (Horizontal Chips)
-                            LiveCategoryFiltersView(
-                                categories: viewModel.categories,
-                                selectedCategory: $viewModel.selectedCategory,
-                                onSelect: { category in
-                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
-                                        viewModel.selectCategory(category)
+                            if viewModel.searchQuery.isEmpty {
+                                // 1. Hero Live Channel Section
+                                if let hero = viewModel.heroChannel {
+                                    LiveTVHeroHeaderView(channel: hero) {
+                                        selectedChannelForDetail = hero
                                     }
                                 }
-                            )
+                                
+                                // 2. Favorites Rail
+                                if !viewModel.favorites.isEmpty {
+                                    LiveChannelHorizontalRowView(
+                                        title: "Favorites Channels",
+                                        icon: "star.fill",
+                                        iconColor: .yellow,
+                                        channels: viewModel.favorites
+                                    ) { channel in
+                                        selectedChannelForDetail = channel
+                                    }
+                                }
+                                
+                                // 3. Recently Watched
+                                if !viewModel.recentlyWatched.isEmpty {
+                                    LiveChannelHorizontalRowView(
+                                        title: "Recently Watched",
+                                        icon: "clock.arrow.circlepath",
+                                        iconColor: .accentColor,
+                                        channels: viewModel.recentlyWatched
+                                    ) { channel in
+                                        selectedChannelForDetail = channel
+                                    }
+                                }
+                                
+                                // 4. Category Rails (Netflix Style)
+                                ForEach(viewModel.groupedChannels, id: \.category) { group in
+                                    LiveChannelHorizontalRowView(
+                                        title: group.category,
+                                        icon: "tv",
+                                        iconColor: .primary,
+                                        channels: group.channels
+                                    ) { channel in
+                                        selectedChannelForDetail = channel
+                                    }
+                                }
+                            } else {
+                                // Search Results Grid
+                                if viewModel.filteredChannels.isEmpty {
+                                    ContentUnavailableView.search(text: viewModel.searchQuery)
+                                } else {
+                                    VStack(alignment: .leading, spacing: 16) {
+                                        Text("Search Results")
+                                            .font(.title3)
+                                            .fontWeight(.bold)
+                                            .foregroundColor(.white)
+                                            .padding(.horizontal)
+                                        
+                                        let columns = [GridItem(.adaptive(minimum: 150), spacing: 16)]
+                                        LazyVGrid(columns: columns, spacing: 16) {
+                                            ForEach(viewModel.filteredChannels) { channel in
+                                                LiveChannelCardView(channel: channel)
+                                                    .onTapGesture {
+                                                        selectedChannelForDetail = channel
+                                                    }
+                                            }
+                                        }
+                                        .padding(.horizontal)
+                                    }
+                                    .padding(.top, 16)
+                                }
+                            }
                             
-                            // 6. Main Channel List with EPG
-                            LiveMainChannelListView(
-                                filteredChannels: viewModel.filteredChannels,
-                                activeMiniPlayerChannel: $viewModel.activeChannelForMiniPlayer
-                            )
                         }
-                        .padding(.vertical, 16)
+                        .padding(.bottom, 40)
                     }
-                    .searchable(text: $viewModel.searchQuery, prompt: "Search channels...")
+                    .ignoresSafeArea(edges: .top)
+                    .searchable(text: $viewModel.searchQuery, prompt: "Search live channels...")
                     .onChange(of: viewModel.searchQuery) { _, _ in
                         viewModel.filterChannels()
                     }
                 }
             }
-            .navigationTitle(Constants.StringConstants.tabLiveTV)
-            .navigationBarTitleDisplayMode(.inline)
             .task(id: activePlaylistUrl) {
                 if hasDefaultPlaylist {
                     await viewModel.loadData()
                 }
-            }
-            .fullScreenCover(item: $viewModel.selectedChannelForFullScreen) { channel in
-                StreamingPlayerView(url: channel.streamUrl, title: channel.name)
             }
             .onAppear {
                 viewModel.updateUserData()
@@ -110,6 +122,12 @@ struct LiveTVView: View {
             }
             .onChange(of: UserDataManager.shared.recentlyWatched) { _, _ in
                 viewModel.updateUserData()
+            }
+            .fullScreenCover(item: $selectedChannelForDetail) { channel in
+                LiveTVDetailView(channel: channel)
+            }
+            .fullScreenCover(item: $viewModel.selectedChannelForFullScreen) { channel in
+                StreamingPlayerView(url: channel.streamUrl, title: channel.name)
             }
         }
     }

@@ -90,7 +90,8 @@ struct UnifiedMediaCardView: View {
         let cardHeight = cardWidth * 4 / 3
         
         ZStack(alignment: .bottomLeading) {
-            if let posterUrlString = item.posterPath, !posterUrlString.isEmpty, let posterUrl = URL(string: posterUrlString) {
+            let encodedPosterUrl = item.posterPath?.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? item.posterPath
+            if let posterUrlString = encodedPosterUrl, !posterUrlString.isEmpty, let posterUrl = URL(string: posterUrlString) {
                 AsyncImage(url: posterUrl) { phase in
                     switch phase {
                     case .success(let image):
