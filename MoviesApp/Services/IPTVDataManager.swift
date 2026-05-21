@@ -12,9 +12,7 @@ import Combine
 enum IPTVTab: String, CaseIterable, Identifiable, Codable {
     case home
     case liveTV
-    case epg
-    case movies
-    case series
+    case vod
     case settings
     
     var id: String { self.rawValue }
@@ -23,9 +21,7 @@ enum IPTVTab: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .home: return "Home"
         case .liveTV: return "Live TV"
-        case .epg: return "TV Guide"
-        case .movies: return "Movies"
-        case .series: return "Series"
+        case .vod: return "VOD"
         case .settings: return "Settings"
         }
     }
@@ -34,9 +30,7 @@ enum IPTVTab: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .home: return "house.fill"
         case .liveTV: return "tv.fill"
-        case .epg: return "calendar.badge.clock"
-        case .movies: return "film.fill"
-        case .series: return "play.tv.fill"
+        case .vod: return "film.stack.fill"
         case .settings: return "gearshape.fill"
         }
     }
@@ -94,12 +88,10 @@ class IPTVDataManager {
             var tabs: [IPTVTab] = [.home]
             if !cachedChannels.isEmpty { 
                 tabs.append(.liveTV)
-                if UserDefaults.standard.bool(forKey: "epg_display") {
-                    tabs.append(.epg)
-                }
             }
-            if !cachedMovies.isEmpty { tabs.append(.movies) }
-            if !cachedSeries.isEmpty { tabs.append(.series) }
+            if !cachedMovies.isEmpty || !cachedSeries.isEmpty { 
+                tabs.append(.vod) 
+            }
             tabs.append(.settings)
             
             self.availableTabs = tabs
@@ -253,12 +245,10 @@ class IPTVDataManager {
                     var tabs: [IPTVTab] = [.home]
                     if !tempLive.isEmpty { 
                         tabs.append(.liveTV)
-                        if UserDefaults.standard.bool(forKey: "epg_display") {
-                            tabs.append(.epg)
-                        }
                     }
-                    if !tempMovies.isEmpty { tabs.append(.movies) }
-                    if !parsedSeriesResult.seriesList.isEmpty { tabs.append(.series) }
+                    if !tempMovies.isEmpty || !parsedSeriesResult.seriesList.isEmpty { 
+                        tabs.append(.vod) 
+                    }
                     tabs.append(.settings)
                     
                     self.availableTabs = tabs
@@ -321,12 +311,10 @@ class IPTVDataManager {
                     var tabs: [IPTVTab] = [.home]
                     if !(liveCats ?? []).isEmpty || !fetchedChannels.isEmpty { 
                         tabs.append(.liveTV)
-                        if UserDefaults.standard.bool(forKey: "epg_display") {
-                            tabs.append(.epg)
-                        }
                     }
-                    if !(vodCats ?? []).isEmpty || !unifiedVODs.isEmpty { tabs.append(.movies) }
-                    if !(seriesCats ?? []).isEmpty || !unifiedSeries.isEmpty { tabs.append(.series) }
+                    if !(vodCats ?? []).isEmpty || !unifiedVODs.isEmpty || !(seriesCats ?? []).isEmpty || !unifiedSeries.isEmpty { 
+                        tabs.append(.vod) 
+                    }
                     tabs.append(.settings)
                     
                     self.availableTabs = tabs

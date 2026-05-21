@@ -55,12 +55,8 @@ struct MainTabView: View {
             HomeView()
         case .liveTV:
             LiveTVView()
-        case .epg:
-            EPGTimelineView()
-        case .movies:
-            VODMoviesView()
-        case .series:
-            SeriesView()
+        case .vod:
+            VODView()
         case .settings:
             SettingsView()
         }

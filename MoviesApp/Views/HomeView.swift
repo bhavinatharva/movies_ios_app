@@ -143,18 +143,6 @@ struct HomeView: View {
             Spacer()
             
             HStack(spacing: 20) {
-                Text("TV Shows")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(.white)
-                
-                Text("Movies")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(.white)
-                
-                Text("Categories")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(.white)
-                
                 if showAdultContent {
                     NavigationLink(destination: AdultView()) {
                         Text("Adult(18+)")
