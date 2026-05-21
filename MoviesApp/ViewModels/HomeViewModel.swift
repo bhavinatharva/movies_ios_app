@@ -16,6 +16,7 @@ class HomeViewModel {
     var recommended: [UnifiedMediaItem] = []
     var sportsLiveNow: [UnifiedMediaItem] = []
     var favorites: [UnifiedMediaItem] = []
+    var uncategorized: [UnifiedMediaItem] = []
     
     init() {
         updateFavorites()
@@ -119,6 +120,7 @@ class HomeViewModel {
                 self.recommended = []
                 self.recentlyAdded = []
             }
+            self.uncategorized = self.dataManager.uncategorized
         }
     }
 }

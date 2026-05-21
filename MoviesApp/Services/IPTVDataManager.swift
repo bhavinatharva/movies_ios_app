@@ -50,6 +50,7 @@ class IPTVDataManager {
     var liveChannels: [IPTVChannel] = []
     var movies: [UnifiedMediaItem] = []
     var series: [UnifiedMediaItem] = []
+    var uncategorized: [UnifiedMediaItem] = []
     
     // Categorized stores for fast retrieval
     var categorizedChannels: [String: [IPTVChannel]] = [:]
@@ -75,11 +76,13 @@ class IPTVDataManager {
         let cachedChannels = IPTVLocalDatabase.shared.fetchChannels()
         let cachedMovies = IPTVLocalDatabase.shared.fetchMediaItems(type: .movie)
         let cachedSeries = IPTVLocalDatabase.shared.fetchMediaItems(type: .tvSeries)
+        let cachedUncategorized = IPTVLocalDatabase.shared.fetchMediaItems(type: .uncategorized)
         
-        if !cachedChannels.isEmpty || !cachedMovies.isEmpty || !cachedSeries.isEmpty {
+        if !cachedChannels.isEmpty || !cachedMovies.isEmpty || !cachedSeries.isEmpty || !cachedUncategorized.isEmpty {
             self.liveChannels = cachedChannels
             self.movies = cachedMovies
             self.series = cachedSeries
+            self.uncategorized = cachedUncategorized
             
             self.categorizedChannels = Dictionary(grouping: cachedChannels) { $0.category ?? "General" }
             self.categorizedMovies = Dictionary(grouping: cachedMovies) { $0.genres?.first ?? "General" }
@@ -139,6 +142,7 @@ class IPTVDataManager {
                 self.liveChannels = []
                 self.movies = []
                 self.series = []
+                self.uncategorized = []
                 self.categorizedChannels = [:]
                 self.categorizedMovies = [:]
                 self.m3uEpisodes = [:]
@@ -151,6 +155,7 @@ class IPTVDataManager {
                 self.liveChannels = []
                 self.movies = []
                 self.series = []
+                self.uncategorized = []
                 self.categorizedChannels = [:]
                 self.categorizedMovies = [:]
                 self.m3uEpisodes = [:]
@@ -201,10 +206,11 @@ class IPTVDataManager {
                 }
                 
                 // 2. Classify raw channels dynamically in the background to prevent main thread stutters
-                let (tempLive, tempMovies, parsedSeriesResult) = try await Task.detached(priority: .userInitiated) {
+                let (tempLive, tempMovies, tempUncategorized, parsedSeriesResult) = try await Task.detached(priority: .userInitiated) {
                     var tempLive: [IPTVChannel] = []
                     var tempMovies: [UnifiedMediaItem] = []
                     var tempSeriesRaw: [IPTVChannel] = []
+                    var tempUncategorized: [UnifiedMediaItem] = []
                     
                     for channel in channels {
                         switch channel.mediaType {
@@ -214,18 +220,21 @@ class IPTVDataManager {
                             tempMovies.append(channel.toUnified)
                         case .tvSeries:
                             tempSeriesRaw.append(channel)
+                        case .uncategorized:
+                            tempUncategorized.append(channel.toUnified)
                         }
                     }
                     
                     // 3. Process flat TV series into clean Netflix hierarchies
                     let parsed = self.parseM3USeries(tempSeriesRaw)
-                    return (tempLive, tempMovies, parsed)
+                    return (tempLive, tempMovies, tempUncategorized, parsed)
                 }.value
                 
                 await MainActor.run {
                     self.liveChannels = tempLive
                     self.movies = tempMovies
                     self.series = parsedSeriesResult.seriesList
+                    self.uncategorized = tempUncategorized
                     self.m3uEpisodes = parsedSeriesResult.episodesMap
                     
                     self.categorizedChannels = Dictionary(grouping: tempLive) { $0.category ?? "General" }
@@ -244,7 +253,7 @@ class IPTVDataManager {
                 
                 // Batch save the loaded results to our persistent local database stack
                 IPTVLocalDatabase.shared.saveChannels(tempLive) {}
-                IPTVLocalDatabase.shared.saveMediaItems(tempMovies + parsedSeriesResult.seriesList) {}
+                IPTVLocalDatabase.shared.saveMediaItems(tempMovies + parsedSeriesResult.seriesList + tempUncategorized) {}
                 
                 self.loadEPGInBackground()
                 

@@ -289,7 +289,19 @@ struct HomeView: View {
                     )
                 }
                 
-                // 11. Genres / Categories
+                // 11. Uncategorized
+                if !viewModel.uncategorized.isEmpty {
+                    UnifiedMediaListView(
+                        header: "Uncategorized",
+                        items: viewModel.uncategorized,
+                        onSelect: { item in
+                            UserDataManager.shared.addToHistory(item)
+                            selectedPlayableItem = item
+                        }
+                    )
+                }
+                
+                // 12. Genres / Categories
                 ForEach(viewModel.categorizedChannels.keys.sorted(), id: \.self) { category in
                     let catLower = category.lowercased()
                     if catLower != "sports" && catLower != "sport" { // Avoid duplicate sports sections

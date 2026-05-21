@@ -11,6 +11,7 @@ enum MediaType: String, Codable {
     case movie
     case tvSeries
     case liveTV
+    case uncategorized
 }
 
 enum MediaSource: String, Codable {
