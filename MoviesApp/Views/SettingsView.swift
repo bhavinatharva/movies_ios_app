@@ -32,294 +32,33 @@ struct SettingsView: View {
     
     var body: some View {
         NavigationStack {
-            Form {
-                // Section 1: PLAYLISTS & ACCOUNT
-                Section(header: Text("Account & Source")) {
-                    NavigationLink(destination: PlaylistsListView()) {
-                        HStack(spacing: 12) {
-                            Image(systemName: "tv.inset.filled")
-                                .foregroundColor(.accentColor)
-                                .font(.title3)
-                            
-                            Text("Your Playlists")
-                                .foregroundColor(.primary)
-                                .fontWeight(.medium)
-                        }
-                    }
-                    
-                    HStack {
-                        Image(systemName: "person.crop.circle.badge.checkmark")
-                            .foregroundColor(.green)
-                            .font(.title3)
-                        
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("IPTV Connection Status")
-                                .fontWeight(.medium)
-                            Text(hasDefaultPlaylist ? "Connected" : "No active playlist")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    
-                    if hasDefaultPlaylist {
-                        Button(action: {
-                            Task {
-                                let generator = UIImpactFeedbackGenerator(style: .medium)
-                                generator.impactOccurred()
-                                await IPTVDataManager.shared.refreshContent()
-                            }
-                        }) {
-                            HStack(spacing: 12) {
-                                Image(systemName: "arrow.triangle.2.circlepath")
-                                    .foregroundColor(.blue)
-                                    .font(.title3)
-                                
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Refresh Playlist Content")
-                                        .foregroundColor(.primary)
-                                        .fontWeight(.medium)
-                                    Text("Fetch again for new channels and VODs")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-                        }
-                    }
-                }
+            ZStack {
+                Color.appBackground.ignoresSafeArea()
                 
-                // Section 2: APPEARANCE & FILTER
-                Section(header: Text("Appearance & Filters")) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Image(systemName: "paintpalette.fill")
-                                .foregroundColor(.orange)
-                            Text("App Theme")
-                                .fontWeight(.medium)
+                ScrollView {
+                    VStack(spacing: 24) {
+                        profileHeader
+                        
+                        playlistSection
+                        
+                        playerSettingsSection
+                        
+                        liveTVSettingsSection
+                        
+                        audioSubtitlesSection
+                        
+                        if let playlist = activePlaylist, playlist.hasAdultContent {
+                            adultContentSection(playlist: playlist)
                         }
                         
-                        Picker("Theme", selection: $userDataManager.currentTheme) {
-                            ForEach(AppTheme.allCases) { theme in
-                                Text(theme.rawValue).tag(theme)
-                            }
-                        }
-                        .pickerStyle(.segmented)
+                        appearanceSection
+                        
+                        dataStorageSection
+                        
+                        aboutSection
                     }
-                    .padding(.vertical, 4)
-                    
-                    if let playlist = activePlaylist, playlist.hasAdultContent {
-                        Toggle(isOn: Binding(
-                            get: { self.allowAdultContent },
-                            set: { newValue in
-                                self.allowAdultContent = newValue
-                                PlaylistManager.shared.updateAdultConsent(for: playlist.id, consented: newValue)
-                                Task {
-                                    await IPTVDataManager.shared.refreshContent(clearFirst: true)
-                                }
-                            }
-                        )) {
-                            HStack(spacing: 12) {
-                                Image(systemName: "exclamationmark.shield.fill")
-                                    .foregroundColor(.red)
-                                    .font(.title3)
-                                
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Allow Adult Content (18+)")
-                                        .foregroundColor(.primary)
-                                        .fontWeight(.medium)
-                                    Text("Enable access to 18+ categories for this playlist")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-                        }
-                        .toggleStyle(SwitchToggleStyle(tint: .accentColor))
-                    }
-                }
-                
-                // Section 3: PLAYBACK PREFERENCES
-                Section(header: Text("Playback Settings")) {
-                    Toggle(isOn: $resumePlayback) {
-                        HStack(spacing: 12) {
-                            Image(systemName: "arrow.uturn.backward.circle.fill")
-                                .foregroundColor(.blue)
-                                .font(.title3)
-                            
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Resume Playback")
-                                    .fontWeight(.medium)
-                                Text("Automatically resume where you left off")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                    }
-                    
-                    Toggle(isOn: $autoPlayNext) {
-                        HStack(spacing: 12) {
-                            Image(systemName: "forward.end.fill")
-                                .foregroundColor(.purple)
-                                .font(.title3)
-                            
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Auto-Play Next Episode")
-                                    .fontWeight(.medium)
-                                Text("Start next episode automatically")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                    }
-                    
-                    Toggle(isOn: $autoPlayTrailers) {
-                        HStack(spacing: 12) {
-                            Image(systemName: "film.fill")
-                                .foregroundColor(.indigo)
-                                .font(.title3)
-                            
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Auto-Play Trailers")
-                                    .fontWeight(.medium)
-                                Text("Play movie trailers on detail pages")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                    }
-                }
-                
-                // Section 4: LIVE TV SETTINGS
-                Section(header: Text("Live TV Settings")) {
-                    Toggle(isOn: $startOnLive) {
-                        HStack(spacing: 12) {
-                            Image(systemName: "tv.fill")
-                                .foregroundColor(.pink)
-                                .font(.title3)
-                            
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Start on Live TV")
-                                    .fontWeight(.medium)
-                                Text("Launch Live TV tab automatically on startup")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                    }
-                    
-                    Toggle(isOn: $epgDisplay) {
-                        HStack(spacing: 12) {
-                            Image(systemName: "calendar.badge.clock")
-                                .foregroundColor(.cyan)
-                                .font(.title3)
-                            
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Show EPG Information")
-                                    .fontWeight(.medium)
-                                Text("Display program timelines for channels")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                    }
-                }
-                
-                // Section 5: AUDIO & SUBTITLES
-                Section(header: Text("Audio & Subtitles")) {
-                    Picker(selection: $defaultAudioLang, label: HStack(spacing: 12) {
-                        Image(systemName: "speaker.wave.2.bubble.left.fill")
-                            .foregroundColor(.teal)
-                        Text("Default Audio")
-                            .fontWeight(.medium)
-                    }) {
-                        ForEach(audioLanguages, id: \.self) { lang in
-                            Text(lang).tag(lang)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                    
-                    Picker(selection: $defaultSubLang, label: HStack(spacing: 12) {
-                        Image(systemName: "captions.bubble.fill")
-                            .foregroundColor(.green)
-                        Text("Default Subtitle")
-                            .fontWeight(.medium)
-                    }) {
-                        ForEach(subtitleLanguages, id: \.self) { sub in
-                            Text(sub).tag(sub)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                }
-                
-                // Section 6: DATA & STORAGE
-                Section(header: Text("Data & Storage")) {
-                    Button(action: {
-                        showHistoryAlert = true
-                    }) {
-                        HStack {
-                            Image(systemName: "clock.arrow.circlepath")
-                                .foregroundColor(.orange)
-                            Text("Clear Watch History")
-                                .foregroundColor(.orange)
-                                .fontWeight(.medium)
-                        }
-                    }
-                    .alert("Clear Watch History", isPresented: $showHistoryAlert) {
-                        Button("Cancel", role: .cancel) {}
-                        Button("Clear", role: .destructive) {
-                            UserDataManager.shared.recentlyWatched = []
-                            // Clear history from CoreData persistent store
-                            let context = IPTVLocalDatabase.shared.viewContext
-                            let fetchRequest = NSFetchRequest<NSManagedObject>(entityName: "HistoryEntity")
-                            if let results = try? context.fetch(fetchRequest) {
-                                for obj in results {
-                                    context.delete(obj)
-                                }
-                                try? context.save()
-                            }
-                            let generator = UINotificationFeedbackGenerator()
-                            generator.notificationOccurred(.success)
-                        }
-                    } message: {
-                        Text("Are you sure you want to permanently delete your playback and history records?")
-                    }
-                    
-                    Button(action: {
-                        showFavoritesAlert = true
-                    }) {
-                        HStack {
-                            Image(systemName: "heart.slash.fill")
-                                .foregroundColor(.red)
-                            Text("Clear Favorites")
-                                .foregroundColor(.red)
-                                .fontWeight(.medium)
-                        }
-                    }
-                    .alert("Clear Favorites", isPresented: $showFavoritesAlert) {
-                        Button("Cancel", role: .cancel) {}
-                        Button("Clear", role: .destructive) {
-                            UserDataManager.shared.favorites = []
-                            // Clear favorites from CoreData persistent store
-                            let context = IPTVLocalDatabase.shared.viewContext
-                            let fetchRequest = NSFetchRequest<NSManagedObject>(entityName: "FavoritesEntity")
-                            if let results = try? context.fetch(fetchRequest) {
-                                for obj in results {
-                                    context.delete(obj)
-                                }
-                                try? context.save()
-                            }
-                            let generator = UINotificationFeedbackGenerator()
-                            generator.notificationOccurred(.success)
-                        }
-                    } message: {
-                        Text("Are you sure you want to delete all saved items from your favorites list?")
-                    }
-                }
-                
-                // Section 7: ABOUT
-                Section(footer: VStack(alignment: .center, spacing: 4) {
-                    Text("App Version 1.0 (Build 26)")
-                    Text("© 2026 MoviesApp. All rights reserved.")
-                }.frame(maxWidth: .infinity, alignment: .center)) {
-                    EmptyView()
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 24)
                 }
             }
             .navigationTitle(Constants.StringConstants.tabSettings)
@@ -329,6 +68,385 @@ struct SettingsView: View {
                 allowAdultContent = activePlaylist?.userConsentedAdult ?? false
             }
         }
+    }
+    
+    // MARK: - Sections
+    
+    private var profileHeader: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "person.crop.circle.fill")
+                .font(.system(size: 64))
+                .foregroundColor(.accentColor)
+                .padding(.top, 8)
+            
+            VStack(spacing: 4) {
+                Text(activePlaylist?.name ?? "No Active Playlist")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(hasDefaultPlaylist ? Color.green : Color.red)
+                        .frame(width: 8, height: 8)
+                    Text(hasDefaultPlaylist ? "Connected" : "Disconnected")
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 16)
+    }
+    
+    private var playlistSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            sectionTitle("ACCOUNT & SOURCE")
+            
+            SettingsCardContainer {
+                NavigationLink(destination: PlaylistsListView()) {
+                    SettingsRowUIComponent(
+                        icon: "tv.inset.filled",
+                        iconColor: .accentColor,
+                        title: "Manage Playlists",
+                        subtitle: "Add, remove, or switch active IPTV sources",
+                        trailing: Image(systemName: "chevron.right").foregroundColor(.gray)
+                    )
+                }
+                .buttonStyle(PlainButtonStyle())
+                
+                if hasDefaultPlaylist {
+                    Divider().background(Color.white.opacity(0.1)).padding(.leading, 48)
+                    
+                    Button(action: {
+                        Task {
+                            let generator = UIImpactFeedbackGenerator(style: .medium)
+                            generator.impactOccurred()
+                            await IPTVDataManager.shared.refreshContent()
+                        }
+                    }) {
+                        SettingsRowUIComponent(
+                            icon: "arrow.triangle.2.circlepath",
+                            iconColor: .blue,
+                            title: "Refresh Content",
+                            subtitle: "Fetch latest channels and VODs manually",
+                            trailing: Image(systemName: "chevron.right").foregroundColor(.gray)
+                        )
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
+            }
+        }
+    }
+    
+    private var playerSettingsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            sectionTitle("PLAYER SETTINGS")
+            
+            SettingsCardContainer {
+                SettingsRowUIComponent(
+                    icon: "arrow.uturn.backward.circle.fill",
+                    iconColor: .blue,
+                    title: "Resume Playback",
+                    subtitle: "Automatically resume where you left off",
+                    trailing: Toggle("", isOn: $resumePlayback).labelsHidden()
+                )
+                
+                Divider().background(Color.white.opacity(0.1)).padding(.leading, 48)
+                
+                SettingsRowUIComponent(
+                    icon: "forward.end.fill",
+                    iconColor: .purple,
+                    title: "Auto-Play Next Episode",
+                    subtitle: "Start next episode automatically",
+                    trailing: Toggle("", isOn: $autoPlayNext).labelsHidden()
+                )
+                
+                Divider().background(Color.white.opacity(0.1)).padding(.leading, 48)
+                
+                SettingsRowUIComponent(
+                    icon: "film.fill",
+                    iconColor: .indigo,
+                    title: "Auto-Play Trailers",
+                    subtitle: "Play movie trailers on detail pages",
+                    trailing: Toggle("", isOn: $autoPlayTrailers).labelsHidden()
+                )
+            }
+        }
+    }
+    
+    private var liveTVSettingsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            sectionTitle("LIVE TV SETTINGS")
+            
+            SettingsCardContainer {
+                SettingsRowUIComponent(
+                    icon: "tv.fill",
+                    iconColor: .pink,
+                    title: "Start on Live TV",
+                    subtitle: "Launch Live TV tab automatically on startup",
+                    trailing: Toggle("", isOn: $startOnLive).labelsHidden()
+                )
+                
+                Divider().background(Color.white.opacity(0.1)).padding(.leading, 48)
+                
+                SettingsRowUIComponent(
+                    icon: "calendar.badge.clock",
+                    iconColor: .cyan,
+                    title: "Show EPG Information",
+                    subtitle: "Display program timelines for channels",
+                    trailing: Toggle("", isOn: $epgDisplay).labelsHidden()
+                )
+            }
+        }
+    }
+    
+    private var audioSubtitlesSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            sectionTitle("AUDIO & SUBTITLES")
+            
+            SettingsCardContainer {
+                SettingsRowUIComponent(
+                    icon: "speaker.wave.2.bubble.left.fill",
+                    iconColor: .teal,
+                    title: "Default Audio",
+                    subtitle: "Preferred language for audio tracks",
+                    trailing: Picker("", selection: $defaultAudioLang) {
+                        ForEach(audioLanguages, id: \.self) { lang in
+                            Text(lang).tag(lang)
+                        }
+                    }
+                    .tint(.gray)
+                    .labelsHidden()
+                )
+                
+                Divider().background(Color.white.opacity(0.1)).padding(.leading, 48)
+                
+                SettingsRowUIComponent(
+                    icon: "captions.bubble.fill",
+                    iconColor: .green,
+                    title: "Default Subtitle",
+                    subtitle: "Preferred language for closed captions",
+                    trailing: Picker("", selection: $defaultSubLang) {
+                        ForEach(subtitleLanguages, id: \.self) { sub in
+                            Text(sub).tag(sub)
+                        }
+                    }
+                    .tint(.gray)
+                    .labelsHidden()
+                )
+            }
+        }
+    }
+    
+    private func adultContentSection(playlist: Playlist) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            sectionTitle("CONTENT RESTRICTIONS")
+            
+            SettingsCardContainer {
+                SettingsRowUIComponent(
+                    icon: "exclamationmark.shield.fill",
+                    iconColor: .red,
+                    title: "Allow Adult Content (18+)",
+                    subtitle: "Enable access to 18+ categories for this playlist",
+                    trailing: Toggle("", isOn: Binding(
+                        get: { self.allowAdultContent },
+                        set: { newValue in
+                            self.allowAdultContent = newValue
+                            PlaylistManager.shared.updateAdultConsent(for: playlist.id, consented: newValue)
+                            Task {
+                                await IPTVDataManager.shared.refreshContent(clearFirst: true)
+                            }
+                        }
+                    )).labelsHidden()
+                )
+            }
+        }
+    }
+    
+    private var appearanceSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            sectionTitle("APPEARANCE")
+            
+            SettingsCardContainer {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "paintpalette.fill")
+                            .foregroundColor(.orange)
+                            .frame(width: 32, height: 32)
+                            .background(Color.orange.opacity(0.2))
+                            .cornerRadius(8)
+                        
+                        Text("App Theme")
+                            .font(.body)
+                            .foregroundColor(.white)
+                    }
+                    
+                    Picker("Theme", selection: $userDataManager.currentTheme) {
+                        ForEach(AppTheme.allCases) { theme in
+                            Text(theme.rawValue).tag(theme)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
+                .padding(.vertical, 12)
+                .padding(.horizontal, 16)
+            }
+        }
+    }
+    
+    private var dataStorageSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            sectionTitle("DATA & STORAGE")
+            
+            SettingsCardContainer {
+                Button(action: {
+                    showHistoryAlert = true
+                }) {
+                    SettingsRowUIComponent(
+                        icon: "clock.arrow.circlepath",
+                        iconColor: .orange,
+                        title: "Clear Watch History",
+                        subtitle: "Permanently delete playback records",
+                        trailing: EmptyView()
+                    )
+                }
+                .buttonStyle(PlainButtonStyle())
+                .alert("Clear Watch History", isPresented: $showHistoryAlert) {
+                    Button("Cancel", role: .cancel) {}
+                    Button("Clear", role: .destructive) {
+                        UserDataManager.shared.recentlyWatched = []
+                        // Clear history from CoreData persistent store
+                        let context = IPTVLocalDatabase.shared.viewContext
+                        let fetchRequest = NSFetchRequest<NSManagedObject>(entityName: "HistoryEntity")
+                        if let results = try? context.fetch(fetchRequest) {
+                            for obj in results {
+                                context.delete(obj)
+                            }
+                            try? context.save()
+                        }
+                        let generator = UINotificationFeedbackGenerator()
+                        generator.notificationOccurred(.success)
+                    }
+                } message: {
+                    Text("Are you sure you want to permanently delete your playback and history records?")
+                }
+                
+                Divider().background(Color.white.opacity(0.1)).padding(.leading, 48)
+                
+                Button(action: {
+                    showFavoritesAlert = true
+                }) {
+                    SettingsRowUIComponent(
+                        icon: "heart.slash.fill",
+                        iconColor: .red,
+                        title: "Clear Favorites",
+                        subtitle: "Remove all saved items",
+                        trailing: EmptyView()
+                    )
+                }
+                .buttonStyle(PlainButtonStyle())
+                .alert("Clear Favorites", isPresented: $showFavoritesAlert) {
+                    Button("Cancel", role: .cancel) {}
+                    Button("Clear", role: .destructive) {
+                        UserDataManager.shared.favorites = []
+                        // Clear favorites from CoreData persistent store
+                        let context = IPTVLocalDatabase.shared.viewContext
+                        let fetchRequest = NSFetchRequest<NSManagedObject>(entityName: "FavoritesEntity")
+                        if let results = try? context.fetch(fetchRequest) {
+                            for obj in results {
+                                context.delete(obj)
+                            }
+                            try? context.save()
+                        }
+                        let generator = UINotificationFeedbackGenerator()
+                        generator.notificationOccurred(.success)
+                    }
+                } message: {
+                    Text("Are you sure you want to delete all saved items from your favorites list?")
+                }
+            }
+        }
+    }
+    
+    private var aboutSection: some View {
+        VStack(spacing: 4) {
+            Text("App Version 1.0 (Build 26)")
+                .font(.caption)
+                .foregroundColor(.gray)
+            Text("© 2026 MoviesApp. All rights reserved.")
+                .font(.caption2)
+                .foregroundColor(.gray.opacity(0.7))
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 24)
+        .padding(.bottom, 40)
+    }
+    
+    private func sectionTitle(_ text: String) -> some View {
+        Text(text)
+            .font(.caption)
+            .fontWeight(.semibold)
+            .foregroundColor(.gray)
+            .padding(.leading, 16)
+    }
+}
+
+// MARK: - UI Components
+
+struct SettingsCardContainer<Content: View>: View {
+    let content: Content
+    
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            content
+        }
+        .background(Color.appCardBackground)
+        .cornerRadius(16)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
+        )
+    }
+}
+
+struct SettingsRowUIComponent<Trailing: View>: View {
+    let icon: String
+    let iconColor: Color
+    let title: String
+    let subtitle: String
+    let trailing: Trailing
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(iconColor)
+                .frame(width: 32, height: 32)
+                .background(iconColor.opacity(0.2))
+                .cornerRadius(8)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.body)
+                    .foregroundColor(.white)
+                
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundColor(.gray)
+            }
+            
+            Spacer()
+            
+            trailing
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .contentShape(Rectangle())
     }
 }
 
