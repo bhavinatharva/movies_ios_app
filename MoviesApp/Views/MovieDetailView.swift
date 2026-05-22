@@ -41,53 +41,60 @@ struct MovieDetailView: View {
     
     @ViewBuilder
     private func detailContent(movie: MovieDetailModel) -> some View {
+        let playableItem = iptvPlayableMovie(movie: movie)
+        
         GeometryReader { geo in
             ScrollView(showsIndicators: false) {
                 LazyVStack(spacing: 0) {
                     // 1. Cinematic Hero Header
-                    MovieHeroHeader(movie: movie, geometry: geo)
+                    MovieHeroHeader(
+                        movie: movie,
+                        iptvMovie: playableItem,
+                        geometry: geo,
+                        onPlayTapped: {
+                            if let item = playableItem {
+                                UserDataManager.shared.addToHistory(item)
+                                selectedPlayableItem = item
+                            } else if let firstVideo = viewModel.videos.first {
+                                selectedVideo = firstVideo
+                            }
+                        },
+                        onTrailerTapped: {
+                            if let firstVideo = viewModel.videos.first {
+                                selectedVideo = firstVideo
+                            }
+                        },
+                        hasTrailer: !viewModel.videos.isEmpty
+                    )
                     
                     VStack(alignment: .leading, spacing: 32) {
-                        // 2. Metadata Chips
-                        MovieMetadataChips(movie: movie)
+                        // 2. Quick Info Row
+                        MovieQuickInfoRow(movie: movie, iptvMovie: playableItem)
                             .padding(.top, 16)
                         
-                        // 3. Action Buttons
-                        MovieActionButtons(
-                            onPlayTapped: {
-                                if let playableMovie = iptvPlayableMovie(movie: movie) {
-                                    UserDataManager.shared.addToHistory(playableMovie)
-                                    selectedPlayableItem = playableMovie
-                                } else {
-                                    // Fallback to playing trailer if no IPTV movie is found
-                                    if let firstVideo = viewModel.videos.first {
-                                        selectedVideo = firstVideo
-                                    }
-                                }
-                            },
-                            onTrailerTapped: {
-                                if let firstVideo = viewModel.videos.first {
-                                    selectedVideo = firstVideo
-                                }
-                            },
-                            hasTrailer: !viewModel.videos.isEmpty
-                        )
-                        
-                        // 4. Expandable Overview
+                        // 3. Expandable Overview
                         MovieOverviewSection(movie: movie)
                         
-                        // 5. Related Content Rail (Mocking with Shuffled data to show intent)
+                        // 4. Cast & Crew Section
+                        MovieCastRail(castString: playableItem?.cast, directorString: playableItem?.director)
+                        
+                        // 5. Collection / Franchise Section (Placeholder UX)
+                        // If there was collection data, we'd pass it here. Using static fallback logic.
+                        if let titleText = movie.title, titleText.contains("Collection") || titleText.contains("Saga") {
+                            MovieCollectionRail(collectionName: titleText)
+                        } else {
+                            // Let's pretend it has a collection visually for the requested layout if needed,
+                            // or leave it safely hidden.
+                            MovieCollectionRail(collectionName: nil)
+                        }
+                        
+                        // 6. Related Content Rail
                         MovieRelatedContentRail(
                             title: "More Like This",
                             items: TrendingModel.previeTitles.shuffled(),
-                            onSelect: { selectedItem in
-                                // Navigation to next detail view is usually handled by wrapping in NavigationLink, 
-                                // but for now we'll just print or implement if needed.
-                                print("Selected: \(selectedItem.title ?? "")")
-                            }
+                            onSelect: { _ in }
                         )
                         
-                        // Optional: Videos and Trailers Rail
                         if !viewModel.videos.isEmpty {
                             VStack(alignment: .leading, spacing: 16) {
                                 Text("Trailers & Extras")
@@ -109,6 +116,9 @@ struct MovieDetailView: View {
                                 }
                             }
                         }
+                        
+                        // 7. Technical Details
+                        MovieTechnicalDetails()
                     }
                     .padding(.bottom, 100)
                 }
@@ -117,12 +127,10 @@ struct MovieDetailView: View {
             .fullScreenCover(item: $selectedVideo) { video in
                 ZStack(alignment: .topTrailing) {
                     Color.black.ignoresSafeArea()
-                    
                     if let key = video.key {
                         YoutubePlayer(videoIds: [key], showControls: true)
                             .aspectRatio(1.77, contentMode: .fit)
                     }
-                    
                     Button(action: { selectedVideo = nil }) {
                         Image(systemName: "xmark.circle.fill")
                             .font(.title)
@@ -137,16 +145,13 @@ struct MovieDetailView: View {
                 } else {
                     ZStack(alignment: .topTrailing) {
                         Color.appBackground.ignoresSafeArea()
-                        
                         ContentUnavailableView {
                             Label("Cannot Play", systemImage: "play.slash")
                         } description: {
                             Text("No playable link found for this movie.")
                                 .foregroundColor(.secondary)
                         } actions: {
-                            Button(action: {
-                                selectedPlayableItem = nil
-                            }) {
+                            Button(action: { selectedPlayableItem = nil }) {
                                 Text("Close")
                                     .fontWeight(.bold)
                                     .frame(width: 120, height: 44)
@@ -156,10 +161,7 @@ struct MovieDetailView: View {
                             }
                             .buttonStyle(PressScaleButtonStyle())
                         }
-                        
-                        Button(action: {
-                            selectedPlayableItem = nil
-                        }) {
+                        Button(action: { selectedPlayableItem = nil }) {
                             Image(systemName: "xmark.circle.fill")
                                 .font(.title)
                                 .foregroundColor(.white.opacity(0.6))
