@@ -39,6 +39,8 @@ struct SettingsView: View {
                     VStack(spacing: 24) {
                         profileHeader
                         
+                        premiumBannerSection
+                        
                         playlistSection
                         
                         playerSettingsSection
@@ -97,6 +99,48 @@ struct SettingsView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)
+    }
+    
+    @State private var showPremiumPaywall = false
+    
+    private var premiumBannerSection: some View {
+        Button(action: {
+            let generator = UIImpactFeedbackGenerator(style: .medium)
+            generator.impactOccurred()
+            showPremiumPaywall = true
+        }) {
+            HStack(spacing: 16) {
+                Image(systemName: "sparkles")
+                    .font(.title2)
+                    .foregroundColor(.yellow)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Upgrade to PRO")
+                        .font(.headline)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                    
+                    Text("Unlock unlimited features & ad-free streaming.")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.8))
+                }
+                
+                Spacer()
+                
+                Image(systemName: "chevron.right")
+                    .foregroundColor(.white.opacity(0.6))
+            }
+            .padding(16)
+            .background(
+                LinearGradient(colors: [Color.accentColor, Color.purple], startPoint: .leading, endPoint: .trailing)
+            )
+            .cornerRadius(16)
+            .shadow(color: Color.accentColor.opacity(0.4), radius: 8, y: 4)
+        }
+        .buttonStyle(PressScaleButtonStyle())
+        .fullScreenCover(isPresented: $showPremiumPaywall) {
+            PremiumPaywallView()
+        }
     }
     
     private var playlistSection: some View {
