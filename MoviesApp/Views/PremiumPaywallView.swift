@@ -4,11 +4,14 @@
 //
 
 import SwiftUI
+import StoreKit
 
 struct PremiumPaywallView: View {
     @Environment(\.dismiss) var dismiss
+    @StateObject private var storeManager = StoreManager.shared
     @State private var selectedPlan: PremiumPlan = .yearly
     @State private var animateHero = false
+    @State private var isPurchasing = false
     
     // Smooth scrolling tracking could go here for parallax, but we keep it simple for 60fps
     
@@ -189,18 +192,21 @@ struct PremiumPaywallView: View {
                 PricingPlanCard(
                     plan: .monthly,
                     isSelected: selectedPlan == .monthly,
+                    priceString: PremiumPlan.monthly.displayPrice(from: storeManager.products),
                     action: { selectedPlan = .monthly }
                 )
                 
                 PricingPlanCard(
                     plan: .yearly,
                     isSelected: selectedPlan == .yearly,
+                    priceString: PremiumPlan.yearly.displayPrice(from: storeManager.products),
                     action: { selectedPlan = .yearly }
                 )
                 
                 PricingPlanCard(
                     plan: .lifetime,
                     isSelected: selectedPlan == .lifetime,
+                    priceString: PremiumPlan.lifetime.displayPrice(from: storeManager.products),
                     action: { selectedPlan = .lifetime }
                 )
             }
@@ -217,21 +223,38 @@ struct PremiumPaywallView: View {
                 Button(action: {
                     let generator = UIImpactFeedbackGenerator(style: .heavy)
                     generator.impactOccurred()
-                    // Handle purchase flow here
+                    Task {
+                        isPurchasing = true
+                        if let product = storeManager.products.first(where: { $0.id == selectedPlan.productId }) {
+                            try? await storeManager.purchase(product)
+                            if storeManager.isPurchased {
+                                dismiss()
+                            }
+                        }
+                        isPurchasing = false
+                    }
                 }) {
-                    Text("Start \(selectedPlan.title) Plan")
-                        .font(.headline)
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 56)
-                        .background(
-                            LinearGradient(colors: [Color.accentColor, Color.purple], startPoint: .leading, endPoint: .trailing)
-                        )
-                        .cornerRadius(16)
-                        .shadow(color: Color.accentColor.opacity(0.4), radius: 10, y: 5)
+                    ZStack {
+                        if isPurchasing {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        } else {
+                            Text("Start \(selectedPlan.title) Plan")
+                                .font(.headline)
+                                .fontWeight(.bold)
+                                .foregroundColor(.white)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 56)
+                    .background(
+                        LinearGradient(colors: [Color.accentColor, Color.purple], startPoint: .leading, endPoint: .trailing)
+                    )
+                    .cornerRadius(16)
+                    .shadow(color: Color.accentColor.opacity(0.4), radius: 10, y: 5)
                 }
                 .buttonStyle(PressScaleButtonStyle())
+                .disabled(isPurchasing)
                 
                 Text(selectedPlan.trialText)
                     .font(.caption)
@@ -246,7 +269,12 @@ struct PremiumPaywallView: View {
     private var footerSection: some View {
         VStack(spacing: 16) {
             Button(action: {
-                // Restore purchases action
+                Task {
+                    await storeManager.restorePurchases()
+                    if storeManager.isPurchased {
+                        dismiss()
+                    }
+                }
             }) {
                 Text("Restore Purchases")
                     .font(.subheadline)
@@ -343,6 +371,21 @@ enum PremiumPlan {
         case .lifetime: return "Pay once, stream forever."
         }
     }
+    
+    var productId: String {
+        switch self {
+        case .monthly: return "com.moviesapp.premium.monthly"
+        case .yearly: return "com.moviesapp.premium.yearly"
+        case .lifetime: return "com.moviesapp.premium.lifetime"
+        }
+    }
+    
+    func displayPrice(from products: [Product]) -> String {
+        if let product = products.first(where: { $0.id == self.productId }) {
+            return product.displayPrice
+        }
+        return self.price
+    }
 }
 
 // MARK: - Subcomponents
@@ -382,6 +425,7 @@ struct PremiumFeatureCard: View {
 struct PricingPlanCard: View {
     let plan: PremiumPlan
     let isSelected: Bool
+    let priceString: String
     let action: () -> Void
     
     var body: some View {
@@ -415,7 +459,7 @@ struct PricingPlanCard: View {
                 
                 Spacer()
                 
-                Text(plan.price)
+                Text(priceString)
                     .font(.title3)
                     .fontWeight(.bold)
                     .foregroundColor(isSelected ? .white : .gray)
