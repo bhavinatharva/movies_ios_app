@@ -182,6 +182,7 @@ class IPTVDataManager {
                 self.categorizedChannels = [:]
                 self.categorizedMovies = [:]
                 self.m3uEpisodes = [:]
+                self.currentLoadedPlaylistUrl = nil
             }
             IPTVLocalDatabase.shared.clearAllData()
         }
@@ -205,6 +206,9 @@ class IPTVDataManager {
         
         await MainActor.run {
             self.homeStatus = .loading
+            if !clearFirst {
+                self.currentLoadedPlaylistUrl = nil
+            }
         }
         
         let urlString = defaultPlaylist.url
