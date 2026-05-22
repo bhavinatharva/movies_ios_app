@@ -103,7 +103,10 @@ struct LiveMiniPlayerView: View {
         VideoPlayer(player: player)
             .disabled(true) // Disable interactions
             .onAppear {
-                let avPlayer = AVPlayer(url: url)
+                let options: [String: Any] = ["AVURLAssetHTTPHeaderFieldsKey": ["User-Agent": "VLC/3.0.11 LibVLC/3.0.11"]]
+                let asset = AVURLAsset(url: url, options: options)
+                let playerItem = AVPlayerItem(asset: asset)
+                let avPlayer = AVPlayer(playerItem: playerItem)
                 avPlayer.isMuted = true // Always muted for background hero
                 self.player = avPlayer
                 avPlayer.play()
@@ -114,7 +117,10 @@ struct LiveMiniPlayerView: View {
             }
             .onChange(of: url) { _, newUrl in
                 player?.pause()
-                let avPlayer = AVPlayer(url: newUrl)
+                let options: [String: Any] = ["AVURLAssetHTTPHeaderFieldsKey": ["User-Agent": "VLC/3.0.11 LibVLC/3.0.11"]]
+                let asset = AVURLAsset(url: newUrl, options: options)
+                let playerItem = AVPlayerItem(asset: asset)
+                let avPlayer = AVPlayer(playerItem: playerItem)
                 avPlayer.isMuted = true
                 self.player = avPlayer
                 avPlayer.play()
@@ -173,8 +179,7 @@ struct LiveChannelCardView: View {
             ZStack(alignment: .topTrailing) {
                 Color.white.opacity(0.03)
                 
-                let encodedLogoUrl = channel.logoUrl?.absoluteString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? channel.logoUrl?.absoluteString
-                if let logoUrlString = encodedLogoUrl, let logoUrl = URL(string: logoUrlString) {
+                if let logoUrl = channel.logoUrl {
                     AsyncImage(url: logoUrl) { image in
                         image
                             .resizable()

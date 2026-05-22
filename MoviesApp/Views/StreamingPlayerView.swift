@@ -540,8 +540,7 @@ struct StreamingPlayerView: View {
                                 }
                             }) {
                                 HStack(spacing: 12) {
-                                    let encodedLogoUrl = channel.logoUrl?.absoluteString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? channel.logoUrl?.absoluteString
-                                    if let logoUrlString = encodedLogoUrl, let logoUrl = URL(string: logoUrlString) {
+                                    if let logoUrl = channel.logoUrl {
                                         AsyncImage(url: logoUrl) { phase in
                                             if let image = phase.image {
                                                 image.resizable().scaledToFit().frame(width: 40, height: 40)
@@ -641,7 +640,10 @@ struct StreamingPlayerView: View {
     // MARK: - Logic Helpers
     
     private func setupPlayer(with playbackURL: URL? = nil) {
-        let playerItem = AVPlayerItem(url: playbackURL ?? currentUrl)
+        let finalUrl = playbackURL ?? currentUrl
+        let options: [String: Any] = ["AVURLAssetHTTPHeaderFieldsKey": ["User-Agent": "VLC/3.0.11 LibVLC/3.0.11"]]
+        let asset = AVURLAsset(url: finalUrl, options: options)
+        let playerItem = AVPlayerItem(asset: asset)
         player.replaceCurrentItem(with: playerItem)
         
         let timeScale = CMTimeScale(NSEC_PER_SEC)

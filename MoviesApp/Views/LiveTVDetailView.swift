@@ -9,6 +9,7 @@ import AVKit
 struct LiveTVDetailView: View {
     let channel: IPTVChannel
     @Environment(\.dismiss) var dismiss
+    @State private var showPlayer = false
     
     // In a real app we would use EPGService to fetch the schedule.
     private var epg: MockEPGInfo {
@@ -25,8 +26,7 @@ struct LiveTVDetailView: View {
                     // Cinematic Header Backdrop
                     ZStack(alignment: .bottomLeading) {
                         // Blurred Background Logo
-                        let encodedLogoUrl = channel.logoUrl?.absoluteString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? channel.logoUrl?.absoluteString
-                        if let logoUrlString = encodedLogoUrl, let logoUrl = URL(string: logoUrlString) {
+                        if let logoUrl = channel.logoUrl {
                             AsyncImage(url: logoUrl) { image in
                                 image
                                     .resizable()
@@ -63,7 +63,7 @@ struct LiveTVDetailView: View {
                                 // Floating Logo
                                 ZStack {
                                     Color.white.opacity(0.1)
-                                    if let logoUrlString = encodedLogoUrl, let logoUrl = URL(string: logoUrlString) {
+                                    if let logoUrl = channel.logoUrl {
                                         AsyncImage(url: logoUrl) { image in
                                             image.resizable().scaledToFit().padding(10)
                                         } placeholder: {
@@ -94,6 +94,8 @@ struct LiveTVDetailView: View {
                                         .font(.system(size: 32, weight: .black, design: .rounded))
                                         .foregroundColor(.white)
                                         .shadow(color: .black.opacity(0.8), radius: 4, y: 2)
+                                        .lineLimit(2)
+                                        .minimumScaleFactor(0.5)
                                 }
                             }
                             
@@ -121,7 +123,9 @@ struct LiveTVDetailView: View {
                             
                             // Actions
                             HStack(spacing: 16) {
-                                NavigationLink(destination: StreamingPlayerView(url: channel.streamUrl, title: channel.name)) {
+                                Button(action: {
+                                    showPlayer = true
+                                }) {
                                     HStack {
                                         Image(systemName: "play.fill")
                                         Text("Watch Live")
@@ -134,6 +138,9 @@ struct LiveTVDetailView: View {
                                     .cornerRadius(12)
                                 }
                                 .buttonStyle(PressScaleButtonStyle())
+                                .fullScreenCover(isPresented: $showPlayer) {
+                                    StreamingPlayerView(url: channel.streamUrl, title: channel.name)
+                                }
                                 
                                 Button(action: {
                                     UserDataManager.shared.toggleFavorite(id: channel.toUnified.id)
