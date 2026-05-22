@@ -25,6 +25,7 @@ class LiveTVViewModel {
     var errorMessage: String?
     
     private let playlistManager = PlaylistManager.shared
+    private var lastLoadedUrl: String? = nil
     
     var favorites: [IPTVChannel] = []
     var recentlyWatched: [IPTVChannel] = []
@@ -42,6 +43,16 @@ class LiveTVViewModel {
     }
     
     func loadData() async {
+        let currentUrl = IPTVDataManager.shared.currentLoadedPlaylistUrl
+        if let current = currentUrl, current == lastLoadedUrl, !allChannels.isEmpty || IPTVDataManager.shared.liveChannels.isEmpty {
+            await MainActor.run {
+                self.updateUserData()
+            }
+            return
+        }
+        
+        self.lastLoadedUrl = currentUrl
+        
         await MainActor.run {
             self.isLoading = true
             self.errorMessage = nil

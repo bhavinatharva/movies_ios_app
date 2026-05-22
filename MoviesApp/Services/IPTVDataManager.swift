@@ -44,6 +44,9 @@ class IPTVDataManager {
     var homeStatus: ApiFetchStatus = .notstarted
     var availableTabs: [IPTVTab] = [.home, .settings]
     
+    // Loaded Playlist State
+    var currentLoadedPlaylistUrl: String? = nil
+    
     // Adult Content Consent State
     var showAdultConsentPrompt: Bool = false
     var pendingAdultConsentPlaylist: Playlist? = nil
@@ -100,6 +103,7 @@ class IPTVDataManager {
             
             self.availableTabs = tabs
             self.homeStatus = .success
+            self.currentLoadedPlaylistUrl = PlaylistManager.shared.fetchDefaultPlaylist()?.url
         }
     }
     
@@ -160,6 +164,15 @@ class IPTVDataManager {
     }
     
     private func performRefreshContent(clearFirst: Bool) async {
+        let currentDefaultPlaylist = playlistManager.fetchDefaultPlaylist()
+        
+        if !clearFirst, let defaultPlaylist = currentDefaultPlaylist, self.homeStatus == .success, self.currentLoadedPlaylistUrl == defaultPlaylist.url {
+            #if DEBUG
+            print("🌐 [IPTVDataManager] Playlist already loaded. Skipping refresh.")
+            #endif
+            return
+        }
+
         if clearFirst {
             await MainActor.run {
                 self.liveChannels = []
@@ -184,6 +197,7 @@ class IPTVDataManager {
                 self.m3uEpisodes = [:]
                 self.availableTabs = [.home, .settings]
                 self.homeStatus = .notstarted
+                self.currentLoadedPlaylistUrl = nil
             }
             IPTVLocalDatabase.shared.clearAllData()
             return
@@ -307,6 +321,7 @@ class IPTVDataManager {
                     
                     self.availableTabs = tabs
                     self.homeStatus = .success
+                    self.currentLoadedPlaylistUrl = defaultPlaylist.url
                 }
                 
                 // Batch save the loaded results to our persistent local database stack
@@ -413,6 +428,7 @@ class IPTVDataManager {
             
             self.availableTabs = tabs
             self.homeStatus = .success
+            self.currentLoadedPlaylistUrl = defaultPlaylist.url
         }
         
         // Batch save the loaded results to our persistent local database stack

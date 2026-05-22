@@ -28,6 +28,7 @@ class VODMoviesViewModel {
     
     private let iptvService = IPTVService.shared
     private let authManager = AuthManager.shared
+    private var lastLoadedUrl: String? = nil
     
     var continueWatching: [UnifiedMediaItem] {
         UserDataManager.shared.recentlyWatched.filter { $0.mediaType == .movie }
@@ -42,6 +43,13 @@ class VODMoviesViewModel {
     }
     
     func loadCategories() async {
+        let currentUrl = IPTVDataManager.shared.currentLoadedPlaylistUrl
+        if let current = currentUrl, current == lastLoadedUrl, !categories.isEmpty {
+            return
+        }
+        
+        self.lastLoadedUrl = currentUrl
+        
         // Populated entirely from the added playlist VOD movies (0 TMDB API calls!)
         let playlistMovies = IPTVDataManager.shared.movies
         

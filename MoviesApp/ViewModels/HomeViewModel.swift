@@ -10,6 +10,8 @@ import SwiftUI
 class HomeViewModel {
     var dataManager = IPTVDataManager.shared
     
+    private var lastLoadedUrl: String? = nil
+    
     var trendingMovies: [UnifiedMediaItem] = []
     var movieCollections: [MovieCollection] = []
     var top10Movies: [UnifiedMediaItem] = []
@@ -81,6 +83,16 @@ class HomeViewModel {
     
     func refreshContent() async {
         await dataManager.refreshContent()
+        
+        let currentUrl = dataManager.currentLoadedPlaylistUrl
+        if let current = currentUrl, current == lastLoadedUrl, !top10Movies.isEmpty || dataManager.movies.isEmpty {
+            await MainActor.run {
+                self.updateFavorites()
+            }
+            return
+        }
+        
+        self.lastLoadedUrl = currentUrl
         
         // Priority 1: Load Favorites and Continue Watching (instant local cache)
         await MainActor.run {
