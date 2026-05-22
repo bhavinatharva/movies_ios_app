@@ -2,19 +2,18 @@
 //  MovieDetailView.swift
 //  MoviesApp
 //
-//  Created by Bhavin Parghi on 12/11/25.
-//
 
 import SwiftUI
 import SwiftData
 
 struct MovieDetailView: View {
     
-    let title : TrendingModel
+    let title: TrendingModel
     @State private var viewModel = MovieDetailViewModel()
     @Environment(\.modelContext) var modelContext
     @State private var selectedVideo: VideoModel? = nil
     @State private var selectedPlayableItem: UnifiedMediaItem? = nil
+    @Environment(\.dismiss) var dismiss
     
     var body: some View {
         ZStack {
@@ -32,7 +31,7 @@ struct MovieDetailView: View {
                 ContentUnavailableView("Connection Error", systemImage: "wifi.exclamationmark", description: Text(error.localizedDescription))
             }
         }
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarHidden(true)
         .task {
             if let id = title.id {
                 await viewModel.getMovieDetail(id: id)
@@ -43,257 +42,148 @@ struct MovieDetailView: View {
     @ViewBuilder
     private func detailContent(movie: MovieDetailModel) -> some View {
         GeometryReader { geo in
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    // Hero Backdrop
-                    ZStack(alignment: .bottomLeading) {
-                        AsyncImage(url: URL(string: Constants.ImageConstants.posterPathStart + (movie.backdropPath ?? movie.posterPath ?? ""))) { image in
-                            image
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: geo.size.width, height: 450)
-                                .clipped()
-                                .overlay {
-                                    LinearGradient(
-                                        stops: [
-                                            Gradient.Stop(color: .clear, location: 0.6),
-                                            Gradient.Stop(color: Color.appBackground, location: 1.0)
-                                        ],
-                                        startPoint: .top,
-                                        endPoint: .bottom
-                                    )
-                                }
-                        } placeholder: {
-                            RoundedRectangle(cornerRadius: 0)
-                                .fill(Color.gray.opacity(0.1))
-                                .frame(height: 450)
-                                .shimmer()
-                        }
+            ScrollView(showsIndicators: false) {
+                LazyVStack(spacing: 0) {
+                    // 1. Cinematic Hero Header
+                    MovieHeroHeader(movie: movie, geometry: geo)
+                    
+                    VStack(alignment: .leading, spacing: 32) {
+                        // 2. Metadata Chips
+                        MovieMetadataChips(movie: movie)
+                            .padding(.top, 16)
                         
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(movie.title ?? "")
-                                .font(.system(size: 32, weight: .black))
-                                .foregroundColor(.white)
-                            
-                            HStack(spacing: 12) {
-                                if movie.adult == true {
-                                    Text("18+")
-                                        .font(.caption2)
-                                        .fontWeight(.bold)
-                                        .padding(4)
-                                        .background(Color.red)
-                                        .cornerRadius(2)
-                                }
-                                
-                                Text(movie.releaseDate ?? "")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                
-                                if let runtime = movie.runtime {
-                                    Text("\(runtime) min")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                                
-                                if let rating = movie.voteAverage {
-                                    HStack(spacing: 4) {
-                                        Image(systemName: "star.fill")
-                                            .foregroundColor(.yellow)
-                                        Text(String(format: "%.1f", rating))
-                                            .foregroundColor(.white)
-                                    }
-                                    .font(.caption)
-                                }
-                            }
-                        }
-                        .padding(20)
-                    }
-                    .frame(height: 450)
-                    
-                    // Genres
-                    if let genres = movie.genres {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack {
-                                ForEach(genres) { genre in
-                                    Text(genre.name)
-                                        .font(.caption)
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 6)
-                                        .background(Color.appCardBackground)
-                                        .cornerRadius(20)
-                                        .foregroundColor(.primary)
-                                }
-                            }
-                            .padding(.horizontal, 20)
-                        }
-                    }
-                    
-                    // Action Buttons
-                    HStack(spacing: 16) {
-                        if let playableMovie = iptvPlayableMovie(movie: movie) {
-                            Button(action: {
-                                UserDataManager.shared.addToHistory(playableMovie)
-                                selectedPlayableItem = playableMovie
-                            }) {
-                                HStack {
-                                    Image(systemName: "play.fill")
-                                    Text("Play Movie")
-                                }
-                                .font(.headline)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 12)
-                                .background(Color.accentColor)
-                                .foregroundColor(.white)
-                                .cornerRadius(8)
-                            }
-                            
-                            if !viewModel.videos.isEmpty {
-                                Button(action: {
+                        // 3. Action Buttons
+                        MovieActionButtons(
+                            onPlayTapped: {
+                                if let playableMovie = iptvPlayableMovie(movie: movie) {
+                                    UserDataManager.shared.addToHistory(playableMovie)
+                                    selectedPlayableItem = playableMovie
+                                } else {
+                                    // Fallback to playing trailer if no IPTV movie is found
                                     if let firstVideo = viewModel.videos.first {
                                         selectedVideo = firstVideo
                                     }
-                                }) {
-                                    HStack {
-                                        Image(systemName: "film")
-                                        Text("Trailer")
-                                    }
-                                    .font(.headline)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 12)
-                                    .background(Color.white.opacity(0.2))
-                                    .foregroundColor(.white)
-                                    .cornerRadius(8)
                                 }
-                            }
-                        } else {
-                            Button(action: {
+                            },
+                            onTrailerTapped: {
                                 if let firstVideo = viewModel.videos.first {
                                     selectedVideo = firstVideo
                                 }
-                            }) {
-                                HStack {
-                                    Image(systemName: "play.fill")
-                                    Text("Play Trailer")
-                                }
-                                .font(.headline)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 12)
-                                .background(Color.white)
-                                .foregroundColor(.black)
-                                .cornerRadius(8)
+                            },
+                            hasTrailer: !viewModel.videos.isEmpty
+                        )
+                        
+                        // 4. Expandable Overview
+                        MovieOverviewSection(movie: movie)
+                        
+                        // 5. Related Content Rail (Mocking with Shuffled data to show intent)
+                        MovieRelatedContentRail(
+                            title: "More Like This",
+                            items: TrendingModel.previeTitles.shuffled(),
+                            onSelect: { selectedItem in
+                                // Navigation to next detail view is usually handled by wrapping in NavigationLink, 
+                                // but for now we'll just print or implement if needed.
+                                print("Selected: \(selectedItem.title ?? "")")
                             }
-                        }
-                    }
-                    .padding(.horizontal, 20)
-                    
-                    // Video List Section
-                    if !viewModel.videos.isEmpty {
-                        VStack(alignment: .leading, spacing: 15) {
-                            Text("Videos & Trailers")
-                                .font(.title3)
-                                .fontWeight(.bold)
-                                .foregroundColor(.primary)
-                                .padding(.horizontal, 20)
-                            
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 16) {
-                                    ForEach(viewModel.videos) { video in
-                                        VideoCardView(video: video)
-                                            .onTapGesture {
-                                                selectedVideo = video
-                                            }
+                        )
+                        
+                        // Optional: Videos and Trailers Rail
+                        if !viewModel.videos.isEmpty {
+                            VStack(alignment: .leading, spacing: 16) {
+                                Text("Trailers & Extras")
+                                    .font(.title3)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 24)
+                                
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    LazyHStack(spacing: 16) {
+                                        ForEach(viewModel.videos) { video in
+                                            VideoCardView(video: video)
+                                                .onTapGesture {
+                                                    selectedVideo = video
+                                                }
+                                        }
                                     }
+                                    .padding(.horizontal, 24)
                                 }
-                                .padding(.horizontal, 20)
                             }
                         }
-                        .padding(.top, 10)
                     }
-                    
-                    // Overview
-                    VStack(alignment: .leading, spacing: 12) {
-                        if let tagline = movie.tagline, !tagline.isEmpty {
-                            Text(tagline)
-                                .font(.headline)
-                                .italic()
-                                .foregroundColor(.accentColor)
-                        }
-                        
-                        Text("Overview")
-                            .font(.title3)
-                            .fontWeight(.bold)
-                            .foregroundColor(.primary)
-                        
-                        Text(movie.overview ?? "No description available.")
-                            .font(.body)
-                            .foregroundColor(.secondary)
-                            .lineSpacing(4)
-                    }
-                    .padding(.horizontal, 20)
-                    
-                    // More Like This (Mock data for UI)
-                    MovieHorizontalListView(
-                        header: "More Like This",
-                        movies: TrendingModel.previeTitles.shuffled(),
-                        onSelect: { _ in }
-                    )
-                    .padding(.top, 20)
+                    .padding(.bottom, 100)
                 }
-                .ignoresSafeArea(edges: .top)
-                .fullScreenCover(item: $selectedVideo) { video in
+            }
+            .ignoresSafeArea(edges: .top)
+            .fullScreenCover(item: $selectedVideo) { video in
+                ZStack(alignment: .topTrailing) {
+                    Color.black.ignoresSafeArea()
+                    
+                    if let key = video.key {
+                        YoutubePlayer(videoIds: [key], showControls: true)
+                            .aspectRatio(1.77, contentMode: .fit)
+                    }
+                    
+                    Button(action: { selectedVideo = nil }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title)
+                            .foregroundColor(.white.opacity(0.7))
+                            .padding()
+                    }
+                }
+            }
+            .fullScreenCover(item: $selectedPlayableItem) { item in
+                if let url = item.streamUrl {
+                    StreamingPlayerView(url: url, title: item.title, streamId: item.id)
+                } else {
                     ZStack(alignment: .topTrailing) {
-                        Color.black.ignoresSafeArea()
+                        Color.appBackground.ignoresSafeArea()
                         
-                        if let key = video.key {
-                            YoutubePlayer(videoIds: [key], showControls: true)
-                                .aspectRatio(1.77, contentMode: .fit)
+                        ContentUnavailableView {
+                            Label("Cannot Play", systemImage: "play.slash")
+                        } description: {
+                            Text("No playable link found for this movie.")
+                                .foregroundColor(.secondary)
+                        } actions: {
+                            Button(action: {
+                                selectedPlayableItem = nil
+                            }) {
+                                Text("Close")
+                                    .fontWeight(.bold)
+                                    .frame(width: 120, height: 44)
+                                    .background(Color.accentColor)
+                                    .foregroundColor(.white)
+                                    .cornerRadius(22)
+                            }
+                            .buttonStyle(PressScaleButtonStyle())
                         }
                         
-                        Button(action: { selectedVideo = nil }) {
+                        Button(action: {
+                            selectedPlayableItem = nil
+                        }) {
                             Image(systemName: "xmark.circle.fill")
                                 .font(.title)
-                                .foregroundColor(.white.opacity(0.7))
+                                .foregroundColor(.white.opacity(0.6))
                                 .padding()
                         }
                     }
                 }
-                .fullScreenCover(item: $selectedPlayableItem) { item in
-                    if let url = item.streamUrl {
-                        StreamingPlayerView(url: url, title: item.title, streamId: item.id)
-                    } else {
-                        ZStack(alignment: .topTrailing) {
-                            Color.appBackground.ignoresSafeArea()
-                            
-                            ContentUnavailableView {
-                                Label("Cannot Play", systemImage: "play.slash")
-                            } description: {
-                                Text("No playable link found for this movie.")
-                                    .foregroundColor(.secondary)
-                            } actions: {
-                                Button(action: {
-                                    selectedPlayableItem = nil
-                                }) {
-                                    Text("Close")
-                                        .fontWeight(.bold)
-                                        .frame(width: 120, height: 44)
-                                        .background(Color.accentColor)
-                                        .foregroundColor(.white)
-                                        .cornerRadius(22)
-                                }
-                                .buttonStyle(PressScaleButtonStyle())
-                            }
-                            
-                            Button(action: {
-                                selectedPlayableItem = nil
-                            }) {
-                                Image(systemName: "xmark.circle.fill")
-                                    .font(.title)
-                                    .foregroundColor(.white.opacity(0.6))
-                                    .padding()
-                            }
-                        }
+            }
+            
+            // Custom Back Button
+            VStack {
+                HStack {
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(12)
+                            .background(Circle().fill(Color.black.opacity(0.4)))
                     }
+                    .padding(.leading, 20)
+                    .padding(.top, 50)
+                    Spacer()
                 }
+                Spacer()
             }
         }
     }
@@ -307,13 +197,13 @@ struct MovieDetailView: View {
             return itemTitle == movieTitle || movieTitle.contains(itemTitle) || itemTitle.contains(movieTitle)
         }
     }
-    
-    struct MovieDetailView_Previews: PreviewProvider {
-        static var previews: some View {
-            NavigationStack {
-                MovieDetailView(title: TrendingModel.previeTitles[0])
-                    .modelContainer(for: TrendingModel.self, inMemory: true)
-            }
+}
+
+struct MovieDetailView_Previews: PreviewProvider {
+    static var previews: some View {
+        NavigationStack {
+            MovieDetailView(title: TrendingModel.previeTitles[0])
+                .modelContainer(for: TrendingModel.self, inMemory: true)
         }
     }
 }
