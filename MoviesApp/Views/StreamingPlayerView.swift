@@ -526,6 +526,9 @@ struct StreamingPlayerView: View {
         let playerItem = AVPlayerItem(asset: asset)
         player.replaceCurrentItem(with: playerItem)
         
+        try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback)
+        try? AVAudioSession.sharedInstance().setActive(true)
+        
         let timeScale = CMTimeScale(NSEC_PER_SEC)
         timeObserver = player.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.5, preferredTimescale: timeScale), queue: .main) { time in
             if !isSeeking { currentTime = time.seconds }
