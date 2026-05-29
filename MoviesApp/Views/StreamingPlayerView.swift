@@ -47,6 +47,11 @@ struct StreamingPlayerView: View {
     @State private var showToast = false
     
     @State private var timeObserver: Any? = nil
+    @State private var triggerPip = false
+    @State private var showSubtitleActionSheet = false
+    @State private var showAudioActionSheet = false
+    @State private var availableSubtitles: [AVMediaSelectionOption] = []
+    @State private var availableAudio: [AVMediaSelectionOption] = []
     @State private var hideControlsTask: Task<Void, Never>? = nil
     @State private var lastProgressSaveTime: Date = .distantPast
     private let progressSaveInterval: TimeInterval = 15
@@ -77,7 +82,7 @@ struct StreamingPlayerView: View {
     var body: some View {
         ZStack {
             // 1. Core Native Player
-            PremiumPlayerRepresentable(player: player, isAspectFill: isAspectFill)
+            PremiumPlayerRepresentable(player: player, isAspectFill: isAspectFill, triggerPip: $triggerPip)
                 .ignoresSafeArea()
             
             // 2. Invisible Gesture Zones
@@ -88,7 +93,16 @@ struct StreamingPlayerView: View {
                     onDoubleTapRight: { skip(by: 10); showSkipIndicator(isForward: true) },
                     onSingleTap: { toggleControls() },
                     onSwipeUp: { zapChannel(forward: true) },
-                    onSwipeDown: { zapChannel(forward: false) }
+                    onSwipeDown: { zapChannel(forward: false) },
+                    onSeekDrag: { delta in
+                        if !isSeeking { isSeeking = true }
+                        sliderValue = max(0, min(duration, currentTime + Double(delta / 20.0)))
+                    },
+                    onSeekEnd: {
+                        isSeeking = false
+                        player.seek(to: CMTime(seconds: sliderValue, preferredTimescale: 1))
+                        resetTimer()
+                    }
                 )
             }
             
@@ -202,6 +216,22 @@ struct StreamingPlayerView: View {
                 }
             }
             Spacer()
+            
+            // AirPlay Button
+            AirPlayView()
+                .frame(width: 44, height: 44)
+                .background(Color.white.opacity(0.15))
+                .clipShape(Circle())
+            
+            // PiP Button
+            Button(action: { triggerPip = true }) {
+                Image(systemName: "pip.enter")
+                    .font(.system(size: 18))
+                    .foregroundColor(.white)
+                    .frame(width: 44, height: 44)
+                    .background(Color.white.opacity(0.15))
+                    .clipShape(Circle())
+            }
             
             // Lock Button
             Button(action: {
@@ -324,10 +354,64 @@ struct StreamingPlayerView: View {
                 }
                 Spacer()
                 
-                Button(action: { triggerToast("Subtitles: Off") }) {
+                Button(action: { fetchMediaOptions(); showAudioActionSheet = true }) {
+                    Image(systemName: "waveform")
+                        .font(.system(size: 18))
+                        .foregroundColor(.white)
+                        .frame(width: 44, height: 44)
+                        .background(Color.white.opacity(0.15))
+                        .clipShape(Circle())
+                }
+                .confirmationDialog("Select Audio Track", isPresented: $showAudioActionSheet, titleVisibility: .visible) {
+                    ForEach(0..<availableAudio.count, id: \.self) { index in
+                        let option = availableAudio[index]
+                        Button(option.displayName) {
+                            if let group = player.currentItem?.asset.mediaSelectionGroup(forMediaCharacteristic: .audible) {
+                                player.currentItem?.select(option, in: group)
+                            }
+                            triggerToast("Audio: \(option.displayName)")
+                        }
+                    }
+                    Button("Cancel", role: .cancel) {}
+                }
+                
+                Button(action: { fetchMediaOptions(); showSubtitleActionSheet = true }) {
                     Image(systemName: "captions.bubble")
                         .font(.system(size: 18))
                         .foregroundColor(.white)
+                        .frame(width: 44, height: 44)
+                        .background(Color.white.opacity(0.15))
+                        .clipShape(Circle())
+                }
+                .confirmationDialog("Select Subtitles", isPresented: $showSubtitleActionSheet, titleVisibility: .visible) {
+                    ForEach(0..<availableSubtitles.count, id: \.self) { index in
+                        let option = availableSubtitles[index]
+                        Button(option.displayName) {
+                            if let group = player.currentItem?.asset.mediaSelectionGroup(forMediaCharacteristic: .legible) {
+                                player.currentItem?.select(option, in: group)
+                            }
+                            triggerToast("Subtitles: \(option.displayName)")
+                        }
+                    }
+                    Button("Turn Off Subtitles", role: .destructive) {
+                        if let group = player.currentItem?.asset.mediaSelectionGroup(forMediaCharacteristic: .legible) {
+                            player.currentItem?.select(nil, in: group)
+                        }
+                        triggerToast("Subtitles: Off")
+                    }
+                    Button("Cancel", role: .cancel) {}
+                }
+                
+                Button(action: {
+                    if let vlcUrl = URL(string: "vlc://\(currentUrl.absoluteString)"), UIApplication.shared.canOpenURL(vlcUrl) {
+                        UIApplication.shared.open(vlcUrl)
+                    } else {
+                        triggerToast("VLC is not installed")
+                    }
+                }) {
+                    Image(systemName: "v.circle.fill")
+                        .font(.system(size: 18))
+                        .foregroundColor(.orange)
                         .frame(width: 44, height: 44)
                         .background(Color.white.opacity(0.15))
                         .clipShape(Circle())
@@ -581,4 +665,25 @@ struct StreamingPlayerView: View {
     private func getMockEPG(for channelName: String) -> (currentShow: String, nextShow: String, progress: Double) {
         return ("Evening News", "Late Night Movie", 0.65)
     }
+    
+    private func fetchMediaOptions() {
+        guard let item = player.currentItem, let asset = item.asset as? AVURLAsset else { return }
+        if let legibleGroup = asset.mediaSelectionGroup(forMediaCharacteristic: .legible) {
+            self.availableSubtitles = legibleGroup.options
+        }
+        if let audibleGroup = asset.mediaSelectionGroup(forMediaCharacteristic: .audible) {
+            self.availableAudio = audibleGroup.options
+        }
+    }
+}
+
+struct AirPlayView: UIViewRepresentable {
+    func makeUIView(context: Context) -> AVRoutePickerView {
+        let routePickerView = AVRoutePickerView()
+        routePickerView.backgroundColor = .clear
+        routePickerView.tintColor = .white
+        routePickerView.activeTintColor = .red
+        return routePickerView
+    }
+    func updateUIView(_ uiView: AVRoutePickerView, context: Context) {}
 }
