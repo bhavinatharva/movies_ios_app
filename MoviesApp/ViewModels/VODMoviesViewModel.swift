@@ -58,7 +58,7 @@ class VODMoviesViewModel {
                 self.trendingMovies = Array(playlistMovies.shuffled().prefix(15))
                 self.newReleases = Array(playlistMovies.prefix(15))
                 self.topRated = Array(playlistMovies.shuffled().prefix(15))
-                self.recommended = Array(playlistMovies.shuffled().prefix(15))
+                self.recommended = UserDataManager.shared.generateRecommendations(from: playlistMovies)
                 self.heroMovie = playlistMovies.first
             } else {
                 self.trendingMovies = []

@@ -127,7 +127,7 @@ class HomeViewModel {
         await MainActor.run {
             let playlistMovies = self.dataManager.movies
             if !playlistMovies.isEmpty {
-                self.recommended = Array(playlistMovies.shuffled().prefix(15))
+                self.recommended = UserDataManager.shared.generateRecommendations(from: playlistMovies)
                 self.recentlyAdded = Array(playlistMovies.prefix(15))
             } else {
                 self.recommended = []

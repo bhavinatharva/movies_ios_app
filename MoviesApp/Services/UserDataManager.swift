@@ -141,6 +141,56 @@ class UserDataManager {
         }
     }
     
+    // MARK: - Recommendations
+    
+    func generateRecommendations(from allItems: [UnifiedMediaItem], limit: Int = 15) -> [UnifiedMediaItem] {
+        let watchedIds = Set(recentlyWatched.map { $0.id })
+        var watchedGenres: Set<String> = []
+        
+        for item in recentlyWatched {
+            if let genres = item.genres {
+                for genre in genres {
+                    watchedGenres.insert(genre)
+                }
+            }
+        }
+        
+        var recommendedItems: [UnifiedMediaItem] = []
+        var fallbackItems: [UnifiedMediaItem] = []
+        
+        // Exclude watched items
+        let unwatchedItems = allItems.filter { !watchedIds.contains($0.id) }
+        
+        if watchedGenres.isEmpty {
+            return Array(unwatchedItems.shuffled().prefix(limit))
+        }
+        
+        for item in unwatchedItems.shuffled() {
+            if let genres = item.genres, !genres.isEmpty {
+                let itemGenres = Set(genres)
+                if !watchedGenres.isDisjoint(with: itemGenres) {
+                    recommendedItems.append(item)
+                } else {
+                    fallbackItems.append(item)
+                }
+            } else {
+                fallbackItems.append(item)
+            }
+            
+            if recommendedItems.count >= limit {
+                break
+            }
+        }
+        
+        // Fill up to limit if needed
+        if recommendedItems.count < limit {
+            let needed = limit - recommendedItems.count
+            recommendedItems.append(contentsOf: fallbackItems.prefix(needed))
+        }
+        
+        return recommendedItems
+    }
+    
     // MARK: - Continue Watching Progress
     
     func updateProgress(id: String, seconds: Double) {

@@ -60,7 +60,7 @@ class SeriesViewModel {
                 self.popularSeries = Array(playlistSeries.shuffled().prefix(15))
                 self.topRated = Array(playlistSeries.prefix(15))
                 self.recentlyAdded = Array(playlistSeries.prefix(15))
-                self.recommended = Array(playlistSeries.shuffled().prefix(15))
+                self.recommended = UserDataManager.shared.generateRecommendations(from: playlistSeries)
                 self.heroSeries = playlistSeries.first
             } else {
                 self.trendingSeries = []

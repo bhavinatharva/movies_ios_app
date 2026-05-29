@@ -138,11 +138,11 @@ struct StreamingPlayerView: View {
         }
         .statusBarHidden(true)
         .onAppear {
-            OrientationManager.shared.lockOrientation(.landscape, rotateTo: .landscapeRight)
+            OrientationManager.shared.lockOrientation(.allButUpsideDown)
             setupPlayer()
         }
         .onDisappear {
-            OrientationManager.shared.lockOrientation(.allButUpsideDown, rotateTo: .portrait)
+            OrientationManager.shared.lockOrientation(.portrait, rotateTo: .portrait)
             teardownPlayer()
         }
         .onChange(of: currentTime) { _, newTime in
