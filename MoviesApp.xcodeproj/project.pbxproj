@@ -77,8 +77,6 @@
 				32C22A372EC20EEC0052FBD7 /* MoviesApp */,
 			);
 			name = MoviesApp;
-			packageProductDependencies = (
-			);
 			productName = MoviesApp;
 			productReference = 32C22A352EC20EEC0052FBD7 /* MoviesApp.app */;
 			productType = "com.apple.product-type.application";
