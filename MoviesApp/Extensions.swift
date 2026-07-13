@@ -49,10 +49,21 @@ extension View {
         }
     }
     
-    /// Clean card style with professional 8pt corner radius
+    /// Clean card style with professional 12pt corner radius
     func cardStyle() -> some View {
         self
-            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+    
+    /// Premium card style with rounded corners and subtle border
+    func premiumCardStyle(cornerRadius: CGFloat = 12) -> some View {
+        self
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(Color.white.opacity(0.15), lineWidth: 0.5)
+            )
+            .shadow(color: .black.opacity(0.3), radius: 6, x: 0, y: 4)
     }
     
     func shimmer() -> some View {

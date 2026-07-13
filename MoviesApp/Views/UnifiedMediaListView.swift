@@ -15,8 +15,7 @@ struct UnifiedMediaListView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(header)
-                .font(.title3)
-                .fontWeight(.bold)
+                .font(.system(size: 20, weight: .bold, design: .rounded))
                 .foregroundColor(.primary)
                 .padding(.horizontal, 16)
             
@@ -69,7 +68,7 @@ struct UnifiedMediaCardView: View {
     
     var body: some View {
         let cardWidth = width ?? 140
-        let cardHeight = cardWidth * 4 / 3
+        let cardHeight = cardWidth * 3 / 2 // Modern 2:3 aspect ratio
         
         ZStack(alignment: .bottomLeading) {
             let encodedPosterUrl = item.posterPath?.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? item.posterPath
@@ -89,11 +88,11 @@ struct UnifiedMediaCardView: View {
                     }
                 }
                 .netflixStyleGradient()
-                .cardStyle()
+                .premiumCardStyle()
             } else {
                 fallbackCardBackground(w: cardWidth, h: cardHeight)
                     .netflixStyleGradient()
-                    .cardStyle()
+                    .premiumCardStyle()
             }
             
             VStack(alignment: .leading, spacing: 4) {
@@ -102,7 +101,7 @@ struct UnifiedMediaCardView: View {
                 }
                 
                 Text(item.title)
-                    .font(.system(size: width == nil ? 11 : 13, weight: .bold))
+                    .font(.system(size: width == nil ? 12 : 14, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)

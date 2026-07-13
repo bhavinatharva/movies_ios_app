@@ -37,11 +37,11 @@ struct MovieCardView: View {
             }
             .blur(radius: (isAdult && !showAdultContent) ? 22 : 0)
             .netflixStyleGradient()
-            .cardStyle()
+            .premiumCardStyle()
             
             if isAdult && !showAdultContent {
                 Color.black.opacity(0.4)
-                    .cardStyle()
+                    .premiumCardStyle()
                 
                 VStack(spacing: 6) {
                     Image(systemName: "eye.slash.fill")
@@ -70,15 +70,17 @@ struct MovieCardView: View {
                 }
                 
                 Text(movie.title ?? movie.name ?? "Unknown")
-                    .font(.system(size: width == nil ? 11 : 13, weight: .bold))
+                    .font(.system(size: width == nil ? 11 : 13, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
+                    .shadow(color: .black.opacity(0.8), radius: 2, x: 0, y: 1)
                     .lineLimit(1)
             }
-            .padding(width == nil ? 6 : 8)
+            .padding(width == nil ? 8 : 10)
             .opacity((isAdult && !showAdultContent) ? 0.3 : 1.0)
         }
         .frame(width: width)
-        .aspectRatio(3/4, contentMode: .fit)
+        .aspectRatio(2/3, contentMode: .fit)
+        .buttonStyle(PressScaleButtonStyle())
     }
 }
 

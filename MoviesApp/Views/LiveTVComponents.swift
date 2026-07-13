@@ -225,11 +225,7 @@ struct LiveChannelCardView: View {
             .frame(width: 160, alignment: .leading)
             .background(Color.white.opacity(0.02))
         }
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.white.opacity(0.08), lineWidth: 1)
-        )
+        .premiumCardStyle()
         .onAppear {
             epg = getMockEPG(for: channel.name)
         }
