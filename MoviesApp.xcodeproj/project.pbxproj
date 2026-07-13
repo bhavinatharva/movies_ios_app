@@ -74,7 +74,6 @@
 				7ACF7A95BF30A91E02F2121A /* Pods-MoviesApp.debug.xcconfig */,
 				3A8132AA31C07080ED0C6846 /* Pods-MoviesApp.release.xcconfig */,
 			);
-			name = Pods;
 			path = Pods;
 			sourceTree = "<group>";
 		};
