@@ -235,6 +235,59 @@ struct AddPlaylistSheet: View {
             return
         }
         
+        // Verify the URL is reachable and not returning a 404
+        guard let url = URL(string: sanitizedStr) else {
+            errorMessage = "Invalid URL format."
+            isLoading = false
+            return
+        }
+        
+        do {
+            var request = URLRequest(url: url)
+            request.httpMethod = "HEAD" // Use HEAD to quickly check without downloading the whole file
+            request.timeoutInterval = 10
+            
+            let (_, response) = try await URLSession.shared.data(for: request)
+            if let httpResponse = response as? HTTPURLResponse {
+                // If HEAD isn't allowed (405), we give it the benefit of the doubt.
+                // If it's 404 or 401/403, we block it.
+                if httpResponse.statusCode == 404 {
+                    errorMessage = "Playlist link is invalid or expired (404 Not Found)."
+                    isLoading = false
+                    return
+                } else if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
+                    errorMessage = "Access denied (Invalid username/password or IP blocked)."
+                    isLoading = false
+                    return
+                }
+            }
+        } catch {
+            // Some servers reject HEAD requests completely. We will try a quick GET fallback if HEAD fails.
+            do {
+                var getRequest = URLRequest(url: url)
+                getRequest.httpMethod = "GET"
+                getRequest.setValue("bytes=0-100", forHTTPHeaderField: "Range") // Only fetch a tiny bit
+                getRequest.timeoutInterval = 10
+                
+                let (_, response) = try await URLSession.shared.data(for: getRequest)
+                if let httpResponse = response as? HTTPURLResponse {
+                    if httpResponse.statusCode == 404 {
+                        errorMessage = "Playlist link is invalid or expired (404 Not Found)."
+                        isLoading = false
+                        return
+                    } else if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
+                        errorMessage = "Access denied (Invalid username/password or IP blocked)."
+                        isLoading = false
+                        return
+                    }
+                }
+            } catch {
+                errorMessage = "Failed to connect to the provider's server."
+                isLoading = false
+                return
+            }
+        }
+        
         let finalName = name.isEmpty ? "My M3U Playlist" : name
         playlistManager.addPlaylist(name: finalName, url: sanitizedStr)
         
