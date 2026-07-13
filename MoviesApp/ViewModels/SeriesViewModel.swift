@@ -13,8 +13,6 @@ class SeriesViewModel {
     var selectedCategory: XtreamCategory?
     
     var heroSeries: UnifiedMediaItem?
-    var trendingSeries: [UnifiedMediaItem] = []
-    var popularSeries: [UnifiedMediaItem] = []
     var recommended: [UnifiedMediaItem] = []
     var topRated: [UnifiedMediaItem] = []
     var recentlyAdded: [UnifiedMediaItem] = []
@@ -56,15 +54,22 @@ class SeriesViewModel {
         
         await MainActor.run {
             if !playlistSeries.isEmpty {
-                self.trendingSeries = Array(playlistSeries.shuffled().prefix(15))
-                self.popularSeries = Array(playlistSeries.shuffled().prefix(15))
-                self.topRated = Array(playlistSeries.prefix(15))
-                self.recentlyAdded = Array(playlistSeries.prefix(15))
+                self.topRated = Array(playlistSeries.sorted {
+                    ($0.voteAverage ?? 0) > ($1.voteAverage ?? 0)
+                }.prefix(15))
+                self.recentlyAdded = Array(playlistSeries.sorted {
+                    let d1 = $0.addedDate ?? Date.distantPast
+                    let d2 = $1.addedDate ?? Date.distantPast
+                    if d1 == d2 {
+                        let y1 = Int($0.releaseDate ?? "0") ?? 0
+                        let y2 = Int($1.releaseDate ?? "0") ?? 0
+                        return y1 > y2
+                    }
+                    return d1 > d2
+                }.prefix(15))
                 self.recommended = UserDataManager.shared.generateRecommendations(from: playlistSeries)
                 self.heroSeries = playlistSeries.first
             } else {
-                self.trendingSeries = []
-                self.popularSeries = []
                 self.topRated = []
                 self.recentlyAdded = []
                 self.recommended = []

@@ -42,6 +42,7 @@ struct UnifiedMediaItem: Identifiable, Hashable, Codable {
     var director: String?
     var country: String?
     var trailerUrl: URL?
+    var addedDate: Date?
     
     // General Initializer
     init(id: String,
@@ -61,7 +62,8 @@ struct UnifiedMediaItem: Identifiable, Hashable, Codable {
          cast: String? = nil,
          director: String? = nil,
          country: String? = nil,
-         trailerUrl: URL? = nil) {
+         trailerUrl: URL? = nil,
+         addedDate: Date? = nil) {
         self.id = id
         self.title = title
         self.overview = overview
@@ -80,6 +82,7 @@ struct UnifiedMediaItem: Identifiable, Hashable, Codable {
         self.director = director
         self.country = country
         self.trailerUrl = trailerUrl
+        self.addedDate = addedDate
     }
     
     func merged(with details: UnifiedMediaItem) -> UnifiedMediaItem {
@@ -95,7 +98,17 @@ struct UnifiedMediaItem: Identifiable, Hashable, Codable {
         copy.director = details.director ?? self.director
         copy.country = details.country ?? self.country
         copy.trailerUrl = details.trailerUrl ?? self.trailerUrl
+        copy.addedDate = details.addedDate ?? self.addedDate
         return copy
+    }
+
+    private static func parseAddedDate(_ added: String?) -> Date? {
+        guard let added = added, let timestamp = TimeInterval(added) else { return nil }
+        // Basic sanity check to avoid wildly incorrect dates (e.g., if it's not a timestamp)
+        if timestamp > 900000000 {
+            return Date(timeIntervalSince1970: timestamp)
+        }
+        return nil
     }
 
     // Initializer from TrendingModel (TMDB)
@@ -114,6 +127,7 @@ struct UnifiedMediaItem: Identifiable, Hashable, Codable {
         self.streamUrl = nil
         self.epgId = nil
         self.adult = trending.adult
+        self.addedDate = nil
     }
 
     // Initializer from XtreamVODStream
@@ -132,6 +146,7 @@ struct UnifiedMediaItem: Identifiable, Hashable, Codable {
         let ext = vod.containerExtension ?? "mp4"
         self.streamUrl = URL(string: "\(creds.serverUrl)/movie/\(creds.username)/\(creds.password)/\(vod.streamId).\(ext)")
         self.epgId = nil
+        self.addedDate = UnifiedMediaItem.parseAddedDate(vod.added)
     }
     
     // Initializer from XtreamSeries
@@ -149,6 +164,7 @@ struct UnifiedMediaItem: Identifiable, Hashable, Codable {
         self.genres = series.categoryId != nil ? [series.categoryId!] : nil
         self.streamUrl = nil
         self.epgId = nil
+        self.addedDate = UnifiedMediaItem.parseAddedDate(series.lastModified)
     }
     
     // Initializer from IPTVChannel (M3U channels)
@@ -167,6 +183,7 @@ struct UnifiedMediaItem: Identifiable, Hashable, Codable {
         self.streamUrl = channel.streamUrl
         self.epgId = channel.epgId
         self.adult = false
+        self.addedDate = nil
     }
 
     // Initializer from XtreamVODInfo (Details fetch)
@@ -186,6 +203,7 @@ struct UnifiedMediaItem: Identifiable, Hashable, Codable {
         self.director = info.director
         self.country = info.country
         self.trailerUrl = info.youtubeTrailer != nil ? URL(string: "https://youtube.com/watch?v=\(info.youtubeTrailer!)") : nil
+        self.addedDate = nil
     }
 
     // Initializer from XtreamEpisode
@@ -204,6 +222,7 @@ struct UnifiedMediaItem: Identifiable, Hashable, Codable {
         self.streamUrl = URL(string: "\(creds.serverUrl)/series/\(creds.username)/\(creds.password)/\(episode.id).\(episode.containerExtension)")
         self.epgId = nil
         self.adult = false
+        self.addedDate = UnifiedMediaItem.parseAddedDate(episode.info?.releaseDate) // Using releaseDate as fallback if available
     }
 }
 

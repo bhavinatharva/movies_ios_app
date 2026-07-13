@@ -75,28 +75,6 @@ struct SeriesView: View {
                                         )
                                     }
                                     
-                                    // 4. Trending Series
-                                    if !viewModel.trendingSeries.isEmpty {
-                                        UnifiedMediaListView(
-                                            header: "Trending Series",
-                                            items: viewModel.trendingSeries,
-                                            onSelect: { item in
-                                                selectedDetailSeries = item
-                                            }
-                                        )
-                                    }
-                                    
-                                    // 5. Popular Series
-                                    if !viewModel.popularSeries.isEmpty {
-                                        UnifiedMediaListView(
-                                            header: "Popular Series",
-                                            items: viewModel.popularSeries,
-                                            onSelect: { item in
-                                                selectedDetailSeries = item
-                                            }
-                                        )
-                                    }
-                                    
                                     // 6. Recommended For You
                                     if !viewModel.recommended.isEmpty {
                                         UnifiedMediaListView(

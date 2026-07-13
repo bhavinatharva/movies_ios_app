@@ -209,15 +209,6 @@ struct HomeView: View {
                     )
                 }
                 
-                // 4. Trending Movies
-                if !viewModel.trendingMovies.isEmpty {
-                    UnifiedMediaListView(
-                        header: "Trending Movies",
-                        items: viewModel.trendingMovies,
-                        onSelect: handleMediaSelection
-                    )
-                }
-                
                 // 4.5. Movie Collections
                 if !viewModel.movieCollections.isEmpty {
                     MovieCollectionListView(

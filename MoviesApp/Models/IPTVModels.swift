@@ -294,12 +294,14 @@ struct XtreamSeries: Codable {
     let seriesId: Int
     let cover: String?
     let categoryId: String?
+    let lastModified: String?
     
     enum CodingKeys: String, CodingKey {
         case name
         case seriesId = "series_id"
         case cover
         case categoryId = "category_id"
+        case lastModified = "last_modified"
     }
     
     init(from decoder: Decoder) throws {
@@ -316,6 +318,12 @@ struct XtreamSeries: Codable {
         
         cover = try? container.decodeIfPresent(String.self, forKey: .cover)
         categoryId = try? container.decodeIfPresent(String.self, forKey: .categoryId)
+        
+        if let lmI = try? container.decode(Int.self, forKey: .lastModified) {
+            lastModified = String(lmI)
+        } else {
+            lastModified = try? container.decodeIfPresent(String.self, forKey: .lastModified)
+        }
     }
 }
 
@@ -346,15 +354,18 @@ struct XtreamEpisode: Codable {
 struct XtreamEpisodeInfo: Codable {
     let movieImage: String?
     let plot: String?
+    let releaseDate: String?
     
-    init(movieImage: String?, plot: String?) {
+    init(movieImage: String?, plot: String?, releaseDate: String? = nil) {
         self.movieImage = movieImage
         self.plot = plot
+        self.releaseDate = releaseDate
     }
     
     enum CodingKeys: String, CodingKey {
         case movieImage = "movie_image"
         case plot
+        case releaseDate = "releasedate"
     }
 }
 

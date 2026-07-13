@@ -12,7 +12,6 @@ class HomeViewModel {
     
     private var lastLoadedUrl: String? = nil
     
-    var trendingMovies: [UnifiedMediaItem] = []
     var movieCollections: [MovieCollection] = []
     var top10Movies: [UnifiedMediaItem] = []
     var recentlyAdded: [UnifiedMediaItem] = []
@@ -114,11 +113,11 @@ class HomeViewModel {
         await MainActor.run {
             let playlistMovies = self.dataManager.movies
             if !playlistMovies.isEmpty {
-                self.top10Movies = Array(playlistMovies.prefix(10))
-                self.trendingMovies = Array(playlistMovies.shuffled().prefix(15))
+                self.top10Movies = Array(playlistMovies.sorted {
+                    ($0.voteAverage ?? 0) > ($1.voteAverage ?? 0)
+                }.prefix(10))
             } else {
                 self.top10Movies = []
-                self.trendingMovies = []
             }
         }
         
@@ -128,7 +127,17 @@ class HomeViewModel {
             let playlistMovies = self.dataManager.movies
             if !playlistMovies.isEmpty {
                 self.recommended = UserDataManager.shared.generateRecommendations(from: playlistMovies)
-                self.recentlyAdded = Array(playlistMovies.prefix(15))
+                self.recentlyAdded = Array(playlistMovies.sorted {
+                    let d1 = $0.addedDate ?? Date.distantPast
+                    let d2 = $1.addedDate ?? Date.distantPast
+                    if d1 == d2 {
+                        // Fallback to releaseDate year comparison if addedDate is identical or missing
+                        let y1 = Int($0.releaseDate ?? "0") ?? 0
+                        let y2 = Int($1.releaseDate ?? "0") ?? 0
+                        return y1 > y2
+                    }
+                    return d1 > d2
+                }.prefix(15))
             } else {
                 self.recommended = []
                 self.recentlyAdded = []
