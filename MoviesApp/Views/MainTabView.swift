@@ -4,10 +4,12 @@
 //
 
 import SwiftUI
+import AVFoundation
 
 struct MainTabView: View {
     @State private var selectedTab: IPTVTab = .home
     @Bindable private var dataManager = IPTVDataManager.shared
+    @EnvironmentObject var globalPlayerManager: GlobalPlayerManager
     
     init() {
         // Configure native iOS TabBar appearance for a premium glass translucent effect
@@ -37,16 +39,30 @@ struct MainTabView: View {
     }
     
     var body: some View {
-        TabView(selection: $selectedTab) {
-            ForEach(IPTVTab.allCases) { tab in
-                tabViewContent(for: tab)
-                    .tabItem {
-                        Label(tab.title, systemImage: tab.systemImage)
-                    }
-                    .tag(tab)
+        ZStack {
+            TabView(selection: $selectedTab) {
+                ForEach(IPTVTab.allCases) { tab in
+                    tabViewContent(for: tab)
+                        .tabItem {
+                            Label(tab.title, systemImage: tab.systemImage)
+                        }
+                        .tag(tab)
+                }
+            }
+            .ignoresSafeArea(.keyboard, edges: .bottom)
+            
+            // Global Persistent Mini Player Overlay
+            MiniPlayerView()
+        }
+        .fullScreenCover(isPresented: Binding(
+            get: { !globalPlayerManager.isMinimized && globalPlayerManager.currentTitle != nil },
+            set: { _ in } // Dismissal is handled by StreamingPlayerView calling minimize()
+        )) {
+            if let title = globalPlayerManager.currentTitle,
+               let urlStr = globalPlayerManager.player.currentItem?.asset as? AVURLAsset {
+                StreamingPlayerView(url: urlStr.url, title: title)
             }
         }
-        .ignoresSafeArea(.keyboard, edges: .bottom)
         .sheet(isPresented: $dataManager.showAdultConsentPrompt) {
             AdultConsentModal(dataManager: dataManager)
                 .presentationDetents([.height(340)])

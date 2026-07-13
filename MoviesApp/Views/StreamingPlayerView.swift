@@ -22,7 +22,7 @@ struct StreamingPlayerView: View {
     @State private var currentTitle: String
     
     // Player State
-    @State private var player = AVPlayer()
+    @ObservedObject private var playerManager = GlobalPlayerManager.shared
     @State private var isPlaying = false
     @State private var currentTime: Double = 0
     @State private var duration: Double = 0
@@ -82,7 +82,7 @@ struct StreamingPlayerView: View {
     var body: some View {
         ZStack {
             // 1. Core Native Player
-            PremiumPlayerRepresentable(player: player, isAspectFill: isAspectFill, triggerPip: $triggerPip)
+            PremiumPlayerRepresentable(player: playerManager.player, isAspectFill: isAspectFill, triggerPip: $triggerPip)
                 .ignoresSafeArea()
             
             // 2. Invisible Gesture Zones
@@ -100,7 +100,7 @@ struct StreamingPlayerView: View {
                     },
                     onSeekEnd: {
                         isSeeking = false
-                        player.seek(to: CMTime(seconds: sliderValue, preferredTimescale: 1))
+                        playerManager.player.seek(to: CMTime(seconds: sliderValue, preferredTimescale: 1))
                         resetTimer()
                     }
                 )
@@ -157,7 +157,7 @@ struct StreamingPlayerView: View {
         }
         .onDisappear {
             OrientationManager.shared.lockOrientation(.portrait, rotateTo: .portrait)
-            teardownPlayer()
+            teardownPlayerView()
         }
         .onChange(of: currentTime) { _, newTime in
             if !isSeeking { sliderValue = newTime }
@@ -172,6 +172,7 @@ struct StreamingPlayerView: View {
     private var topOverlayView: some View {
         HStack(spacing: 16) {
             Button(action: {
+                playerManager.minimize()
                 dismiss()
             }) {
                 Image(systemName: "chevron.left")
@@ -314,7 +315,7 @@ struct StreamingPlayerView: View {
                     Slider(value: $sliderValue, in: 0...max(1, duration), onEditingChanged: { editing in
                         isSeeking = editing
                         if !editing {
-                            player.seek(to: CMTime(seconds: sliderValue, preferredTimescale: 1))
+                            playerManager.player.seek(to: CMTime(seconds: sliderValue, preferredTimescale: 1))
                             resetTimer()
                         }
                     })
@@ -330,7 +331,7 @@ struct StreamingPlayerView: View {
             HStack(spacing: 20) {
                 Button(action: {
                     isMuted.toggle()
-                    player.isMuted = isMuted
+                    playerManager.player.isMuted = isMuted
                     triggerToast(isMuted ? "Muted" : "Unmuted")
                 }) {
                     Image(systemName: isMuted ? "speaker.slash.fill" : "speaker.wave.3.fill")
@@ -366,8 +367,8 @@ struct StreamingPlayerView: View {
                     ForEach(0..<availableAudio.count, id: \.self) { index in
                         let option = availableAudio[index]
                         Button(option.displayName) {
-                            if let group = player.currentItem?.asset.mediaSelectionGroup(forMediaCharacteristic: .audible) {
-                                player.currentItem?.select(option, in: group)
+                            if let group = playerManager.player.currentItem?.asset.mediaSelectionGroup(forMediaCharacteristic: .audible) {
+                                playerManager.player.currentItem?.select(option, in: group)
                             }
                             triggerToast("Audio: \(option.displayName)")
                         }
@@ -387,15 +388,15 @@ struct StreamingPlayerView: View {
                     ForEach(0..<availableSubtitles.count, id: \.self) { index in
                         let option = availableSubtitles[index]
                         Button(option.displayName) {
-                            if let group = player.currentItem?.asset.mediaSelectionGroup(forMediaCharacteristic: .legible) {
-                                player.currentItem?.select(option, in: group)
+                            if let group = playerManager.player.currentItem?.asset.mediaSelectionGroup(forMediaCharacteristic: .legible) {
+                                playerManager.player.currentItem?.select(option, in: group)
                             }
                             triggerToast("Subtitles: \(option.displayName)")
                         }
                     }
                     Button("Turn Off Subtitles", role: .destructive) {
-                        if let group = player.currentItem?.asset.mediaSelectionGroup(forMediaCharacteristic: .legible) {
-                            player.currentItem?.select(nil, in: group)
+                        if let group = playerManager.player.currentItem?.asset.mediaSelectionGroup(forMediaCharacteristic: .legible) {
+                            playerManager.player.currentItem?.select(nil, in: group)
                         }
                         triggerToast("Subtitles: Off")
                     }
@@ -521,18 +522,13 @@ struct StreamingPlayerView: View {
     
     private func setupPlayer(with playbackURL: URL? = nil) {
         let finalUrl = playbackURL ?? currentUrl
-        let options: [String: Any] = ["AVURLAssetHTTPHeaderFieldsKey": ["User-Agent": "VLC/3.0.11 LibVLC/3.0.11"]]
-        let asset = AVURLAsset(url: finalUrl, options: options)
-        let playerItem = AVPlayerItem(asset: asset)
-        player.replaceCurrentItem(with: playerItem)
         
-        try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback)
-        try? AVAudioSession.sharedInstance().setActive(true)
+        playerManager.play(url: finalUrl, title: currentTitle, artwork: logoUrl)
         
         let timeScale = CMTimeScale(NSEC_PER_SEC)
-        timeObserver = player.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.5, preferredTimescale: timeScale), queue: .main) { time in
+        timeObserver = playerManager.player.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.5, preferredTimescale: timeScale), queue: .main) { time in
             if !isSeeking { currentTime = time.seconds }
-            if let d = player.currentItem?.duration {
+            if let d = playerManager.player.currentItem?.duration {
                 let seconds = d.seconds
                 if seconds.isFinite && seconds > 0 { self.duration = seconds }
             }
@@ -541,25 +537,23 @@ struct StreamingPlayerView: View {
         
         if let targetId = streamId {
             let progress = UserDataManager.shared.getProgress(id: targetId)
-            if progress > 0 { player.seek(to: CMTime(seconds: progress, preferredTimescale: 1)) }
+            if progress > 0 { playerManager.player.seek(to: CMTime(seconds: progress, preferredTimescale: 1)) }
         }
         
-        player.play()
         isPlaying = true
         resetTimer()
     }
     
-    private func teardownPlayer() {
+    private func teardownPlayerView() {
         saveCurrentProgress()
-        player.pause()
-        if let observer = timeObserver { player.removeTimeObserver(observer); timeObserver = nil }
+        if let observer = timeObserver { playerManager.player.removeTimeObserver(observer); timeObserver = nil }
         hideControlsTask?.cancel()
     }
     
     private func swapChannel(to channel: IPTVChannel) {
         currentTitle = channel.name
         currentUrl = channel.streamUrl
-        teardownPlayer()
+        teardownPlayerView()
         setupPlayer(with: channel.streamUrl)
         triggerToast("Swapped to \(channel.name)")
     }
@@ -609,8 +603,8 @@ struct StreamingPlayerView: View {
     private func togglePlay() {
         let generator = UIImpactFeedbackGenerator(style: .medium)
         generator.impactOccurred()
-        if isPlaying { player.pause() } else { player.play() }
-        isPlaying.toggle()
+        playerManager.togglePlayPause()
+        isPlaying = playerManager.isPlaying
         resetTimer()
     }
     
@@ -618,7 +612,7 @@ struct StreamingPlayerView: View {
         let generator = UIImpactFeedbackGenerator(style: .light)
         generator.impactOccurred()
         let newTime = max(0, min(duration, currentTime + seconds))
-        player.seek(to: CMTime(seconds: newTime, preferredTimescale: 1))
+        playerManager.player.seek(to: CMTime(seconds: newTime, preferredTimescale: 1))
         resetTimer()
     }
     
@@ -670,7 +664,7 @@ struct StreamingPlayerView: View {
     }
     
     private func fetchMediaOptions() {
-        guard let item = player.currentItem, let asset = item.asset as? AVURLAsset else { return }
+        guard let item = playerManager.player.currentItem, let asset = item.asset as? AVURLAsset else { return }
         if let legibleGroup = asset.mediaSelectionGroup(forMediaCharacteristic: .legible) {
             self.availableSubtitles = legibleGroup.options
         }

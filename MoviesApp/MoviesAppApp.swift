@@ -15,6 +15,7 @@ struct MoviesAppApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(GlobalPlayerManager.shared)
         }
         .modelContainer(for :TrendingModel.self)
     }
