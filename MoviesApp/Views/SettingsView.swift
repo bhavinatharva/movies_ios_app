@@ -148,7 +148,7 @@ struct SettingsView: View {
             sectionTitle("ACCOUNT & SOURCE")
             
             SettingsCardContainer {
-                NavigationLink(destination: PlaylistsListView()) {
+                NavigationLink(destination: PlaylistHubView()) {
                     SettingsRowUIComponent(
                         icon: "tv.inset.filled",
                         iconColor: .accentColor,
