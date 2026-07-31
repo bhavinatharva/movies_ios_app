@@ -1,7 +1,8 @@
 import SwiftUI
 import AVKit
+import AVFoundation
 
-class PlayerUIView: UIView {
+class PlayerUIView: UIView, AVPictureInPictureControllerDelegate {
     var playerLayer: AVPlayerLayer {
         return layer as! AVPlayerLayer
     }
@@ -14,7 +15,15 @@ class PlayerUIView: UIView {
     
     func setupPip() {
         if AVPictureInPictureController.isPictureInPictureSupported() {
+            do {
+                try AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback)
+                try AVAudioSession.sharedInstance().setActive(true)
+            } catch {
+                print("Failed to set audio session for PIP: \(error)")
+            }
+            
             pipController = AVPictureInPictureController(playerLayer: playerLayer)
+            pipController?.delegate = self
             pipController?.canStartPictureInPictureAutomaticallyFromInline = true
         }
     }
@@ -26,6 +35,26 @@ class PlayerUIView: UIView {
         } else {
             pip.startPictureInPicture()
         }
+    }
+    
+    // MARK: - AVPictureInPictureControllerDelegate
+    func pictureInPictureControllerWillStartPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
+        print("PIP Will Start")
+    }
+    func pictureInPictureControllerDidStartPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
+        print("PIP Did Start")
+    }
+    func pictureInPictureController(_ pictureInPictureController: AVPictureInPictureController, failedToStartPictureInPictureWithError error: Error) {
+        print("PIP Failed: \(error.localizedDescription)")
+    }
+    func pictureInPictureControllerWillStopPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
+        print("PIP Will Stop")
+    }
+    func pictureInPictureControllerDidStopPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
+        print("PIP Did Stop")
+    }
+    func pictureInPictureController(_ pictureInPictureController: AVPictureInPictureController, restoreUserInterfaceForPictureInPictureStopWithCompletionHandler completionHandler: @escaping (Bool) -> Void) {
+        completionHandler(true)
     }
 }
 
