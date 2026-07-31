@@ -44,8 +44,14 @@ struct PremiumPlayerRepresentable: UIViewRepresentable {
     }
     
     func updateUIView(_ uiView: PlayerUIView, context: Context) {
-        uiView.playerLayer.player = player
-        uiView.playerLayer.videoGravity = isAspectFill ? .resizeAspectFill : .resizeAspect
+        if uiView.playerLayer.player !== player {
+            uiView.playerLayer.player = player
+        }
+        
+        let targetGravity: AVLayerVideoGravity = isAspectFill ? .resizeAspectFill : .resizeAspect
+        if uiView.playerLayer.videoGravity != targetGravity {
+            uiView.playerLayer.videoGravity = targetGravity
+        }
         
         if triggerPip {
             DispatchQueue.main.async {
