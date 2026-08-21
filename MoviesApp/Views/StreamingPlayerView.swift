@@ -26,11 +26,7 @@ struct StreamingPlayerView: View {
     
     // Player State
     @ObservedObject private var playerManager = GlobalPlayerManager.shared
-    @State private var isPlaying = false
-    @State private var currentTime: Double = 0
-    @State private var duration: Double = 0
     @State private var sliderValue: Double = 0
-    @State private var isSeeking = false
     
     // UI state variables
     @State private var showControls = true
@@ -49,7 +45,6 @@ struct StreamingPlayerView: View {
     @State private var toastMessage = ""
     @State private var showToast = false
     
-    @State private var timeObserver: Any? = nil
     @State private var triggerPip = false
     @State private var showSubtitleActionSheet = false
     @State private var showAudioActionSheet = false
@@ -107,11 +102,11 @@ struct StreamingPlayerView: View {
                     onSwipeUp: { zapChannel(forward: true) },
                     onSwipeDown: { zapChannel(forward: false) },
                     onSeekDrag: { delta in
-                        if !isSeeking { isSeeking = true }
-                        sliderValue = max(0, min(duration, currentTime + Double(delta / 20.0)))
+                        if !playerManager.isUserSeeking { playerManager.isUserSeeking = true }
+                        sliderValue = max(0, min(playerManager.duration, playerManager.currentTime + Double(delta / 20.0)))
                     },
                     onSeekEnd: {
-                        isSeeking = false
+                        playerManager.isUserSeeking = false
                         playerManager.player.seek(to: CMTime(seconds: sliderValue, preferredTimescale: 1))
                         resetTimer()
                     }
@@ -199,9 +194,9 @@ struct StreamingPlayerView: View {
             OrientationManager.shared.lockOrientation(.portrait, rotateTo: .portrait)
             teardownPlayerView()
         }
-        .onChange(of: currentTime) { _, newTime in
-            if !isSeeking { sliderValue = newTime }
-            if duration > 0 && newTime >= duration - 15 && !showNextEpisodeOverlay && streamType == .tvSeries {
+        .onChange(of: playerManager.currentTime) { _, newTime in
+            if !playerManager.isUserSeeking { sliderValue = newTime }
+            if playerManager.duration > 0 && newTime >= playerManager.duration - 15 && !showNextEpisodeOverlay && streamType == .tvSeries {
                 withAnimation(.spring()) { showNextEpisodeOverlay = true }
             }
         }
@@ -327,10 +322,10 @@ struct StreamingPlayerView: View {
                         .frame(width: 90, height: 90)
                         .overlay(Circle().stroke(Color.white.opacity(0.2), lineWidth: 1))
                     
-                    Image(systemName: isPlaying ? "pause.fill" : "play.fill")
+                    Image(systemName: playerManager.isPlaying ? "pause.fill" : "play.fill")
                         .font(.system(size: 42))
                         .foregroundColor(.white)
-                        .offset(x: isPlaying ? 0 : 2)
+                        .offset(x: playerManager.isPlaying ? 0 : 2)
                 }
             }
             .buttonStyle(PressScaleButtonStyle())
@@ -348,12 +343,12 @@ struct StreamingPlayerView: View {
         VStack(spacing: 24) {
             if streamType != .liveTV {
                 HStack(spacing: 16) {
-                    Text(formatTime(currentTime))
+                    Text(formatTime(playerManager.currentTime))
                         .font(.system(size: 13, weight: .bold, design: .monospaced))
                         .foregroundColor(.white.opacity(0.8))
                     
-                    Slider(value: $sliderValue, in: 0...max(1, duration), onEditingChanged: { editing in
-                        isSeeking = editing
+                    Slider(value: $sliderValue, in: 0...max(1, playerManager.duration), onEditingChanged: { editing in
+                        playerManager.isUserSeeking = editing
                         if !editing {
                             playerManager.player.seek(to: CMTime(seconds: sliderValue, preferredTimescale: 1))
                             resetTimer()
@@ -361,7 +356,7 @@ struct StreamingPlayerView: View {
                     })
                     .tint(Color.accentColor)
                     
-                    Text(formatTime(duration))
+                    Text(formatTime(playerManager.duration))
                         .font(.system(size: 13, weight: .bold, design: .monospaced))
                         .foregroundColor(.white.opacity(0.8))
                 }
@@ -645,28 +640,16 @@ struct StreamingPlayerView: View {
         
         playerManager.play(url: finalUrl, title: currentTitle, artwork: logoUrl)
         
-        let timeScale = CMTimeScale(NSEC_PER_SEC)
-        timeObserver = playerManager.player.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.5, preferredTimescale: timeScale), queue: .main) { time in
-            if !isSeeking { currentTime = time.seconds }
-            if let d = playerManager.player.currentItem?.duration {
-                let seconds = d.seconds
-                if seconds.isFinite && seconds > 0 { self.duration = seconds }
-            }
-            saveProgressIfNeeded(seconds: time.seconds)
-        }
-        
         if let targetId = streamId {
             let progress = UserDataManager.shared.getProgress(id: targetId)
             if progress > 0 { playerManager.player.seek(to: CMTime(seconds: progress, preferredTimescale: 1)) }
         }
         
-        isPlaying = true
         resetTimer()
     }
     
     private func teardownPlayerView() {
         saveCurrentProgress()
-        if let observer = timeObserver { playerManager.player.removeTimeObserver(observer); timeObserver = nil }
         hideControlsTask?.cancel()
     }
     
@@ -701,8 +684,8 @@ struct StreamingPlayerView: View {
     }
 
     private func saveCurrentProgress() {
-        guard currentTime.isFinite, let targetId = streamId else { return }
-        UserDataManager.shared.updateProgress(id: targetId, seconds: currentTime)
+        guard playerManager.currentTime.isFinite, let targetId = streamId else { return }
+        UserDataManager.shared.updateProgress(id: targetId, seconds: playerManager.currentTime)
         lastProgressSaveTime = Date()
     }
     
@@ -741,14 +724,13 @@ struct StreamingPlayerView: View {
         let generator = UIImpactFeedbackGenerator(style: .medium)
         generator.impactOccurred()
         playerManager.togglePlayPause()
-        isPlaying = playerManager.isPlaying
         resetTimer()
     }
     
     private func skip(by seconds: Double) {
         let generator = UIImpactFeedbackGenerator(style: .light)
         generator.impactOccurred()
-        let newTime = max(0, min(duration, currentTime + seconds))
+        let newTime = max(0, min(playerManager.duration, playerManager.currentTime + seconds))
         playerManager.player.seek(to: CMTime(seconds: newTime, preferredTimescale: 1))
         resetTimer()
     }

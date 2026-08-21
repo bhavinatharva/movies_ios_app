@@ -17,6 +17,11 @@ final class GlobalPlayerManager: ObservableObject {
     @Published var isPlaying: Bool = false
     @Published var isMinimized: Bool = false
     
+    // Playback state
+    @Published var currentTime: Double = 0
+    @Published var duration: Double = 0
+    @Published var isUserSeeking: Bool = false
+    
     // Metadata for the Mini-Player
     @Published var currentTitle: String?
     @Published var currentArtwork: String?
@@ -26,9 +31,11 @@ final class GlobalPlayerManager: ObservableObject {
     // Internal observation
     private var timeObserver: Any?
     private var itemObservation: AnyCancellable?
+    private var statusObservation: AnyCancellable?
     
     private init() {
         setupAudioSession()
+        setupObservers()
     }
     
     private func setupAudioSession() {
@@ -37,6 +44,24 @@ final class GlobalPlayerManager: ObservableObject {
             try AVAudioSession.sharedInstance().setActive(true)
         } catch {
             print("Failed to setup audio session: \(error)")
+        }
+    }
+    
+    private func setupObservers() {
+        let timeScale = CMTimeScale(NSEC_PER_SEC)
+        timeObserver = player.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.5, preferredTimescale: timeScale), queue: .main) { [weak self] time in
+            guard let self = self else { return }
+            if !self.isUserSeeking {
+                self.currentTime = time.seconds
+            }
+            if let d = self.player.currentItem?.duration {
+                let seconds = d.seconds
+                if seconds.isFinite && seconds > 0 { self.duration = seconds }
+            }
+        }
+        
+        statusObservation = player.publisher(for: \.timeControlStatus).sink { [weak self] status in
+            self?.isPlaying = (status == .playing)
         }
     }
     
@@ -53,8 +78,10 @@ final class GlobalPlayerManager: ObservableObject {
         let options: [String: Any] = ["AVURLAssetHTTPHeaderFieldsKey": ["User-Agent": "VLC/3.0.11 LibVLC/3.0.11"]]
         let asset = AVURLAsset(url: url, options: options)
         let item = AVPlayerItem(asset: asset)
+        item.preferredForwardBufferDuration = 10.0
         
         // Observe item status for errors like timeouts
+        itemObservation?.cancel()
         itemObservation = item.publisher(for: \.status).sink { [weak self] status in
             guard let self = self else { return }
             if status == .failed, let error = item.error {
@@ -64,6 +91,7 @@ final class GlobalPlayerManager: ObservableObject {
             }
         }
         
+        player.automaticallyWaitsToMinimizeStalling = false
         player.replaceCurrentItem(with: item)
         player.play()
         
