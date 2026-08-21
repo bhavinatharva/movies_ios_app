@@ -35,11 +35,7 @@ actor IPTVRequestManager {
     // Deduplication of identical inflight requests
     private var activeTasks: [URL: Task<Data, Error>] = [:]
     
-    // 10-minute cache window to prevent repeated hits
-    private var cacheTimestamps: [URL: Date] = [:]
-    private var memoryCache: [URL: Data] = [:]
-    private let cacheDuration: TimeInterval = 600
-    
+
     private init() {
         // Initialize sessions with custom timeouts
         let types: [IPTVEndpointType] = [.live, .vod, .series, .epg, .auth, .m3u]
@@ -52,14 +48,7 @@ actor IPTVRequestManager {
     }
     
     /// Main entry point for performing a deduplicated, retry-safe API fetch
-    func performFetch(url: URL, type: IPTVEndpointType, useCache: Bool = true) async throws -> Data {
-        // 1. Check local cache window to prevent repeated hits
-        if useCache, let lastFetch = cacheTimestamps[url], Date().timeIntervalSince(lastFetch) < cacheDuration, let cachedData = memoryCache[url] {
-            #if DEBUG
-            print("🛑 [IPTVRequestManager] Throttling active - Returning memory cached data for: \(url.absoluteString)")
-            #endif
-            return cachedData
-        }
+    func performFetch(url: URL, type: IPTVEndpointType) async throws -> Data {
         
         // 2. Prevent duplicate parallel calls to the exact same URL
         if let existingTask = activeTasks[url] {
@@ -80,10 +69,6 @@ actor IPTVRequestManager {
         do {
             let data = try await task.value
             activeTasks[url] = nil
-            if useCache { 
-                cacheTimestamps[url] = Date()
-                memoryCache[url] = data
-            }
             return data
         } catch {
             activeTasks[url] = nil
@@ -135,13 +120,10 @@ actor IPTVRequestManager {
         return sessions[type] ?? .shared
     }
     
-    /// Clears all inflight tasks and cache
     func reset() {
         for task in activeTasks.values {
             task.cancel()
         }
         activeTasks.removeAll()
-        cacheTimestamps.removeAll()
-        memoryCache.removeAll()
     }
 }

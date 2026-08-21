@@ -71,39 +71,8 @@ class IPTVDataManager {
     private var activeRefreshTask: Task<Void, Never>? = nil
     
     private init() {
-        loadCachedData()
         Task {
             await refreshContent()
-        }
-    }
-    
-    func loadCachedData() {
-        let cachedChannels = IPTVLocalDatabase.shared.fetchChannels()
-        let cachedMovies = IPTVLocalDatabase.shared.fetchMediaItems(type: .movie)
-        let cachedSeries = IPTVLocalDatabase.shared.fetchMediaItems(type: .tvSeries)
-        let cachedUncategorized = IPTVLocalDatabase.shared.fetchMediaItems(type: .uncategorized)
-        
-        if !cachedChannels.isEmpty || !cachedMovies.isEmpty || !cachedSeries.isEmpty || !cachedUncategorized.isEmpty {
-            self.liveChannels = cachedChannels
-            self.movies = cachedMovies
-            self.series = cachedSeries
-            self.uncategorized = cachedUncategorized
-            
-            self.categorizedChannels = Dictionary(grouping: cachedChannels) { $0.category ?? "General" }
-            self.categorizedMovies = Dictionary(grouping: cachedMovies) { $0.genres?.first ?? "General" }
-            
-            var tabs: [IPTVTab] = [.home]
-            if !cachedChannels.isEmpty { 
-                tabs.append(.liveTV)
-            }
-            if !cachedMovies.isEmpty || !cachedSeries.isEmpty { 
-                tabs.append(.vod) 
-            }
-            tabs.append(.settings)
-            
-            self.availableTabs = tabs
-            self.homeStatus = .success
-            self.currentLoadedPlaylistUrl = PlaylistManager.shared.fetchDefaultPlaylist()?.url
         }
     }
     
@@ -173,7 +142,6 @@ class IPTVDataManager {
             return
         }
 
-        if clearFirst {
             await MainActor.run {
                 self.liveChannels = []
                 self.movies = []
@@ -184,8 +152,6 @@ class IPTVDataManager {
                 self.m3uEpisodes = [:]
                 self.currentLoadedPlaylistUrl = nil
             }
-            IPTVLocalDatabase.shared.clearAllData()
-        }
         
         guard let defaultPlaylist = playlistManager.fetchDefaultPlaylist() else {
             await MainActor.run {
@@ -200,7 +166,6 @@ class IPTVDataManager {
                 self.homeStatus = .notstarted
                 self.currentLoadedPlaylistUrl = nil
             }
-            IPTVLocalDatabase.shared.clearAllData()
             return
         }
         
@@ -328,10 +293,6 @@ class IPTVDataManager {
                     self.currentLoadedPlaylistUrl = defaultPlaylist.url
                 }
                 
-                // Batch save the loaded results to our persistent local database stack
-                IPTVLocalDatabase.shared.saveChannels(finalChannels) {}
-                IPTVLocalDatabase.shared.saveMediaItems(finalVODs + finalSeries) {}
-                
                 self.loadEPGInBackground()
                 
             case .unknown:
@@ -434,10 +395,6 @@ class IPTVDataManager {
             self.homeStatus = .success
             self.currentLoadedPlaylistUrl = defaultPlaylist.url
         }
-        
-        // Batch save the loaded results to our persistent local database stack
-        IPTVLocalDatabase.shared.saveChannels(finalLive) {}
-        IPTVLocalDatabase.shared.saveMediaItems(finalMovies + finalSeries + finalUncategorized) {}
         
         self.loadEPGInBackground()
     }

@@ -79,7 +79,7 @@ class IPTVService {
     func loginXtream(creds: XtreamCredentials) async throws -> Bool {
         let urlString = "\(creds.serverUrl)/player_api.php?username=\(creds.username)&password=\(creds.password)"
         guard let url = URL(string: urlString) else { return false }
-        let data = try await IPTVRequestManager.shared.performFetch(url: url, type: .auth, useCache: false)
+        let data = try await IPTVRequestManager.shared.performFetch(url: url, type: .auth)
         let response = try await decodeInBackground(XtreamResponse.self, from: data)
         return response.userInfo.auth == 1
     }
