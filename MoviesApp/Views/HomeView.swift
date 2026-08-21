@@ -82,55 +82,64 @@ struct HomeView: View {
             .onChange(of: UserDataManager.shared.favorites) { _, _ in
                 viewModel.updateFavorites()
             }
-            .fullScreenCover(item: $selectedMovieForDetail) { item in
-                UnifiedMediaDetailView(item: item)
-            }
-            .fullScreenCover(item: $selectedCollectionForDetail) { collection in
-                MovieCollectionDetailView(collection: collection) { movie in
-                    selectedCollectionForDetail = nil
-                    // Delay slightly to allow the collection cover to dismiss before showing movie detail
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        selectedMovieForDetail = movie
+            .background(
+                EmptyView()
+                    .fullScreenCover(item: $selectedMovieForDetail) { item in
+                        UnifiedMediaDetailView(item: item)
                     }
-                }
-            }
-            .fullScreenCover(item: $selectedPlayableItem) { item in
-                if let url = item.streamUrl {
-                    StreamingPlayerView(url: url, title: item.title, streamId: item.id)
-                } else {
-                    ZStack(alignment: .topTrailing) {
-                        Color.appBackground.ignoresSafeArea()
-                        
-                        ContentUnavailableView {
-                            Label("Cannot Play", systemImage: "play.slash")
-                        } description: {
-                            Text("No streamable link found for this item.")
-                                .foregroundColor(.secondary)
-                        } actions: {
-                            Button(action: {
-                                selectedPlayableItem = nil
-                            }) {
-                                Text("Close")
-                                    .fontWeight(.bold)
-                                    .frame(width: 120, height: 44)
-                                    .background(Color.accentColor)
-                                    .foregroundColor(.white)
-                                    .cornerRadius(22)
+            )
+            .background(
+                EmptyView()
+                    .fullScreenCover(item: $selectedCollectionForDetail) { collection in
+                        MovieCollectionDetailView(collection: collection) { movie in
+                            selectedCollectionForDetail = nil
+                            // Delay slightly to allow the collection cover to dismiss before showing movie detail
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                selectedMovieForDetail = movie
                             }
-                            .buttonStyle(PressScaleButtonStyle())
-                        }
-                        
-                        Button(action: {
-                            selectedPlayableItem = nil
-                        }) {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.title)
-                                .foregroundColor(.white.opacity(0.6))
-                                .padding()
                         }
                     }
-                }
-            }
+            )
+            .background(
+                EmptyView()
+                    .fullScreenCover(item: $selectedPlayableItem) { item in
+                        if let url = item.streamUrl {
+                            StreamingPlayerView(url: url, title: item.title, streamId: item.id)
+                        } else {
+                            ZStack(alignment: .topTrailing) {
+                                Color.appBackground.ignoresSafeArea()
+                                
+                                ContentUnavailableView {
+                                    Label("Cannot Play", systemImage: "play.slash")
+                                } description: {
+                                    Text("No streamable link found for this item.")
+                                        .foregroundColor(.secondary)
+                                } actions: {
+                                    Button(action: {
+                                        selectedPlayableItem = nil
+                                    }) {
+                                        Text("Close")
+                                            .fontWeight(.bold)
+                                            .frame(width: 120, height: 44)
+                                            .background(Color.accentColor)
+                                            .foregroundColor(.white)
+                                            .cornerRadius(22)
+                                    }
+                                    .buttonStyle(PressScaleButtonStyle())
+                                }
+                                
+                                Button(action: {
+                                    selectedPlayableItem = nil
+                                }) {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .font(.title)
+                                        .foregroundColor(.white.opacity(0.6))
+                                        .padding()
+                                }
+                            }
+                        }
+                    }
+            )
         }
     }
     

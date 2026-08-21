@@ -807,17 +807,25 @@ struct StreamingPlayerView: View {
     private func fetchMediaOptions() async {
         guard let item = playerManager.player.currentItem else { return }
         
+        do {
+            _ = try await item.asset.load(.availableMediaCharacteristicsWithMediaSelectionOptions)
+        } catch {
+            print("Failed to load media characteristics: \(error)")
+        }
+        
         if let legibleGroup = try? await item.asset.loadMediaSelectionGroup(for: .legible) {
+            let options = legibleGroup.options
             await MainActor.run {
                 self.subtitleGroup = legibleGroup
-                self.availableSubtitles = legibleGroup.options
+                self.availableSubtitles = options
             }
         }
         
         if let audibleGroup = try? await item.asset.loadMediaSelectionGroup(for: .audible) {
+            let options = audibleGroup.options
             await MainActor.run {
                 self.audioGroup = audibleGroup
-                self.availableAudio = audibleGroup.options
+                self.availableAudio = options
             }
         }
     }
