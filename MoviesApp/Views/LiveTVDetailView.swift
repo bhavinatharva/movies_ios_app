@@ -23,7 +23,7 @@ struct LiveTVDetailView: View {
             VStack(spacing: 0) {
                 // Top: Inline Player
                 ZStack(alignment: .bottomTrailing) {
-                    StreamingPlayerView(url: channel.streamUrl, title: channel.name, isLive: true, logoUrl: channel.logoUrl)
+                    StreamingPlayerView(url: channel.streamUrl, title: channel.name, isLive: true, logoUrl: channel.logoUrl?.absoluteString)
                         .frame(height: UIScreen.main.bounds.width * 9/16)
                         .id(channel.id) // Ensure player resets when channel changes
                     
@@ -135,7 +135,7 @@ struct LiveTVDetailView: View {
             }
         }
         .fullScreenCover(isPresented: $isFullScreen) {
-            StreamingPlayerView(url: channel.streamUrl, title: channel.name, isLive: true, logoUrl: channel.logoUrl)
+            StreamingPlayerView(url: channel.streamUrl, title: channel.name, isLive: true, logoUrl: channel.logoUrl?.absoluteString)
         }
         .onAppear {
             UserDataManager.shared.addToHistory(channel.toUnified)
