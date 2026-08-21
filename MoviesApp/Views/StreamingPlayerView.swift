@@ -52,9 +52,16 @@ struct StreamingPlayerView: View {
     @State private var showAudioActionSheet = false
     @State private var availableSubtitles: [AVMediaSelectionOption] = []
     @State private var availableAudio: [AVMediaSelectionOption] = []
+    @State private var subtitleGroup: AVMediaSelectionGroup? = nil
+    @State private var audioGroup: AVMediaSelectionGroup? = nil
     @State private var hideControlsTask: Task<Void, Never>? = nil
     @State private var lastProgressSaveTime: Date = .distantPast
     private let progressSaveInterval: TimeInterval = 15
+    
+    // Sliders state
+    @State private var brightnessLevel: Double = 0.5
+    @State private var volumeLevel: Double = 0.5
+    @State private var volumeSlider: UISlider? = nil
     
     // Detect stream types
     var streamType: MediaType {
@@ -122,9 +129,30 @@ struct StreamingPlayerView: View {
                     VStack(spacing: 0) {
                         topOverlayView
                         Spacer()
-                        centerControlsView
+                        HStack {
+                            VerticalSliderView(value: Binding(get: { brightnessLevel }, set: { val in
+                                brightnessLevel = val
+                                UIScreen.main.brightness = CGFloat(val)
+                                resetTimer()
+                            }), icon: "sun.max.fill")
+                            .padding(.leading, 40)
+                            
+                            Spacer()
+                            centerControlsView
+                            Spacer()
+                            
+                            VerticalSliderView(value: Binding(get: { volumeLevel }, set: { val in
+                                volumeLevel = val
+                                volumeSlider?.value = Float(val)
+                                resetTimer()
+                            }), icon: "speaker.wave.3.fill")
+                            .padding(.trailing, 40)
+                        }
                         Spacer()
                         bottomControlsView
+                    }
+                    .onAppear {
+                        syncSliders()
                     }
                 }
                 .transition(.opacity)
@@ -159,6 +187,8 @@ struct StreamingPlayerView: View {
         .onAppear {
             OrientationManager.shared.lockOrientation(.allButUpsideDown)
             setupPlayer()
+            setupVolumeView()
+            syncSliders()
         }
         .onDisappear {
             OrientationManager.shared.lockOrientation(.portrait, rotateTo: .portrait)
@@ -360,7 +390,12 @@ struct StreamingPlayerView: View {
                 }
                 Spacer()
                 
-                Button(action: { fetchMediaOptions(); showAudioActionSheet = true }) {
+                Button(action: { 
+                    Task {
+                        await fetchMediaOptions()
+                        showAudioActionSheet = true
+                    }
+                }) {
                     Image(systemName: "waveform")
                         .font(.system(size: 18))
                         .foregroundColor(.white)
@@ -372,7 +407,7 @@ struct StreamingPlayerView: View {
                     ForEach(0..<availableAudio.count, id: \.self) { index in
                         let option = availableAudio[index]
                         Button(option.displayName) {
-                            if let group = playerManager.player.currentItem?.asset.mediaSelectionGroup(forMediaCharacteristic: .audible) {
+                            if let group = audioGroup {
                                 playerManager.player.currentItem?.select(option, in: group)
                             }
                             triggerToast("Audio: \(option.displayName)")
@@ -381,7 +416,12 @@ struct StreamingPlayerView: View {
                     Button("Cancel", role: .cancel) {}
                 }
                 
-                Button(action: { fetchMediaOptions(); showSubtitleActionSheet = true }) {
+                Button(action: { 
+                    Task {
+                        await fetchMediaOptions()
+                        showSubtitleActionSheet = true
+                    }
+                }) {
                     Image(systemName: "captions.bubble")
                         .font(.system(size: 18))
                         .foregroundColor(.white)
@@ -393,14 +433,14 @@ struct StreamingPlayerView: View {
                     ForEach(0..<availableSubtitles.count, id: \.self) { index in
                         let option = availableSubtitles[index]
                         Button(option.displayName) {
-                            if let group = playerManager.player.currentItem?.asset.mediaSelectionGroup(forMediaCharacteristic: .legible) {
+                            if let group = subtitleGroup {
                                 playerManager.player.currentItem?.select(option, in: group)
                             }
                             triggerToast("Subtitles: \(option.displayName)")
                         }
                     }
                     Button("Turn Off Subtitles", role: .destructive) {
-                        if let group = playerManager.player.currentItem?.asset.mediaSelectionGroup(forMediaCharacteristic: .legible) {
+                        if let group = subtitleGroup {
                             playerManager.player.currentItem?.select(nil, in: group)
                         }
                         triggerToast("Subtitles: Off")
@@ -641,6 +681,23 @@ struct StreamingPlayerView: View {
         lastProgressSaveTime = Date()
     }
     
+    private func setupVolumeView() {
+        let view = MPVolumeView()
+        for subview in view.subviews {
+            if let slider = subview as? UISlider {
+                volumeSlider = slider
+                break
+            }
+        }
+    }
+    
+    private func syncSliders() {
+        brightnessLevel = Double(UIScreen.main.brightness)
+        if let slider = volumeSlider {
+            volumeLevel = Double(slider.value)
+        }
+    }
+    
     private func toggleControls() {
         withAnimation(.easeInOut(duration: 0.35)) { showControls.toggle() }
         if showControls { resetTimer() }
@@ -718,13 +775,56 @@ struct StreamingPlayerView: View {
         return ("Evening News", "Late Night Movie", 0.65)
     }
     
-    private func fetchMediaOptions() {
-        guard let item = playerManager.player.currentItem, let asset = item.asset as? AVURLAsset else { return }
-        if let legibleGroup = asset.mediaSelectionGroup(forMediaCharacteristic: .legible) {
-            self.availableSubtitles = legibleGroup.options
+    private func fetchMediaOptions() async {
+        guard let item = playerManager.player.currentItem else { return }
+        
+        if let legibleGroup = try? await item.asset.loadMediaSelectionGroup(for: .legible) {
+            await MainActor.run {
+                self.subtitleGroup = legibleGroup
+                self.availableSubtitles = legibleGroup.options
+            }
         }
-        if let audibleGroup = asset.mediaSelectionGroup(forMediaCharacteristic: .audible) {
-            self.availableAudio = audibleGroup.options
+        
+        if let audibleGroup = try? await item.asset.loadMediaSelectionGroup(for: .audible) {
+            await MainActor.run {
+                self.audioGroup = audibleGroup
+                self.availableAudio = audibleGroup.options
+            }
+        }
+    }
+}
+
+struct VerticalSliderView: View {
+    @Binding var value: Double
+    var icon: String
+    
+    var body: some View {
+        VStack(spacing: 12) {
+            Image(systemName: icon)
+                .foregroundColor(.white)
+                .font(.system(size: 16))
+            
+            GeometryReader { geometry in
+                ZStack(alignment: .bottom) {
+                    Capsule()
+                        .fill(Color.white.opacity(0.3))
+                        .frame(width: 6, height: geometry.size.height)
+                    
+                    Capsule()
+                        .fill(Color.accentColor)
+                        .frame(width: 6, height: geometry.size.height * CGFloat(value))
+                }
+                .contentShape(Rectangle())
+                .gesture(
+                    DragGesture(minimumDistance: 0)
+                        .onChanged { gesture in
+                            let height = geometry.size.height
+                            let newValue = 1.0 - (gesture.location.y / height)
+                            value = max(0, min(1, Double(newValue)))
+                        }
+                )
+            }
+            .frame(width: 20, height: 120)
         }
     }
 }
