@@ -645,6 +645,7 @@ struct StreamingPlayerView: View {
             if progress > 0 { playerManager.player.seek(to: CMTime(seconds: progress, preferredTimescale: 1)) }
         }
         
+        saveToHistory()
         resetTimer()
     }
     
@@ -687,6 +688,26 @@ struct StreamingPlayerView: View {
         guard playerManager.currentTime.isFinite, let targetId = streamId else { return }
         UserDataManager.shared.updateProgress(id: targetId, seconds: playerManager.currentTime)
         lastProgressSaveTime = Date()
+    }
+    
+    private func saveToHistory() {
+        let id = streamId ?? currentUrl.absoluteString
+        let item = UnifiedMediaItem(
+            id: id,
+            title: currentTitle,
+            overview: nil,
+            posterPath: logoUrl,
+            backdropPath: nil,
+            mediaType: streamType,
+            source: .iptv,
+            releaseDate: nil,
+            voteAverage: nil,
+            runtime: nil,
+            genres: nil,
+            streamUrl: currentUrl,
+            epgId: nil
+        )
+        UserDataManager.shared.addToHistory(item)
     }
     
     private func setupVolumeView() {

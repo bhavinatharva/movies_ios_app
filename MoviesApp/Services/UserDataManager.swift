@@ -141,6 +141,11 @@ class UserDataManager {
         }
     }
     
+    func clearHistory() {
+        recentlyWatched.removeAll()
+        IPTVLocalDatabase.shared.clearHistory()
+    }
+    
     // MARK: - Recommendations
     
     func generateRecommendations(from allItems: [UnifiedMediaItem], limit: Int = 15) -> [UnifiedMediaItem] {

@@ -11,6 +11,7 @@ import Combine
 
 enum IPTVTab: String, CaseIterable, Identifiable, Codable {
     case home
+    case recent
     case liveTV
     case vod
     case settings
@@ -20,6 +21,7 @@ enum IPTVTab: String, CaseIterable, Identifiable, Codable {
     var title: String {
         switch self {
         case .home: return "Home"
+        case .recent: return "Recent"
         case .liveTV: return "Live TV"
         case .vod: return "VOD"
         case .settings: return "Settings"
@@ -29,6 +31,7 @@ enum IPTVTab: String, CaseIterable, Identifiable, Codable {
     var systemImage: String {
         switch self {
         case .home: return "house.fill"
+        case .recent: return "clock.fill"
         case .liveTV: return "tv.fill"
         case .vod: return "film.stack.fill"
         case .settings: return "gearshape.fill"
@@ -42,7 +45,7 @@ class IPTVDataManager {
     static let shared = IPTVDataManager()
     
     var homeStatus: ApiFetchStatus = .notstarted
-    var availableTabs: [IPTVTab] = [.home, .settings]
+    var availableTabs: [IPTVTab] = [.home, .recent, .settings]
     
     // Loaded Playlist State
     var currentLoadedPlaylistUrl: String? = nil
@@ -162,7 +165,7 @@ class IPTVDataManager {
                 self.categorizedChannels = [:]
                 self.categorizedMovies = [:]
                 self.m3uEpisodes = [:]
-                self.availableTabs = [.home, .settings]
+                self.availableTabs = [.home, .recent, .settings]
                 self.homeStatus = .notstarted
                 self.currentLoadedPlaylistUrl = nil
             }
@@ -279,7 +282,7 @@ class IPTVDataManager {
                     AuthManager.shared.saveCredentials(creds)
                     
                     // 4. Dynamically generate tabs based on Xtream API configuration
-                    var tabs: [IPTVTab] = [.home]
+                    var tabs: [IPTVTab] = [.home, .recent]
                     if !(liveCats ?? []).isEmpty || !finalChannels.isEmpty { 
                         tabs.append(.liveTV)
                     }
@@ -382,7 +385,7 @@ class IPTVDataManager {
             self.categorizedMovies = Dictionary(grouping: finalMovies) { $0.genres?.first ?? "General" }
             
             // 4. Adapt tabs dynamically based on contents parsed!
-            var tabs: [IPTVTab] = [.home]
+            var tabs: [IPTVTab] = [.home, .recent]
             if !finalLive.isEmpty { 
                 tabs.append(.liveTV)
             }

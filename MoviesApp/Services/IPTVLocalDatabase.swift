@@ -492,4 +492,20 @@ class IPTVLocalDatabase {
             return []
         }
     }
+    
+    func clearHistory() {
+        let context = newBackgroundContext()
+        context.performAndWait {
+            let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "HistoryEntity")
+            let deleteReq = NSBatchDeleteRequest(fetchRequest: fetchRequest)
+            deleteReq.resultType = .resultTypeObjectIDs
+            
+            if let result = try? context.execute(deleteReq) as? NSBatchDeleteResult,
+               let objectIDs = result.result as? [NSManagedObjectID] {
+                NSManagedObjectContext.mergeChanges(fromRemoteContextSave: [NSDeletedObjectsKey: objectIDs], into: [self.viewContext])
+            }
+            
+            try? context.save()
+        }
+    }
 }
