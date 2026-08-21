@@ -37,6 +37,9 @@ struct AddPlaylistWizardView: View {
                             .keyboardType(.URL)
                             .autocapitalization(.none)
                             .disableAutocorrection(true)
+                            .onChange(of: urlString) { _, newValue in
+                                autoParseURL(newValue)
+                            }
                         
                         TextField("Username", text: $username)
                             .autocapitalization(.none)
@@ -48,6 +51,9 @@ struct AddPlaylistWizardView: View {
                             .keyboardType(.URL)
                             .autocapitalization(.none)
                             .disableAutocorrection(true)
+                            .onChange(of: urlString) { _, newValue in
+                                autoParseURL(newValue)
+                            }
                     } else {
                         Button(action: {
                             // File picker logic would go here
@@ -93,11 +99,26 @@ struct AddPlaylistWizardView: View {
     
     // MARK: - Logic
     
+    private func autoParseURL(_ newValue: String) {
+        let validation = IPTVValidator.validateIPTVSource(input: newValue)
+        if validation.type == .xtreamCodes, let credentials = validation.credentials {
+            self.playlistType = 0
+            self.urlString = credentials.serverUrl
+            self.username = credentials.username
+            self.password = credentials.password
+        }
+    }
+    
     private func processPlaylist() async {
         isLoading = true
         errorMessage = nil
         
-        let targetUrl = urlString // We'll just pass the URL or build Xtream URL if needed
+        var targetUrl = urlString // We'll just pass the URL or build Xtream URL if needed
+        if playlistType == 0 {
+            let server = urlString.hasSuffix("/") ? String(urlString.dropLast()) : urlString
+            targetUrl = "\(server)/get.php?username=\(username)&password=\(password)&type=m3u_plus&output=ts"
+        }
+        
         let validationResult = IPTVValidator.validateIPTVSource(input: targetUrl)
         
         guard validationResult.isValid, let sanitizedStr = validationResult.sanitizedUrl else {
