@@ -160,37 +160,47 @@ class UserDataManager {
             }
         }
         
-        var recommendedItems: [UnifiedMediaItem] = []
-        var fallbackItems: [UnifiedMediaItem] = []
-        
         // Exclude watched items
         let unwatchedItems = allItems.filter { !watchedIds.contains($0.id) }
+        guard !unwatchedItems.isEmpty else { return [] }
+        
+        var recommendedItems: [UnifiedMediaItem] = []
         
         if watchedGenres.isEmpty {
-            return Array(unwatchedItems.shuffled().prefix(limit))
+            var items = unwatchedItems
+            let count = min(limit, items.count)
+            for i in 0..<count {
+                let randomIndex = Int.random(in: i..<items.count)
+                items.swapAt(i, randomIndex)
+                recommendedItems.append(items[i])
+            }
+            return recommendedItems
         }
         
-        for item in unwatchedItems.shuffled() {
-            if let genres = item.genres, !genres.isEmpty {
-                let itemGenres = Set(genres)
-                if !watchedGenres.isDisjoint(with: itemGenres) {
-                    recommendedItems.append(item)
-                } else {
-                    fallbackItems.append(item)
-                }
+        var matchedItems: [UnifiedMediaItem] = []
+        var fallbackItems: [UnifiedMediaItem] = []
+        
+        for item in unwatchedItems {
+            if let genres = item.genres, !watchedGenres.isDisjoint(with: Set(genres)) {
+                matchedItems.append(item)
             } else {
                 fallbackItems.append(item)
             }
-            
-            if recommendedItems.count >= limit {
-                break
-            }
         }
         
-        // Fill up to limit if needed
-        if recommendedItems.count < limit {
-            let needed = limit - recommendedItems.count
-            recommendedItems.append(contentsOf: fallbackItems.prefix(needed))
+        let matchCount = min(limit, matchedItems.count)
+        for i in 0..<matchCount {
+            let randomIndex = Int.random(in: i..<matchedItems.count)
+            matchedItems.swapAt(i, randomIndex)
+            recommendedItems.append(matchedItems[i])
+        }
+        
+        let needed = limit - recommendedItems.count
+        let fallbackCount = min(needed, fallbackItems.count)
+        for i in 0..<fallbackCount {
+            let randomIndex = Int.random(in: i..<fallbackItems.count)
+            fallbackItems.swapAt(i, randomIndex)
+            recommendedItems.append(fallbackItems[i])
         }
         
         return recommendedItems

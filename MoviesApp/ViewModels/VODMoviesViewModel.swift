@@ -42,6 +42,17 @@ class VODMoviesViewModel {
         }
     }
     
+    private static func pickRandom<T>(_ array: inout [T], limit: Int) -> [T] {
+        var result: [T] = []
+        let count = min(limit, array.count)
+        for i in 0..<count {
+            let randomIndex = Int.random(in: i..<array.count)
+            array.swapAt(i, randomIndex)
+            result.append(array[i])
+        }
+        return result
+    }
+    
     func loadCategories() async {
         let currentUrl = IPTVDataManager.shared.currentLoadedPlaylistUrl
         if let current = currentUrl, current == lastLoadedUrl, !categories.isEmpty {
@@ -53,14 +64,30 @@ class VODMoviesViewModel {
         // Populated entirely from the added playlist VOD movies (0 TMDB API calls!)
         let playlistMovies = IPTVDataManager.shared.movies
         
-        await MainActor.run {
-            if !playlistMovies.isEmpty {
-                self.trendingMovies = Array(playlistMovies.shuffled().prefix(15))
-                self.newReleases = Array(playlistMovies.prefix(15))
-                self.topRated = Array(playlistMovies.shuffled().prefix(15))
-                self.recommended = UserDataManager.shared.generateRecommendations(from: playlistMovies)
-                self.heroMovie = playlistMovies.first
-            } else {
+        if !playlistMovies.isEmpty {
+            let (trending, newR, topR, recs, hero) = await Task.detached(priority: .userInitiated) {
+                var itemsForTrending = playlistMovies
+                let trendingList = Self.pickRandom(&itemsForTrending, limit: 15)
+                
+                let newReleasesList = Array(playlistMovies.prefix(15))
+                
+                var itemsForTop = playlistMovies
+                let topRatedList = Self.pickRandom(&itemsForTop, limit: 15)
+                
+                let recommendedList = UserDataManager.shared.generateRecommendations(from: playlistMovies)
+                
+                return (trendingList, newReleasesList, topRatedList, recommendedList, playlistMovies.first)
+            }.value
+            
+            await MainActor.run {
+                self.trendingMovies = trending
+                self.newReleases = newR
+                self.topRated = topR
+                self.recommended = recs
+                self.heroMovie = hero
+            }
+        } else {
+            await MainActor.run {
                 self.trendingMovies = []
                 self.newReleases = []
                 self.topRated = []

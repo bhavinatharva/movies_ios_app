@@ -98,51 +98,43 @@ class HomeViewModel {
             self.updateFavorites()
         }
         
-        // Priority 2: Load Live TV and Live Sport listings
-        try? await Task.sleep(for: .milliseconds(50))
-        await MainActor.run {
-            self.sportsLiveNow = self.dataManager.liveChannels.filter { ch in
+        let channels = self.dataManager.liveChannels
+        let movies = self.dataManager.movies
+        let uncategorizedMovies = self.dataManager.uncategorized
+        
+        let (sports, top10, recs, recentA) = await Task.detached(priority: .userInitiated) {
+            let sportsChannels = channels.filter { ch in
                 let cat = (ch.category ?? "").lowercased()
                 let name = ch.name.lowercased()
                 return cat.contains("sport") || cat.contains("espn") || cat.contains("bein") || cat.contains("supersport") || cat.contains("sky") || cat.contains("live") || name.contains("sport")
             }.prefix(15).map { $0.toUnified }
-        }
+            
+            let top10List = Array(movies.sorted {
+                ($0.voteAverage ?? 0) > ($1.voteAverage ?? 0)
+            }.prefix(10))
+            
+            let recList = UserDataManager.shared.generateRecommendations(from: movies)
+            
+            let recentList = Array(movies.sorted {
+                let d1 = $0.addedDate ?? Date.distantPast
+                let d2 = $1.addedDate ?? Date.distantPast
+                if d1 == d2 {
+                    let y1 = Int($0.releaseDate ?? "0") ?? 0
+                    let y2 = Int($1.releaseDate ?? "0") ?? 0
+                    return y1 > y2
+                }
+                return d1 > d2
+            }.prefix(15))
+            
+            return (sportsChannels, top10List, recList, recentList)
+        }.value
         
-        // Priority 3: Load top trending VOD items
-        try? await Task.sleep(for: .milliseconds(50))
         await MainActor.run {
-            let playlistMovies = self.dataManager.movies
-            if !playlistMovies.isEmpty {
-                self.top10Movies = Array(playlistMovies.sorted {
-                    ($0.voteAverage ?? 0) > ($1.voteAverage ?? 0)
-                }.prefix(10))
-            } else {
-                self.top10Movies = []
-            }
-        }
-        
-        // Priority 4: Load recommended and recently added rails progressively
-        try? await Task.sleep(for: .milliseconds(50))
-        await MainActor.run {
-            let playlistMovies = self.dataManager.movies
-            if !playlistMovies.isEmpty {
-                self.recommended = UserDataManager.shared.generateRecommendations(from: playlistMovies)
-                self.recentlyAdded = Array(playlistMovies.sorted {
-                    let d1 = $0.addedDate ?? Date.distantPast
-                    let d2 = $1.addedDate ?? Date.distantPast
-                    if d1 == d2 {
-                        // Fallback to releaseDate year comparison if addedDate is identical or missing
-                        let y1 = Int($0.releaseDate ?? "0") ?? 0
-                        let y2 = Int($1.releaseDate ?? "0") ?? 0
-                        return y1 > y2
-                    }
-                    return d1 > d2
-                }.prefix(15))
-            } else {
-                self.recommended = []
-                self.recentlyAdded = []
-            }
-            self.uncategorized = self.dataManager.uncategorized
+            self.sportsLiveNow = sports
+            self.top10Movies = top10
+            self.recommended = recs
+            self.recentlyAdded = recentA
+            self.uncategorized = uncategorizedMovies
         }
         
         // Priority 5: Group movies into smart collections (Background thread)

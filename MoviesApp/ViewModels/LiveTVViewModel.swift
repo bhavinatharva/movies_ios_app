@@ -26,6 +26,7 @@ class LiveTVViewModel {
     
     private let playlistManager = PlaylistManager.shared
     private var lastLoadedUrl: String? = nil
+    private var filterTask: Task<Void, Never>?
     
     var favorites: [IPTVChannel] = []
     var recentlyWatched: [IPTVChannel] = []
@@ -69,22 +70,12 @@ class LiveTVViewModel {
             self.allChannels = channels
             let uniqueCategories = Array(Set(channels.compactMap { $0.category })).sorted()
             self.categories = ["All"] + uniqueCategories
-            self.filterChannels()
             
-            // Build groups on a background thread for performance
-            Task.detached(priority: .userInitiated) {
-                var tempGrouped: [String: [IPTVChannel]] = [:]
-                for channel in channels {
-                    let cat = channel.category ?? "General"
-                    tempGrouped[cat, default: []].append(channel)
-                }
-                
-                let sortedGrouped = tempGrouped.map { ($0.key, $0.value) }.sorted(by: { $0.0 < $1.0 })
-                
-                await MainActor.run {
-                    self.groupedChannels = sortedGrouped
-                }
-            }
+            // Build groups instantly from already categorized data
+            let sortedGrouped = IPTVDataManager.shared.categorizedChannels.map { ($0.key, $0.value) }.sorted(by: { $0.0 < $1.0 })
+            self.groupedChannels = sortedGrouped
+            
+            self.filterChannels()
             
             // Pre-compute user data
             self.updateUserData()
@@ -106,13 +97,35 @@ class LiveTVViewModel {
     }
     
     func filterChannels() {
-        var result = allChannels
-        if selectedCategory != "All" {
-            result = result.filter { $0.category == selectedCategory }
+        filterTask?.cancel()
+        
+        let category = selectedCategory
+        let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        let channels = allChannels
+        
+        filterTask = Task.detached(priority: .userInitiated) {
+            var result = channels
+            if category != "All" {
+                // Instantly fetch from dictionary if query is empty
+                if query.isEmpty {
+                    result = IPTVDataManager.shared.categorizedChannels[category] ?? []
+                } else {
+                    result = result.filter { $0.category == category }
+                }
+            }
+            
+            if Task.isCancelled { return }
+            
+            if !query.isEmpty {
+                result = result.filter { $0.name.localizedCaseInsensitiveContains(query) }
+            }
+            
+            if Task.isCancelled { return }
+            
+            let finalResult = result
+            await MainActor.run {
+                self.filteredChannels = finalResult
+            }
         }
-        if !searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            result = result.filter { $0.name.localizedCaseInsensitiveContains(searchQuery) }
-        }
-        filteredChannels = result
     }
 }

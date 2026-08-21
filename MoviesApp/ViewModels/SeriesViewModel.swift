@@ -52,12 +52,13 @@ class SeriesViewModel {
         // Populated entirely from the added playlist Series (0 TMDB API calls!)
         let playlistSeries = IPTVDataManager.shared.series
         
-        await MainActor.run {
-            if !playlistSeries.isEmpty {
-                self.topRated = Array(playlistSeries.sorted {
+        if !playlistSeries.isEmpty {
+            let (topR, recentA, recs, hero) = await Task.detached(priority: .userInitiated) {
+                let topRatedList = Array(playlistSeries.sorted {
                     ($0.voteAverage ?? 0) > ($1.voteAverage ?? 0)
                 }.prefix(15))
-                self.recentlyAdded = Array(playlistSeries.sorted {
+                
+                let recentlyAddedList = Array(playlistSeries.sorted {
                     let d1 = $0.addedDate ?? Date.distantPast
                     let d2 = $1.addedDate ?? Date.distantPast
                     if d1 == d2 {
@@ -67,9 +68,20 @@ class SeriesViewModel {
                     }
                     return d1 > d2
                 }.prefix(15))
-                self.recommended = UserDataManager.shared.generateRecommendations(from: playlistSeries)
-                self.heroSeries = playlistSeries.first
-            } else {
+                
+                let recommendedList = UserDataManager.shared.generateRecommendations(from: playlistSeries)
+                
+                return (topRatedList, recentlyAddedList, recommendedList, playlistSeries.first)
+            }.value
+            
+            await MainActor.run {
+                self.topRated = topR
+                self.recentlyAdded = recentA
+                self.recommended = recs
+                self.heroSeries = hero
+            }
+        } else {
+            await MainActor.run {
                 self.topRated = []
                 self.recentlyAdded = []
                 self.recommended = []
