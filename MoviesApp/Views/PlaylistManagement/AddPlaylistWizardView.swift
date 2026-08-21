@@ -136,8 +136,8 @@ struct AddPlaylistWizardView: View {
         do {
             var getRequest = URLRequest(url: url)
             getRequest.httpMethod = "GET"
-            getRequest.setValue("bytes=0-200", forHTTPHeaderField: "Range")
-            getRequest.timeoutInterval = 10
+            getRequest.setValue("VLC/3.0.11 LibVLC/3.0.11", forHTTPHeaderField: "User-Agent")
+            getRequest.timeoutInterval = 15
             
             let (data, response) = try await URLSession.shared.data(for: getRequest)
             if let httpResponse = response as? HTTPURLResponse {
@@ -153,7 +153,7 @@ struct AddPlaylistWizardView: View {
                 }
             }
         } catch {
-            errorMessage = "Connection Failed. Please check the URL and your internet connection."
+            errorMessage = "Connection Failed: \(error.localizedDescription)"
             isLoading = false
             return
         }
