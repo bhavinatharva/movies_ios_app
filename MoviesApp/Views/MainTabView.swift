@@ -10,6 +10,7 @@ struct MainTabView: View {
     @State private var selectedTab: IPTVTab = .home
     @Bindable private var dataManager = IPTVDataManager.shared
     @EnvironmentObject var globalPlayerManager: GlobalPlayerManager
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     init() {
         // Configure native iOS TabBar appearance for a premium glass translucent effect
@@ -40,16 +41,24 @@ struct MainTabView: View {
     
     var body: some View {
         ZStack {
-            TabView(selection: $selectedTab) {
-                ForEach(IPTVTab.allCases) { tab in
-                    tabViewContent(for: tab)
-                        .tabItem {
-                            Label(tab.title, systemImage: tab.systemImage)
-                        }
-                        .tag(tab)
+            if horizontalSizeClass == .regular {
+                HStack(spacing: 0) {
+                    SidebarView(selectedTab: $selectedTab)
+                    tabViewContent(for: selectedTab)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
+            } else {
+                TabView(selection: $selectedTab) {
+                    ForEach(IPTVTab.allCases) { tab in
+                        tabViewContent(for: tab)
+                            .tabItem {
+                                Label(tab.title, systemImage: tab.systemImage)
+                            }
+                            .tag(tab)
+                    }
+                }
+                .ignoresSafeArea(.keyboard, edges: .bottom)
             }
-            .ignoresSafeArea(.keyboard, edges: .bottom)
             
             // Global Persistent Mini Player Overlay
             MiniPlayerView()
@@ -84,6 +93,51 @@ struct MainTabView: View {
         case .settings:
             SettingsView()
         }
+    }
+}
+
+struct SidebarView: View {
+    @Binding var selectedTab: IPTVTab
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("MoviesApp")
+                .font(.title2)
+                .fontWeight(.black)
+                .foregroundColor(.accentColor)
+                .padding(.top, 60)
+                .padding(.bottom, 20)
+                .padding(.horizontal, 24)
+            
+            VStack(spacing: 8) {
+                ForEach(IPTVTab.allCases) { tab in
+                    Button(action: {
+                        selectedTab = tab
+                    }) {
+                        HStack(spacing: 16) {
+                            Image(systemName: tab.systemImage)
+                                .font(.title3)
+                                .frame(width: 24)
+                            Text(tab.title)
+                                .font(.headline)
+                            Spacer()
+                        }
+                        .foregroundColor(selectedTab == tab ? .white : .gray)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 14)
+                        .background(selectedTab == tab ? Color.accentColor : Color.clear)
+                        .cornerRadius(12)
+                        .padding(.horizontal, 12)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
+            }
+            Spacer()
+        }
+        .frame(width: 250)
+        .background(Color.black.opacity(0.4))
+        .background(VisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialDark)))
+        .ignoresSafeArea()
     }
 }
 

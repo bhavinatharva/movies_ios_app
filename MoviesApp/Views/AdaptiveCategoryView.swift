@@ -22,10 +22,9 @@ struct AdaptiveCategoryLayout<Content: View>: View {
     
     var body: some View {
         GeometryReader { geo in
-            let isLandscape = geo.size.width > geo.size.height
-            let isIPadLandscape = horizontalSizeClass == .regular && isLandscape
+            let isIPadLayout = horizontalSizeClass == .regular
             
-            if isIPadLandscape {
+            if isIPadLayout {
                 // Sidebar Layout
                 HStack(spacing: 0) {
                     if isSidebarExpanded {

@@ -11,6 +11,7 @@ import AVKit
 struct MiniPlayerView: View {
     @ObservedObject var playerManager = GlobalPlayerManager.shared
     @State private var dragOffset: CGSize = .zero
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     var body: some View {
         if playerManager.isMinimized && playerManager.player.currentItem != nil {
@@ -75,8 +76,8 @@ struct MiniPlayerView: View {
                 .cornerRadius(12)
                 .shadow(color: .black.opacity(0.4), radius: 8, x: 0, y: 4)
                 .padding(.horizontal, 16)
-                // Position above standard TabBar
-                .padding(.bottom, 60)
+                // Position above standard TabBar on iPhone, flush with bottom on iPad
+                .padding(.bottom, horizontalSizeClass == .regular ? 20 : 60)
                 
                 // Drag Gesture to Dismiss
                 .offset(y: dragOffset.height > 0 ? dragOffset.height : 0) // Only allow dragging downwards

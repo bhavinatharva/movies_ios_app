@@ -172,8 +172,12 @@ struct LiveChannelHorizontalRowView: View {
 struct LiveChannelCardView: View {
     let channel: IPTVChannel
     @State private var epg = MockEPGInfo(currentShow: "Loading...", nextShow: "", progress: 0.0)
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     var body: some View {
+        let w: CGFloat = horizontalSizeClass == .regular ? 240 : 160
+        let h: CGFloat = horizontalSizeClass == .regular ? 135 : 90
+        
         VStack(spacing: 0) {
             // Backdrop / Logo Area
             ZStack(alignment: .topTrailing) {
@@ -198,7 +202,7 @@ struct LiveChannelCardView: View {
                     .frame(width: 6, height: 6)
                     .padding(10)
             }
-            .frame(width: 160, height: 90)
+            .frame(width: w, height: h)
             
             // Progress Bar
             GeometryReader { geo in
@@ -222,7 +226,7 @@ struct LiveChannelCardView: View {
                     .lineLimit(1)
             }
             .padding(12)
-            .frame(width: 160, alignment: .leading)
+            .frame(width: w, alignment: .leading)
             .background(Color.white.opacity(0.02))
         }
         .premiumCardStyle()

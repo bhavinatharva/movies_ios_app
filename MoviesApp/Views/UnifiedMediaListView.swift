@@ -30,7 +30,6 @@ struct UnifiedMediaListView: View {
                         .buttonStyle(PressScaleButtonStyle())
                     }
                 }
-                .frame(height: 190)
                 .padding(.horizontal, 16)
             }
         }
@@ -40,7 +39,9 @@ struct UnifiedMediaListView: View {
 
 struct UnifiedMediaCardView: View {
     let item: UnifiedMediaItem
-    var width: CGFloat? = 140
+    var width: CGFloat? = nil
+    
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     private func fallbackCardBackground(w: CGFloat, h: CGFloat) -> some View {
         ZStack {
@@ -67,7 +68,7 @@ struct UnifiedMediaCardView: View {
     }
     
     var body: some View {
-        let cardWidth = width ?? 140
+        let cardWidth = width ?? (horizontalSizeClass == .regular ? 180 : 140)
         let cardHeight = cardWidth * 3 / 2 // Modern 2:3 aspect ratio
         
         ZStack(alignment: .bottomLeading) {

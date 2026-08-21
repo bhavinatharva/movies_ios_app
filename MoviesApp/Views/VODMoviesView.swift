@@ -10,9 +10,7 @@ struct VODMoviesView: View {
     @State private var selectedMovie: UnifiedMediaItem?
     
     private let columns = [
-        GridItem(.flexible(), spacing: 16),
-        GridItem(.flexible(), spacing: 16),
-        GridItem(.flexible(), spacing: 16)
+        GridItem(.adaptive(minimum: 110), spacing: 16)
     ]
     
     var body: some View {
