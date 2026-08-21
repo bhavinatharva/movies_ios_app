@@ -638,7 +638,7 @@ struct StreamingPlayerView: View {
     private func setupPlayer(with playbackURL: URL? = nil) {
         let finalUrl = playbackURL ?? currentUrl
         
-        playerManager.play(url: finalUrl, title: currentTitle, artwork: logoUrl)
+        playerManager.play(url: finalUrl, title: currentTitle, artwork: logoUrl, isLive: isLive)
         
         if let targetId = streamId {
             let progress = UserDataManager.shared.getProgress(id: targetId)

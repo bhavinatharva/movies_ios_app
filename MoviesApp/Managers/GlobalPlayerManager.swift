@@ -28,6 +28,10 @@ final class GlobalPlayerManager: ObservableObject {
     
     @Published var playbackError: String?
     
+    private var currentUrl: URL?
+    private var currentIsLive: Bool = false
+    private var retryCount: Int = 0
+    
     // Internal observation
     private var timeObserver: Any?
     private var itemObservation: AnyCancellable?
@@ -65,7 +69,7 @@ final class GlobalPlayerManager: ObservableObject {
         }
     }
     
-    func play(url: URL, title: String?, artwork: String?) {
+    func play(url: URL, title: String?, artwork: String?, isLive: Bool = false) {
         // If it's already playing the exact same stream, just maximize
         if let currentItem = player.currentItem, let asset = currentItem.asset as? AVURLAsset, asset.url == url {
             playbackError = nil
@@ -73,32 +77,60 @@ final class GlobalPlayerManager: ObservableObject {
             return
         }
         
-        // Prepare new stream
-        playbackError = nil
-        let options: [String: Any] = ["AVURLAssetHTTPHeaderFieldsKey": ["User-Agent": "VLC/3.0.11 LibVLC/3.0.11"]]
-        let asset = AVURLAsset(url: url, options: options)
-        let item = AVPlayerItem(asset: asset)
-        item.preferredForwardBufferDuration = 10.0
-        
-        // Observe item status for errors like timeouts
-        itemObservation?.cancel()
-        itemObservation = item.publisher(for: \.status).sink { [weak self] status in
-            guard let self = self else { return }
-            if status == .failed, let error = item.error {
-                self.playbackError = error.localizedDescription
-                self.isPlaying = false
-                print("GlobalPlayerManager Error: \(error.localizedDescription)")
-            }
-        }
-        
-        player.automaticallyWaitsToMinimizeStalling = false
-        player.replaceCurrentItem(with: item)
-        player.play()
-        
+        self.currentUrl = url
+        self.currentIsLive = isLive
+        self.retryCount = 0
         self.currentTitle = title
         self.currentArtwork = artwork
+        
+        setupNewItem(url: url)
+        
         self.isPlaying = true
         self.isMinimized = false
+    }
+    
+    private func setupNewItem(url: URL) {
+        playbackError = nil
+        let options: [String: Any] = ["AVURLAssetHTTPHeaderFieldsKey": ["User-Agent": "VLC/3.0.11 LibVLC/3.0.11"]]
+        
+        Task.detached {
+            let asset = AVURLAsset(url: url, options: options)
+            let item = AVPlayerItem(asset: asset)
+            
+            await MainActor.run {
+                if self.currentIsLive {
+                    item.preferredForwardBufferDuration = 1.0
+                } else {
+                    item.preferredForwardBufferDuration = 10.0
+                }
+                
+                // Observe item status for errors like timeouts
+                self.itemObservation?.cancel()
+                self.itemObservation = item.publisher(for: \.status).sink { [weak self] status in
+                    guard let self = self else { return }
+                    if status == .failed, let error = item.error {
+                        print("GlobalPlayerManager Error: \(error.localizedDescription)")
+                        
+                        if self.currentIsLive && self.retryCount < 3 {
+                            self.retryCount += 1
+                            print("GlobalPlayerManager: Retrying live stream (\(self.retryCount)/3)...")
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                                if self.currentUrl == url {
+                                    self.setupNewItem(url: url)
+                                }
+                            }
+                        } else {
+                            self.playbackError = error.localizedDescription
+                            self.isPlaying = false
+                        }
+                    }
+                }
+                
+                self.player.automaticallyWaitsToMinimizeStalling = true
+                self.player.replaceCurrentItem(with: item)
+                self.player.play()
+            }
+        }
     }
     
     func stop() {
