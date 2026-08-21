@@ -153,11 +153,13 @@ struct SeriesDetailView: View {
             await loadSeriesInfo()
         }
         .fullScreenCover(item: $selectedEpisode) { episode in
+            let nextInfo = getNextEpisodeInfo(for: episode)
+            
             if isM3USeries, let streamUrl = URL(string: episode.id) {
-                StreamingPlayerView(url: streamUrl, title: episode.title, streamId: episode.id)
+                StreamingPlayerView(url: streamUrl, title: episode.title, streamId: episode.id, nextEpisodeTitle: nextInfo?.title, onPlayNext: nextInfo?.action)
             } else if let creds = authManager.credentials,
                       let streamUrl = URL(string: "\(creds.serverUrl)/series/\(creds.username)/\(creds.password)/\(episode.id).\(episode.containerExtension)") {
-                StreamingPlayerView(url: streamUrl, title: episode.title, streamId: episode.id)
+                StreamingPlayerView(url: streamUrl, title: episode.title, streamId: episode.id, nextEpisodeTitle: nextInfo?.title, onPlayNext: nextInfo?.action)
             } else {
                 ZStack(alignment: .topTrailing) {
                     Color.appBackground.ignoresSafeArea()
@@ -235,6 +237,20 @@ struct SeriesDetailView: View {
                 self.isLoading = false
             }
         }
+    }
+    
+    private func getNextEpisodeInfo(for episode: XtreamEpisode) -> (title: String, action: () -> Void)? {
+        guard let episodesList = episodes[selectedSeason],
+              let currentIndex = episodesList.firstIndex(where: { $0.id == episode.id }),
+              currentIndex + 1 < episodesList.count else {
+            return nil
+        }
+        
+        let nextEp = episodesList[currentIndex + 1]
+        let title = "\(nextEp.episodeNum ?? 0). \(nextEp.title)"
+        return (title: title, action: {
+            self.selectedEpisode = nextEp
+        })
     }
 }
 

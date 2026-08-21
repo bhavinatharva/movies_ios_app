@@ -75,13 +75,15 @@ struct StreamingPlayerView: View {
         }
     }
     
-    init(url: URL, title: String, streamId: String? = nil, subtitle: String? = nil, isLive: Bool = false, logoUrl: String? = nil) {
+    init(url: URL, title: String, streamId: String? = nil, subtitle: String? = nil, isLive: Bool = false, logoUrl: String? = nil, nextEpisodeTitle: String? = nil, onPlayNext: (() -> Void)? = nil) {
         self.initialUrl = url
         self.initialTitle = title
         self.streamId = streamId
         self.subtitle = subtitle
         self.isLive = isLive
         self.logoUrl = logoUrl
+        self.nextEpisodeTitle = nextEpisodeTitle
+        self.onPlayNext = onPlayNext
         self._currentUrl = State(initialValue: url)
         self._currentTitle = State(initialValue: title)
     }
@@ -462,6 +464,19 @@ struct StreamingPlayerView: View {
                         .background(Color.white.opacity(0.15))
                         .clipShape(Circle())
                 }
+                
+                if let onPlayNext = onPlayNext {
+                    Button(action: {
+                        onPlayNext()
+                    }) {
+                        Image(systemName: "forward.end.fill")
+                            .font(.system(size: 18))
+                            .foregroundColor(.white)
+                            .frame(width: 44, height: 44)
+                            .background(Color.white.opacity(0.15))
+                            .clipShape(Circle())
+                    }
+                }
             }
             .padding(.horizontal, 40)
         }
@@ -528,9 +543,16 @@ struct StreamingPlayerView: View {
                 Spacer()
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Up Next").font(.system(size: 11, weight: .bold)).foregroundColor(.accentColor)
-                    Text("Episode 2").font(.system(size: 16, weight: .black)).foregroundColor(.white)
+                    if let title = nextEpisodeTitle {
+                        Text(title).font(.system(size: 16, weight: .black)).foregroundColor(.white)
+                    } else {
+                        Text("Next Episode").font(.system(size: 16, weight: .black)).foregroundColor(.white)
+                    }
                     HStack(spacing: 12) {
-                        Button(action: { dismiss() }) {
+                        Button(action: { 
+                            withAnimation { showNextEpisodeOverlay = false }
+                            onPlayNext?()
+                        }) {
                             Text("Play Next (\(nextEpisodeCountdown))")
                                 .font(.system(size: 12, weight: .black))
                                 .padding(.horizontal, 16).padding(.vertical, 10)
@@ -747,7 +769,11 @@ struct StreamingPlayerView: View {
             }
             if showNextEpisodeOverlay {
                 withAnimation { showNextEpisodeOverlay = false }
-                dismiss()
+                if let onPlayNext = onPlayNext {
+                    onPlayNext()
+                } else {
+                    dismiss()
+                }
             }
         }
     }
