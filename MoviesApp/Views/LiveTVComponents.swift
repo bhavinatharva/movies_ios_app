@@ -168,68 +168,59 @@ struct LiveChannelHorizontalRowView: View {
     }
 }
 
-// MARK: - Premium Channel Card View
+// MARK: - Premium Channel Row View
 struct LiveChannelCardView: View {
     let channel: IPTVChannel
+    let isSelected: Bool
     @State private var epg = MockEPGInfo(currentShow: "Loading...", nextShow: "", progress: 0.0)
-    @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    
+    init(channel: IPTVChannel, isSelected: Bool = false) {
+        self.channel = channel
+        self.isSelected = isSelected
+    }
     
     var body: some View {
-        let w: CGFloat = horizontalSizeClass == .regular ? 240 : 160
-        let h: CGFloat = horizontalSizeClass == .regular ? 135 : 90
-        
-        VStack(spacing: 0) {
-            // Backdrop / Logo Area
-            ZStack(alignment: .topTrailing) {
-                Color.white.opacity(0.03)
-                
+        HStack(spacing: 16) {
+            // Logo
+            ZStack {
+                Color.white.opacity(isSelected ? 0.2 : 0.05)
                 if let logoUrl = channel.logoUrl {
                     AsyncImage(url: logoUrl) { image in
-                        image
-                            .resizable()
-                            .scaledToFit()
-                            .padding(20)
+                        image.resizable().scaledToFit().padding(8)
                     } placeholder: {
-                        Image(systemName: "tv").font(.title).foregroundColor(.white.opacity(0.1))
+                        Image(systemName: "tv").foregroundColor(.white.opacity(isSelected ? 1.0 : 0.3))
                     }
                 } else {
-                    Image(systemName: "tv").font(.title).foregroundColor(.white.opacity(0.1))
-                }
-                
-                // Live indicator
-                Circle()
-                    .fill(Color.red)
-                    .frame(width: 6, height: 6)
-                    .padding(10)
-            }
-            .frame(width: w, height: h)
-            
-            // Progress Bar
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Rectangle().fill(Color.white.opacity(0.1))
-                    Rectangle().fill(Color.red).frame(width: geo.size.width * epg.progress)
+                    Image(systemName: "tv").foregroundColor(.white.opacity(isSelected ? 1.0 : 0.3))
                 }
             }
-            .frame(height: 3)
+            .frame(width: 80, height: 60)
+            .cornerRadius(8)
             
-            // Metadata Area
+            // Metadata
             VStack(alignment: .leading, spacing: 4) {
                 Text(channel.name)
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(.white)
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(isSelected ? .black : .white)
                     .lineLimit(1)
                 
                 Text(epg.currentShow)
-                    .font(.system(size: 11))
-                    .foregroundColor(.secondary)
+                    .font(.system(size: 13))
+                    .foregroundColor(isSelected ? .black.opacity(0.7) : .secondary)
                     .lineLimit(1)
             }
-            .padding(12)
-            .frame(width: w, alignment: .leading)
-            .background(Color.white.opacity(0.02))
+            
+            Spacer(minLength: 16)
+            
+            // Live Indicator
+            Circle()
+                .fill(Color.red)
+                .frame(width: 6, height: 6)
         }
-        .premiumCardStyle()
+        .padding(.vertical, 8)
+        .padding(.horizontal, 16)
+        .background(isSelected ? Color.white : Color.white.opacity(0.02))
+        .cornerRadius(12)
         .onAppear {
             epg = getMockEPG(for: channel.name)
         }
