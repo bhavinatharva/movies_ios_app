@@ -115,8 +115,29 @@ struct AddPlaylistWizardView: View {
         
         var targetUrl = urlString // We'll just pass the URL or build Xtream URL if needed
         if playlistType == 0 {
-            let server = urlString.hasSuffix("/") ? String(urlString.dropLast()) : urlString
-            targetUrl = "\(server)/get.php?username=\(username)&password=\(password)&type=m3u_plus&output=ts"
+            var cleanUrl = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !cleanUrl.lowercased().hasPrefix("http://") && !cleanUrl.lowercased().hasPrefix("https://") {
+                cleanUrl = "http://" + cleanUrl
+            }
+            
+            if let url = URL(string: cleanUrl), let scheme = url.scheme, let host = url.host {
+                let portStr = url.port != nil ? ":\(url.port!)" : ""
+                let server = "\(scheme)://\(host)\(portStr)"
+                
+                if var components = URLComponents(string: "\(server)/player_api.php") {
+                    components.queryItems = [
+                        URLQueryItem(name: "username", value: username.trimmingCharacters(in: .whitespacesAndNewlines)),
+                        URLQueryItem(name: "password", value: password.trimmingCharacters(in: .whitespacesAndNewlines))
+                    ]
+                    if let finalUrlString = components.url?.absoluteString {
+                        targetUrl = finalUrlString
+                    }
+                }
+            } else {
+                // Fallback if parsing fails
+                let server = urlString.hasSuffix("/") ? String(urlString.dropLast()) : urlString
+                targetUrl = "\(server)/player_api.php?username=\(username)&password=\(password)"
+            }
         }
         
         let validationResult = IPTVValidator.validateIPTVSource(input: targetUrl)
@@ -139,14 +160,27 @@ struct AddPlaylistWizardView: View {
             getRequest.setValue("VLC/3.0.11 LibVLC/3.0.11", forHTTPHeaderField: "User-Agent")
             getRequest.timeoutInterval = 15
             
-            let (data, response) = try await URLSession.shared.data(for: getRequest)
+            // Use bytes(for:) to only wait for the headers, preventing a full download of massive M3U files which causes timeouts.
+            let (asyncBytes, response) = try await URLSession.shared.bytes(for: getRequest)
             if let httpResponse = response as? HTTPURLResponse {
                 if httpResponse.statusCode == 404 || httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
                     errorMessage = "Access denied or URL invalid (Status: \(httpResponse.statusCode))."
                     isLoading = false
                     return
                 }
-                if let content = String(data: data, encoding: .utf8)?.lowercased(), content.contains("<html") {
+                
+                // Read just the first few bytes to check if it's an HTML error page
+                var initialData = Data()
+                var iterator = asyncBytes.makeAsyncIterator()
+                for _ in 0..<200 {
+                    if let byte = try await iterator.next() {
+                        initialData.append(byte)
+                    } else {
+                        break
+                    }
+                }
+                
+                if let content = String(data: initialData, encoding: .utf8)?.lowercased(), content.contains("<html") {
                     errorMessage = "Server returned an HTML page instead of playlist data."
                     isLoading = false
                     return
