@@ -6,6 +6,7 @@
 import SwiftUI
 import AVKit
 import AVFoundation
+import MediaPlayer
 
 struct StreamingPlayerView: View {
     let initialUrl: URL
@@ -14,6 +15,8 @@ struct StreamingPlayerView: View {
     var subtitle: String? = nil
     var isLive: Bool = false
     var logoUrl: String? = nil
+    var nextEpisodeTitle: String? = nil
+    var onPlayNext: (() -> Void)? = nil
     
     @Environment(\.dismiss) var dismiss
     
