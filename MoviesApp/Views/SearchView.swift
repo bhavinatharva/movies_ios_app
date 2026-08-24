@@ -31,7 +31,7 @@ struct SearchView: View {
                         ContentUnavailableView {
                             Label("Search Content", systemImage: "magnifyingglass")
                         } description: {
-                            Text("Find Live TV channels, VOD movies, and series from your M3U playlist instantly.")
+                            Text("Find Live TV channels, movies, and series from your playlist instantly.")
                         }
                         .padding(.top, 60)
                     } else if isIPTVActive && searchViewModel.iptvResults.isEmpty && !searchText.isEmpty {
