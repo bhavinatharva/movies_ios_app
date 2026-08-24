@@ -83,16 +83,17 @@ struct MovieCollectionDetailView: View {
                 
                 // Grid of movies
                 let columns = [
-                    GridItem(.flexible(), spacing: 16),
-                    GridItem(.flexible(), spacing: 16),
-                    GridItem(.flexible(), spacing: 16)
+                    GridItem(.adaptive(minimum: 110), spacing: 16)
                 ]
                 LazyVGrid(columns: columns, spacing: 16) {
                     ForEach(collection.movies) { movie in
                         Button(action: {
                             onMovieSelect(movie)
                         }) {
-                            UnifiedMediaCardView(item: movie, width: nil)
+                            GeometryReader { geo in
+                                UnifiedMediaCardView(item: movie, width: geo.size.width)
+                            }
+                            .aspectRatio(3/4, contentMode: .fit)
                         }
                         .buttonStyle(PressScaleButtonStyle())
                     }
