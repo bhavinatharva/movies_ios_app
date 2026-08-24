@@ -12,6 +12,23 @@ struct MovieCollection: Identifiable, Hashable {
     let title: String
     let movies: [UnifiedMediaItem]
     
+    init(id: String, title: String, movies: [UnifiedMediaItem]) {
+        self.id = id
+        self.title = title
+        
+        // Deduplicate movies by normalized title to prevent duplicate entries in grids
+        var seen = Set<String>()
+        var uniqueMovies: [UnifiedMediaItem] = []
+        for movie in movies {
+            let key = movie.title.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+            if !seen.contains(key) {
+                seen.insert(key)
+                uniqueMovies.append(movie)
+            }
+        }
+        self.movies = uniqueMovies
+    }
+    
     var posterPath: String? {
         // Prefer a poster from a movie that has one
         return movies.first(where: { $0.posterPath != nil && !$0.posterPath!.isEmpty })?.posterPath ?? movies.first?.posterPath
