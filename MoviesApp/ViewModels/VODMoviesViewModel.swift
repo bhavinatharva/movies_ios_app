@@ -120,7 +120,7 @@ class VODMoviesViewModel {
                 self.moviesByGenre = mappedGenres
                 
                 if let firstCat = cats.first {
-                    self.selectedCategory = firstCat
+                    // self.selectedCategory = firstCat
                     self.movies = mappedGenres[firstCat.id] ?? []
                     if self.heroMovie == nil {
                         self.heroMovie = self.movies.first

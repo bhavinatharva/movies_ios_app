@@ -57,97 +57,130 @@ struct VODMoviesView: View {
                         ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(error))
                     } else {
                         ScrollView {
-                            LazyVStack(spacing: 28) {
-                                // 1. Hero Featured Movie
-                                if let hero = viewModel.heroMovie {
-                                    IPTVHeroHeaderView(item: hero) {
-                                        UserDataManager.shared.addToHistory(hero)
-                                        selectedMovie = hero
+                            if let category = viewModel.selectedCategory {
+                                LazyVGrid(columns: [GridItem(.adaptive(minimum: 110), spacing: 16)], spacing: 16) {
+                                    ForEach(viewModel.moviesByGenre[category.id] ?? []) { movie in
+                                        GeometryReader { geo in
+                                            UnifiedMediaCardView(item: movie, width: geo.size.width)
+                                                .onTapGesture {
+                                                    UserDataManager.shared.addToHistory(movie)
+                                                    selectedMovie = movie
+                                                }
+                                        }
+                                        .aspectRatio(3/4, contentMode: .fit)
                                     }
                                 }
-                                    // 2. Continue Watching
-                                    if !viewModel.continueWatching.isEmpty {
-                                        UnifiedMediaListView(
-                                            header: "Continue Watching",
-                                            items: viewModel.continueWatching,
-                                            onSelect: { item in
-                                                UserDataManager.shared.addToHistory(item)
-                                                selectedMovie = item
-                                            }
-                                        )
-                                    }
-                                    
-                                    // 3. Trending Movies
-                                    if !viewModel.trendingMovies.isEmpty {
-                                        UnifiedMediaListView(
-                                            header: "Trending Movies",
-                                            items: viewModel.trendingMovies,
-                                            onSelect: { item in
-                                                UserDataManager.shared.addToHistory(item)
-                                                selectedMovie = item
-                                            }
-                                        )
-                                    }
-                                    
-                                    // 4. New Releases
-                                    if !viewModel.newReleases.isEmpty {
-                                        UnifiedMediaListView(
-                                            header: "New Releases",
-                                            items: viewModel.newReleases,
-                                            onSelect: { item in
-                                                UserDataManager.shared.addToHistory(item)
-                                                selectedMovie = item
-                                            }
-                                        )
-                                    }
-                                    
-                                    // 5. Recommended
-                                    if !viewModel.recommended.isEmpty {
-                                        UnifiedMediaListView(
-                                            header: "Recommended For You",
-                                            items: viewModel.recommended,
-                                            onSelect: { item in
-                                                UserDataManager.shared.addToHistory(item)
-                                                selectedMovie = item
-                                            }
-                                        )
-                                    }
-                                    
-                                    // 6. Top Rated
-                                    if !viewModel.topRated.isEmpty {
-                                        UnifiedMediaListView(
-                                            header: "Top Rated Movies",
-                                            items: viewModel.topRated,
-                                            onSelect: { item in
-                                                UserDataManager.shared.addToHistory(item)
-                                                selectedMovie = item
-                                            }
-                                        )
-                                    }
-                                    
-                                    // 7. Vertical Genre Sections with Horizontal Sliders
-                                    ForEach(viewModel.categories) { category in
-                                        VODGenreRowView(category: category, viewModel: viewModel) { movie in
-                                            UserDataManager.shared.addToHistory(movie)
-                                            selectedMovie = movie
+                                .padding(.horizontal, 16)
+                                .padding(.top, 16)
+                            } else {
+                                LazyVStack(spacing: 28) {
+                                    // 1. Hero Featured Movie
+                                    if let hero = viewModel.heroMovie {
+                                        IPTVHeroHeaderView(item: hero) {
+                                            UserDataManager.shared.addToHistory(hero)
+                                            selectedMovie = hero
                                         }
                                     }
+                                        // 2. Continue Watching
+                                        if !viewModel.continueWatching.isEmpty {
+                                            UnifiedMediaListView(
+                                                header: "Continue Watching",
+                                                items: viewModel.continueWatching,
+                                                onSelect: { item in
+                                                    UserDataManager.shared.addToHistory(item)
+                                                    selectedMovie = item
+                                                }
+                                            )
+                                        }
+                                        
+                                        // 3. Trending Movies
+                                        if !viewModel.trendingMovies.isEmpty {
+                                            UnifiedMediaListView(
+                                                header: "Trending Movies",
+                                                items: viewModel.trendingMovies,
+                                                onSelect: { item in
+                                                    UserDataManager.shared.addToHistory(item)
+                                                    selectedMovie = item
+                                                }
+                                            )
+                                        }
+                                        
+                                        // 4. New Releases
+                                        if !viewModel.newReleases.isEmpty {
+                                            UnifiedMediaListView(
+                                                header: "New Releases",
+                                                items: viewModel.newReleases,
+                                                onSelect: { item in
+                                                    UserDataManager.shared.addToHistory(item)
+                                                    selectedMovie = item
+                                                }
+                                            )
+                                        }
+                                        
+                                        // 5. Recommended
+                                        if !viewModel.recommended.isEmpty {
+                                            UnifiedMediaListView(
+                                                header: "Recommended For You",
+                                                items: viewModel.recommended,
+                                                onSelect: { item in
+                                                    UserDataManager.shared.addToHistory(item)
+                                                    selectedMovie = item
+                                                }
+                                            )
+                                        }
+                                        
+                                        // 6. Top Rated
+                                        if !viewModel.topRated.isEmpty {
+                                            UnifiedMediaListView(
+                                                header: "Top Rated Movies",
+                                                items: viewModel.topRated,
+                                                onSelect: { item in
+                                                    UserDataManager.shared.addToHistory(item)
+                                                    selectedMovie = item
+                                                }
+                                            )
+                                        }
+                                        
+                                        // 7. Vertical Genre Sections with Horizontal Sliders
+                                        ForEach(viewModel.categories) { cat in
+                                            VODGenreRowView(category: cat, viewModel: viewModel) { movie in
+                                                UserDataManager.shared.addToHistory(movie)
+                                                selectedMovie = movie
+                                            }
+                                        }
+                                }
+                                .padding(.bottom, 30) // Clear custom tab bar
                             }
-                            .padding(.bottom, 30) // Clear custom tab bar
                         }
-                        .ignoresSafeArea(edges: .top)
+                        .ignoresSafeArea(edges: viewModel.selectedCategory == nil ? .top : .init())
                     }
                 }
-            }
-            .navigationTitle(Constants.StringConstants.tabMovies)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    NavigationLink(destination: SearchView()) {
-                        Image(systemName: "magnifyingglass")
+                .navigationTitle(viewModel.selectedCategory?.categoryName ?? Constants.StringConstants.tabMovies)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItemGroup(placement: .navigationBarTrailing) {
+                        NavigationLink(destination: SearchView()) {
+                            Image(systemName: "magnifyingglass")
+                        }
+                        
+                        Menu {
+                            Button("All (Home)") {
+                                viewModel.selectedCategory = nil
+                            }
+                            
+                            ForEach(viewModel.categories, id: \.id) { category in
+                                Button(category.categoryName ?? category.id) {
+                                    viewModel.selectedCategory = category
+                                    Task {
+                                        await viewModel.loadMoviesIfNeeded(for: category.id)
+                                    }
+                                }
+                            }
+                        } label: {
+                            Image(systemName: "line.3.horizontal.decrease.circle")
+                        }
                     }
                 }
-            }
             .task {
                 if viewModel.categories.isEmpty {
                     await viewModel.loadCategories()

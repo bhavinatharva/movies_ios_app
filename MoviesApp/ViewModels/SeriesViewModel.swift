@@ -123,7 +123,7 @@ class SeriesViewModel {
                 self.seriesByGenre = mappedGenres
                 
                 if let firstCat = cats.first {
-                    self.selectedCategory = firstCat
+                    // self.selectedCategory = firstCat
                     self.series = mappedGenres[firstCat.id] ?? []
                     if self.heroSeries == nil {
                         self.heroSeries = self.series.first
