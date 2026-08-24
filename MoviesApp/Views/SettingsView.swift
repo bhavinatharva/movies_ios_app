@@ -70,7 +70,7 @@ struct SettingsView: View {
                 Text(activePlaylist?.name ?? "No Active Playlist")
                     .font(.title2)
                     .fontWeight(.bold)
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
                 
                 HStack(spacing: 6) {
                     Circle()
@@ -319,7 +319,7 @@ struct SettingsRowUIComponent<Trailing: View>: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(.body)
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
                 
                 Text(subtitle)
                     .font(.caption)
