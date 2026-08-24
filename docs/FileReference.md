@@ -13,7 +13,7 @@
 | AdultViewModel.swift | AdultTab, AdultViewModel |
 | SeriesViewModel.swift | SeriesViewModel |
 | HomeViewModel.swift | HomeViewModel |
-| RecentMoviesViewModel.swift | RecentMoviesViewModel |
+
 | ActorsViewModel.swift | ActorsViewModel |
 | SearchViewModel.swift | SearchViewModel |
 | LiveTVViewModel.swift | LiveTVViewModel |
@@ -42,13 +42,12 @@
 | MovieDetailView.swift | MovieDetailView, MovieDetailView_Previews |
 | SearchView.swift | SearchView |
 | YoutubePlayer.swift | YoutubePlayer |
-| HorizontalListView.swift | HorizontalListView |
-| MovieHorizontalListView.swift | MovieHorizontalListView |
+
 | MovieCardView.swift | MovieCardView |
 | MovieCollectionDetailView.swift | MovieCollectionDetailView |
 | PremiumPaywallView.swift | PremiumPlan, PremiumFeatureCard, PremiumPaywallView, PricingPlanCard |
 | MovieCollectionListView.swift | MovieCollectionCardView, MovieCollectionListView |
-| RecentMoviesView.swift | RecentMoviesView |
+
 | LiveTVComponents.swift | LiveChannelCardView, LiveChannelHorizontalRowView, MockEPGInfo, LiveTVHeroHeaderView, LiveMiniPlayerView |
 | UnifiedMediaDetailView.swift | UnifiedMediaDetailView |
 | HomeView.swift | HomeView, IPTVHeroHeaderView |

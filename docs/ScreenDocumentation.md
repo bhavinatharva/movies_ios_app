@@ -20,10 +20,8 @@
 - Structs: SearchView
 ## YoutubePlayer.swift
 - Structs: YoutubePlayer
-## HorizontalListView.swift
-- Structs: HorizontalListView
-## MovieHorizontalListView.swift
-- Structs: MovieHorizontalListView
+
+
 ## MovieCardView.swift
 - Structs: MovieCardView
 ## MovieCollectionDetailView.swift
@@ -32,8 +30,7 @@
 - Structs: PremiumFeatureCard, PremiumPaywallView, PricingPlanCard
 ## MovieCollectionListView.swift
 - Structs: MovieCollectionCardView, MovieCollectionListView
-## RecentMoviesView.swift
-- Structs: RecentMoviesView
+
 ## LiveTVComponents.swift
 - Structs: LiveChannelCardView, LiveChannelHorizontalRowView, MockEPGInfo, LiveTVHeroHeaderView, LiveMiniPlayerView
 ## UnifiedMediaDetailView.swift
