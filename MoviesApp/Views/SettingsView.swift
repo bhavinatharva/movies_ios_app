@@ -137,8 +137,8 @@ struct SettingsView: View {
                 SettingsRowUIComponent(
                     icon: "exclamationmark.shield.fill",
                     iconColor: .red,
-                    title: "Allow Adult Content (18+)",
-                    subtitle: "Enable access to 18+ categories for this playlist",
+                    title: "Allow 18+ Content",
+                    subtitle: "Enable access to 18+ contents",
                     trailing: Toggle("", isOn: Binding(
                         get: { self.allowAdultContent },
                         set: { newValue in
