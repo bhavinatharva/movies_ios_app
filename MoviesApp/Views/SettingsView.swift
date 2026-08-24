@@ -97,7 +97,7 @@ struct SettingsView: View {
                         icon: "tv.inset.filled",
                         iconColor: .accentColor,
                         title: "Manage Playlists",
-                        subtitle: "Add, remove, or switch active IPTV sources",
+                        subtitle: "Add, remove, or switch active playlist",
                         trailing: Image(systemName: "chevron.right").foregroundColor(.gray)
                     )
                 }
@@ -117,7 +117,7 @@ struct SettingsView: View {
                             icon: "arrow.triangle.2.circlepath",
                             iconColor: .blue,
                             title: "Refresh Content",
-                            subtitle: "Fetch latest channels and VODs manually",
+                            subtitle: "Fetch latest manually",
                             trailing: Image(systemName: "chevron.right").foregroundColor(.gray)
                         )
                     }
