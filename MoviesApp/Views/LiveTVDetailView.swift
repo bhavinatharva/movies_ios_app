@@ -14,30 +14,41 @@ struct LiveTVDetailView: View {
         getMockEPG(for: channel.name)
     }
     
-    @State private var isFullScreen = false
-    
+    // Removed isFullScreen
     var body: some View {
         ZStack {
             Color.appBackground.ignoresSafeArea()
             
             VStack(spacing: 0) {
-                // Top: Inline Player
-                ZStack(alignment: .bottomTrailing) {
-                    StreamingPlayerView(url: channel.streamUrl, title: channel.name, isLive: true, logoUrl: channel.logoUrl?.absoluteString)
-                        .frame(height: UIScreen.main.bounds.width * 9/16)
-                        .id(channel.id) // Ensure player resets when channel changes
-                    
-                    // A button to force full screen if the player's internal UI is hidden
-                    Button(action: { isFullScreen = true }) {
-                        Image(systemName: "arrow.up.left.and.arrow.down.right")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(.white)
-                            .padding(8)
-                            .background(Color.black.opacity(0.6))
-                            .clipShape(Circle())
+                // Top: Hero Image + Play Button
+                ZStack {
+                    if let logoUrl = channel.logoUrl {
+                        AsyncImage(url: logoUrl) { image in
+                            image.resizable().scaledToFill()
+                        } placeholder: {
+                            Color.black
+                        }
+                    } else {
+                        Color.black
                     }
-                    .padding(8)
+                    
+                    Color.black.opacity(0.4)
+                    
+                    Button(action: {
+                        GlobalPlayerManager.shared.play(
+                            url: channel.streamUrl,
+                            title: channel.name,
+                            artwork: channel.logoUrl?.absoluteString,
+                            isLive: true
+                        )
+                    }) {
+                        Image(systemName: "play.circle.fill")
+                            .font(.system(size: 60))
+                            .foregroundColor(.white.opacity(0.9))
+                    }
                 }
+                .frame(height: UIScreen.main.bounds.width * 9/16)
+                .clipped()
                 
                 // Bottom: Metadata and EPG
                 ScrollView(showsIndicators: false) {
@@ -133,9 +144,6 @@ struct LiveTVDetailView: View {
                     .padding(24)
                 }
             }
-        }
-        .fullScreenCover(isPresented: $isFullScreen) {
-            StreamingPlayerView(url: channel.streamUrl, title: channel.name, isLive: true, logoUrl: channel.logoUrl?.absoluteString)
         }
         .onAppear {
             UserDataManager.shared.addToHistory(channel.toUnified)

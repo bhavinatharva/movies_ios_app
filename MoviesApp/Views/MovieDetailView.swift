@@ -53,8 +53,18 @@ struct MovieDetailView: View {
                         geometry: geo,
                         onPlayTapped: {
                             if let item = playableItem {
-                                UserDataManager.shared.addToHistory(item)
-                                selectedPlayableItem = item
+                                if let url = item.streamUrl {
+                                    UserDataManager.shared.addToHistory(item)
+                                    GlobalPlayerManager.shared.play(
+                                        url: url,
+                                        title: item.title,
+                                        artwork: nil,
+                                        isLive: false,
+                                        streamId: item.id
+                                    )
+                                } else {
+                                    selectedPlayableItem = item
+                                }
                             } else if let firstVideo = viewModel.videos.first {
                                 selectedVideo = firstVideo
                             }
@@ -139,34 +149,30 @@ struct MovieDetailView: View {
                     }
                 }
             }
-            .fullScreenCover(item: $selectedPlayableItem) { item in
-                if let url = item.streamUrl {
-                    StreamingPlayerView(url: url, title: item.title, streamId: item.id)
-                } else {
-                    ZStack(alignment: .topTrailing) {
-                        Color.appBackground.ignoresSafeArea()
-                        ContentUnavailableView {
-                            Label("Cannot Play", systemImage: "play.slash")
-                        } description: {
-                            Text("No playable link found for this movie.")
-                                .foregroundColor(.secondary)
-                        } actions: {
-                            Button(action: { selectedPlayableItem = nil }) {
-                                Text("Close")
-                                    .fontWeight(.bold)
-                                    .frame(width: 120, height: 44)
-                                    .background(Color.accentColor)
-                                    .foregroundColor(.white)
-                                    .cornerRadius(22)
-                            }
-                            .buttonStyle(PressScaleButtonStyle())
-                        }
+            .fullScreenCover(item: $selectedPlayableItem) { _ in
+                ZStack(alignment: .topTrailing) {
+                    Color.appBackground.ignoresSafeArea()
+                    ContentUnavailableView {
+                        Label("Cannot Play", systemImage: "play.slash")
+                    } description: {
+                        Text("No playable link found for this movie.")
+                            .foregroundColor(.secondary)
+                    } actions: {
                         Button(action: { selectedPlayableItem = nil }) {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.title)
-                                .foregroundColor(.white.opacity(0.6))
-                                .padding()
+                            Text("Close")
+                                .fontWeight(.bold)
+                                .frame(width: 120, height: 44)
+                                .background(Color.accentColor)
+                                .foregroundColor(.white)
+                                .cornerRadius(22)
                         }
+                        .buttonStyle(PressScaleButtonStyle())
+                    }
+                    Button(action: { selectedPlayableItem = nil }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title)
+                            .foregroundColor(.white.opacity(0.6))
+                            .padding()
                     }
                 }
             }

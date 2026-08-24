@@ -7,7 +7,6 @@ import SwiftUI
 
 struct UnifiedMediaDetailView: View {
     @State private var viewModel: UnifiedMediaDetailViewModel
-    @State private var isPlaying = false
     @Environment(\.dismiss) var dismiss
     
     init(item: UnifiedMediaItem) {
@@ -79,13 +78,6 @@ struct UnifiedMediaDetailView: View {
                     .padding(.top, 50)
                 }
                 Spacer()
-            }
-        }
-        .fullScreenCover(isPresented: $isPlaying) {
-            if let url = viewModel.item.streamUrl {
-                StreamingPlayerView(url: url, title: viewModel.item.title, streamId: viewModel.item.id)
-            } else {
-                ContentUnavailableView("Stream Unavailable", systemImage: "play.slash", description: Text("No playable link found for this item."))
             }
         }
     }
@@ -235,7 +227,15 @@ struct UnifiedMediaDetailView: View {
             // Play Button
             Button(action: {
                 UserDataManager.shared.addToHistory(viewModel.item)
-                isPlaying = true
+                if let url = viewModel.item.streamUrl {
+                    GlobalPlayerManager.shared.play(
+                        url: url,
+                        title: viewModel.item.title,
+                        artwork: nil,
+                        isLive: false,
+                        streamId: viewModel.item.id
+                    )
+                }
             }) {
                 HStack {
                     Image(systemName: "play.fill")

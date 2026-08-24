@@ -22,14 +22,18 @@ final class GlobalPlayerManager: ObservableObject {
     @Published var duration: Double = 0
     @Published var isUserSeeking: Bool = false
     
-    // Metadata for the Mini-Player
+    // Metadata for the Mini-Player & Global Full Screen Player
     @Published var currentTitle: String?
     @Published var currentArtwork: String?
+    @Published var streamId: String?
+    @Published var subtitle: String?
+    @Published var isLive: Bool = false
+    @Published var nextEpisodeTitle: String?
+    @Published var onPlayNext: (() -> Void)?
     
     @Published var playbackError: String?
     
     private var currentUrl: URL?
-    private var currentIsLive: Bool = false
     private var retryCount: Int = 0
     
     // Internal observation
@@ -69,7 +73,7 @@ final class GlobalPlayerManager: ObservableObject {
         }
     }
     
-    func play(url: URL, title: String?, artwork: String?, isLive: Bool = false) {
+    func play(url: URL, title: String?, artwork: String?, isLive: Bool = false, streamId: String? = nil, subtitle: String? = nil, nextEpisodeTitle: String? = nil, onPlayNext: (() -> Void)? = nil) {
         // If it's already playing the exact same stream, just maximize
         if let currentItem = player.currentItem, let asset = currentItem.asset as? AVURLAsset, asset.url == url {
             playbackError = nil
@@ -78,10 +82,14 @@ final class GlobalPlayerManager: ObservableObject {
         }
         
         self.currentUrl = url
-        self.currentIsLive = isLive
+        self.isLive = isLive
         self.retryCount = 0
         self.currentTitle = title
         self.currentArtwork = artwork
+        self.streamId = streamId
+        self.subtitle = subtitle
+        self.nextEpisodeTitle = nextEpisodeTitle
+        self.onPlayNext = onPlayNext
         
         setupNewItem(url: url)
         
@@ -98,7 +106,7 @@ final class GlobalPlayerManager: ObservableObject {
             let item = AVPlayerItem(asset: asset)
             
             await MainActor.run {
-                if self.currentIsLive {
+                if self.isLive {
                     item.preferredForwardBufferDuration = 1.0
                 } else {
                     item.preferredForwardBufferDuration = 10.0
@@ -111,7 +119,7 @@ final class GlobalPlayerManager: ObservableObject {
                     if status == .failed, let error = item.error {
                         print("GlobalPlayerManager Error: \(error.localizedDescription)")
                         
-                        if self.currentIsLive && self.retryCount < 3 {
+                        if self.isLive && self.retryCount < 3 {
                             self.retryCount += 1
                             print("GlobalPlayerManager: Retrying live stream (\(self.retryCount)/3)...")
                             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {

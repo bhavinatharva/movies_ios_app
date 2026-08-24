@@ -68,8 +68,7 @@ struct AdultView: View {
                                             header: group.category,
                                             items: group.items,
                                             onSelect: { item in
-                                                UserDataManager.shared.addToHistory(item)
-                                                selectedPlayableItem = item
+                                                handleMediaSelection(item)
                                             }
                                         )
                                     }
@@ -88,8 +87,7 @@ struct AdultView: View {
                                                 ForEach(currentItems) { item in
                                                     UnifiedMediaCardView(item: item, width: nil)
                                                         .onTapGesture {
-                                                            UserDataManager.shared.addToHistory(item)
-                                                            selectedPlayableItem = item
+                                                            handleMediaSelection(item)
                                                         }
                                                 }
                                             }
@@ -113,8 +111,6 @@ struct AdultView: View {
         .fullScreenCover(item: $selectedPlayableItem) { item in
             if item.mediaType == .movie || item.mediaType == .tvSeries {
                 UnifiedMediaDetailView(item: item)
-            } else if let url = item.streamUrl {
-                StreamingPlayerView(url: url, title: item.title, streamId: item.id)
             } else {
                 ZStack(alignment: .topTrailing) {
                     Color.appBackground.ignoresSafeArea()
@@ -147,6 +143,25 @@ struct AdultView: View {
                             .padding()
                     }
                 }
+            }
+        }
+    }
+    
+    private func handleMediaSelection(_ item: UnifiedMediaItem) {
+        if item.mediaType == .movie || item.mediaType == .tvSeries {
+            selectedPlayableItem = item
+        } else {
+            UserDataManager.shared.addToHistory(item)
+            if let url = item.streamUrl {
+                GlobalPlayerManager.shared.play(
+                    url: url,
+                    title: item.title,
+                    artwork: item.posterPath,
+                    isLive: item.mediaType == .liveTV,
+                    streamId: item.id
+                )
+            } else {
+                selectedPlayableItem = item
             }
         }
     }

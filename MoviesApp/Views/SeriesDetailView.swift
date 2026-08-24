@@ -93,7 +93,7 @@ struct SeriesDetailView: View {
                             LazyVStack(spacing: 16) {
                                 ForEach(currentEpisodes, id: \.id) { episode in
                                     Button(action: {
-                                        selectedEpisode = episode
+                                        playEpisode(episode)
                                     }) {
                                         HStack(spacing: 12) {
                                             AsyncImage(url: URL(string: episode.info?.movieImage ?? "")) { image in
@@ -152,45 +152,36 @@ struct SeriesDetailView: View {
         .task {
             await loadSeriesInfo()
         }
-        .fullScreenCover(item: $selectedEpisode) { episode in
-            let nextInfo = getNextEpisodeInfo(for: episode)
-            
-            if isM3USeries, let streamUrl = URL(string: episode.id) {
-                StreamingPlayerView(url: streamUrl, title: episode.title, streamId: episode.id, nextEpisodeTitle: nextInfo?.title, onPlayNext: nextInfo?.action)
-            } else if let creds = authManager.credentials,
-                      let streamUrl = URL(string: "\(creds.serverUrl)/series/\(creds.username)/\(creds.password)/\(episode.id).\(episode.containerExtension)") {
-                StreamingPlayerView(url: streamUrl, title: episode.title, streamId: episode.id, nextEpisodeTitle: nextInfo?.title, onPlayNext: nextInfo?.action)
-            } else {
-                ZStack(alignment: .topTrailing) {
-                    Color.appBackground.ignoresSafeArea()
-                    
-                    ContentUnavailableView {
-                        Label("Cannot Play", systemImage: "play.slash")
-                    } description: {
-                        Text("No playable link found for this episode.")
-                            .foregroundColor(.secondary)
-                    } actions: {
-                        Button(action: {
-                            selectedEpisode = nil
-                        }) {
-                            Text("Close")
-                                .fontWeight(.bold)
-                                .frame(width: 120, height: 44)
-                                .background(Color.accentColor)
-                                .foregroundColor(.white)
-                                .cornerRadius(22)
-                        }
-                        .buttonStyle(PressScaleButtonStyle())
-                    }
-                    
+        .fullScreenCover(item: $selectedEpisode) { _ in
+            ZStack(alignment: .topTrailing) {
+                Color.appBackground.ignoresSafeArea()
+                
+                ContentUnavailableView {
+                    Label("Cannot Play", systemImage: "play.slash")
+                } description: {
+                    Text("No playable link found for this episode.")
+                        .foregroundColor(.secondary)
+                } actions: {
                     Button(action: {
                         selectedEpisode = nil
                     }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.title)
-                            .foregroundColor(.white.opacity(0.6))
-                            .padding()
+                        Text("Close")
+                            .fontWeight(.bold)
+                            .frame(width: 120, height: 44)
+                            .background(Color.accentColor)
+                            .foregroundColor(.white)
+                            .cornerRadius(22)
                     }
+                    .buttonStyle(PressScaleButtonStyle())
+                }
+                
+                Button(action: {
+                    selectedEpisode = nil
+                }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.title)
+                        .foregroundColor(.white.opacity(0.6))
+                        .padding()
                 }
             }
         }
@@ -248,9 +239,35 @@ struct SeriesDetailView: View {
         
         let nextEp = episodesList[currentIndex + 1]
         let title = "\(nextEp.episodeNum ?? 0). \(nextEp.title)"
-        return (title: title, action: {
-            self.selectedEpisode = nextEp
+        return (title: title, action: { [weak self] in
+            self?.playEpisode(nextEp)
         })
+    }
+    
+    private func playEpisode(_ episode: XtreamEpisode) {
+        let nextInfo = getNextEpisodeInfo(for: episode)
+        
+        var resolvedUrl: URL? = nil
+        if isM3USeries {
+            resolvedUrl = URL(string: episode.id)
+        } else if let creds = authManager.credentials {
+            resolvedUrl = URL(string: "\(creds.serverUrl)/series/\(creds.username)/\(creds.password)/\(episode.id).\(episode.containerExtension)")
+        }
+        
+        if let streamUrl = resolvedUrl {
+            GlobalPlayerManager.shared.play(
+                url: streamUrl,
+                title: episode.title,
+                artwork: nil,
+                isLive: false,
+                streamId: episode.id,
+                subtitle: nil,
+                nextEpisodeTitle: nextInfo?.title,
+                onPlayNext: nextInfo?.action
+            )
+        } else {
+            selectedEpisode = episode
+        }
     }
 }
 

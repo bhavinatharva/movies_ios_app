@@ -7,7 +7,6 @@ import SwiftUI
 
 struct RecentView: View {
     @Bindable private var userDataManager = UserDataManager.shared
-    @State private var selectedItem: UnifiedMediaItem?
     
     var body: some View {
         NavigationStack {
@@ -26,7 +25,15 @@ struct RecentView: View {
                             ForEach(userDataManager.recentlyWatched) { item in
                                 UnifiedMediaCardView(item: item)
                                     .onTapGesture {
-                                        selectedItem = item
+                                        if let url = item.streamUrl {
+                                            GlobalPlayerManager.shared.play(
+                                                url: url,
+                                                title: item.title,
+                                                artwork: item.posterPath,
+                                                isLive: item.mediaType == .liveTV,
+                                                streamId: item.id
+                                            )
+                                        }
                                     }
                             }
                         }
@@ -46,15 +53,6 @@ struct RecentView: View {
                         .foregroundColor(.red)
                     }
                 }
-            }
-            .fullScreenCover(item: $selectedItem) { item in
-                StreamingPlayerView(
-                    url: item.streamUrl ?? URL(string: "http://localhost")!,
-                    title: item.title,
-                    streamId: item.id,
-                    isLive: item.mediaType == .liveTV,
-                    logoUrl: item.posterPath
-                )
             }
         }
     }

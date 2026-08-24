@@ -102,40 +102,36 @@ struct HomeView: View {
             )
             .background(
                 EmptyView()
-                    .fullScreenCover(item: $selectedPlayableItem) { item in
-                        if let url = item.streamUrl {
-                            StreamingPlayerView(url: url, title: item.title, streamId: item.id)
-                        } else {
-                            ZStack(alignment: .topTrailing) {
-                                Color.appBackground.ignoresSafeArea()
-                                
-                                ContentUnavailableView {
-                                    Label("Cannot Play", systemImage: "play.slash")
-                                } description: {
-                                    Text("No streamable link found for this item.")
-                                        .foregroundColor(.secondary)
-                                } actions: {
-                                    Button(action: {
-                                        selectedPlayableItem = nil
-                                    }) {
-                                        Text("Close")
-                                            .fontWeight(.bold)
-                                            .frame(width: 120, height: 44)
-                                            .background(Color.accentColor)
-                                            .foregroundColor(.white)
-                                            .cornerRadius(22)
-                                    }
-                                    .buttonStyle(PressScaleButtonStyle())
-                                }
-                                
+                    .fullScreenCover(item: $selectedPlayableItem) { _ in
+                        ZStack(alignment: .topTrailing) {
+                            Color.appBackground.ignoresSafeArea()
+                            
+                            ContentUnavailableView {
+                                Label("Cannot Play", systemImage: "play.slash")
+                            } description: {
+                                Text("No streamable link found for this item.")
+                                    .foregroundColor(.secondary)
+                            } actions: {
                                 Button(action: {
                                     selectedPlayableItem = nil
                                 }) {
-                                    Image(systemName: "xmark.circle.fill")
-                                        .font(.title)
-                                        .foregroundColor(.white.opacity(0.6))
-                                        .padding()
+                                    Text("Close")
+                                        .fontWeight(.bold)
+                                        .frame(width: 120, height: 44)
+                                        .background(Color.accentColor)
+                                        .foregroundColor(.white)
+                                        .cornerRadius(22)
                                 }
+                                .buttonStyle(PressScaleButtonStyle())
+                            }
+                            
+                            Button(action: {
+                                selectedPlayableItem = nil
+                            }) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.title)
+                                    .foregroundColor(.white.opacity(0.6))
+                                    .padding()
                             }
                         }
                     }
@@ -178,7 +174,17 @@ struct HomeView: View {
             selectedMovieForDetail = item
         } else {
             UserDataManager.shared.addToHistory(item)
-            selectedPlayableItem = item
+            if let url = item.streamUrl {
+                GlobalPlayerManager.shared.play(
+                    url: url,
+                    title: item.title,
+                    artwork: item.posterPath,
+                    isLive: item.mediaType == .liveTV,
+                    streamId: item.id
+                )
+            } else {
+                selectedPlayableItem = item
+            }
         }
     }
     
@@ -302,7 +308,17 @@ struct HomeView: View {
                                 items: channels.map { $0.toUnified },
                                 onSelect: { item in
                                     UserDataManager.shared.addToHistory(item)
-                                    selectedPlayableItem = item
+                                    if let url = item.streamUrl {
+                                        GlobalPlayerManager.shared.play(
+                                            url: url,
+                                            title: item.title,
+                                            artwork: item.posterPath,
+                                            isLive: item.mediaType == .liveTV,
+                                            streamId: item.id
+                                        )
+                                    } else {
+                                        selectedPlayableItem = item
+                                    }
                                 }
                             )
                         }

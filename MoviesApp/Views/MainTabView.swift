@@ -69,7 +69,16 @@ struct MainTabView: View {
         )) {
             if let title = globalPlayerManager.currentTitle,
                let urlStr = globalPlayerManager.player.currentItem?.asset as? AVURLAsset {
-                StreamingPlayerView(url: urlStr.url, title: title)
+                StreamingPlayerView(
+                    url: urlStr.url,
+                    title: title,
+                    streamId: globalPlayerManager.streamId,
+                    subtitle: globalPlayerManager.subtitle,
+                    isLive: globalPlayerManager.isLive,
+                    logoUrl: globalPlayerManager.currentArtwork,
+                    nextEpisodeTitle: globalPlayerManager.nextEpisodeTitle,
+                    onPlayNext: globalPlayerManager.onPlayNext
+                )
             }
         }
         .background(

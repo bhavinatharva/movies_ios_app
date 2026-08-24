@@ -2,7 +2,6 @@ import SwiftUI
 
 struct EPGTimelineView: View {
     @StateObject private var viewModel = EPGViewModel()
-    @State private var selectedChannel: IPTVChannel?
     
     // Grid configuration
     private let hourWidth: CGFloat = 200
@@ -82,7 +81,12 @@ struct EPGTimelineView: View {
                                         .background(Color.appCardBackground)
                                         .border(Color.white.opacity(0.1), width: 0.5)
                                         .onTapGesture {
-                                            selectedChannel = channel
+                                            GlobalPlayerManager.shared.play(
+                                                url: channel.streamUrl,
+                                                title: channel.name,
+                                                artwork: channel.logoUrl?.absoluteString,
+                                                isLive: true
+                                            )
                                         }
                                         
                                         // Programs Timeline
@@ -119,9 +123,6 @@ struct EPGTimelineView: View {
         }
         .task {
             await viewModel.loadEPG()
-        }
-        .fullScreenCover(item: $selectedChannel) { channel in
-            StreamingPlayerView(url: channel.streamUrl, title: channel.name)
         }
     }
     

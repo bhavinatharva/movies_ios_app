@@ -50,7 +50,22 @@ struct SearchView: View {
                                         .onTapGesture {
                                             let generator = UIImpactFeedbackGenerator(style: .medium)
                                             generator.impactOccurred()
-                                            selectedPlayableItem = item
+                                            if item.mediaType == .movie || item.mediaType == .tvSeries {
+                                                selectedPlayableItem = item
+                                            } else {
+                                                UserDataManager.shared.addToHistory(item)
+                                                if let url = item.streamUrl {
+                                                    GlobalPlayerManager.shared.play(
+                                                        url: url,
+                                                        title: item.title,
+                                                        artwork: item.posterPath,
+                                                        isLive: item.mediaType == .liveTV,
+                                                        streamId: item.id
+                                                    )
+                                                } else {
+                                                    selectedPlayableItem = item
+                                                }
+                                            }
                                         }
                                 }
                             } else {
@@ -102,8 +117,6 @@ struct SearchView: View {
             .fullScreenCover(item: $selectedPlayableItem) { item in
                 if item.mediaType == .movie || item.mediaType == .tvSeries {
                     UnifiedMediaDetailView(item: item)
-                } else if let url = item.streamUrl {
-                    StreamingPlayerView(url: url, title: item.title, streamId: item.id)
                 } else {
                     ZStack(alignment: .topTrailing) {
                         Color.appBackground.ignoresSafeArea()
