@@ -20,62 +20,11 @@ struct SeriesView: View {
                 
                 VStack(spacing: 0) {
                     if viewModel.isLoading {
-                        ScrollView {
-                            VStack(spacing: 24) {
-                                // Skeleton Hero Header
-                                Rectangle()
-                                    .fill(Color.gray.opacity(0.15))
-                                    .frame(height: 450)
-                                    .shimmer()
-                                
-                                // Skeleton Rails
-                                ForEach(0..<3, id: \.self) { _ in
-                                    VStack(alignment: .leading, spacing: 12) {
-                                        Rectangle()
-                                            .fill(Color.gray.opacity(0.15))
-                                            .frame(width: 140, height: 20)
-                                            .padding(.horizontal, 16)
-                                            .shimmer()
-                                        
-                                        ScrollView(.horizontal, showsIndicators: false) {
-                                            HStack(spacing: 16) {
-                                                ForEach(0..<4, id: \.self) { _ in
-                                                    RoundedRectangle(cornerRadius: 12)
-                                                        .fill(Color.gray.opacity(0.1))
-                                                        .frame(width: 140, height: 210)
-                                                        .shimmer()
-                                                }
-                                            }
-                                            .padding(.horizontal, 16)
-                                        }
-                                    }
-                                }
-                            }
-                            .padding(.bottom, 40)
-                        }
+                        skeletonView
                     } else if let error = viewModel.errorMessage {
                         ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(error))
                     } else {
-                        ScrollView {
-                            if let category = viewModel.selectedCategory {
-                                LazyVGrid(columns: [GridItem(.adaptive(minimum: 110), spacing: 16)], spacing: 16) {
-                                    ForEach(viewModel.seriesByGenre[category.id] ?? []) { series in
-                                        GeometryReader { geo in
-                                            UnifiedMediaCardView(item: series, width: geo.size.width)
-                                                .onTapGesture {
-                                                    selectedDetailSeries = series
-                                                }
-                                        }
-                                        .aspectRatio(3/4, contentMode: .fit)
-                                    }
-                                }
-                                .padding(.horizontal, 16)
-                                .padding(.top, 16)
-                            } else {
-                                homeRailsView
-                            }
-                        }
-                        .ignoresSafeArea(edges: viewModel.selectedCategory == nil ? .top : .init())
+                        contentView
                     }
                 }
             }
@@ -114,6 +63,67 @@ struct SeriesView: View {
                 }
             }
         }
+    }
+    
+    @ViewBuilder
+    private var skeletonView: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                // Skeleton Hero Header
+                Rectangle()
+                    .fill(Color.gray.opacity(0.15))
+                    .frame(height: 450)
+                    .shimmer()
+                
+                // Skeleton Rails
+                ForEach(0..<3, id: \.self) { _ in
+                    VStack(alignment: .leading, spacing: 12) {
+                        Rectangle()
+                            .fill(Color.gray.opacity(0.15))
+                            .frame(width: 140, height: 20)
+                            .padding(.horizontal, 16)
+                            .shimmer()
+                        
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 16) {
+                                ForEach(0..<4, id: \.self) { _ in
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color.gray.opacity(0.1))
+                                        .frame(width: 140, height: 210)
+                                        .shimmer()
+                                }
+                            }
+                            .padding(.horizontal, 16)
+                        }
+                    }
+                }
+            }
+            .padding(.bottom, 40)
+        }
+    }
+    
+    @ViewBuilder
+    private var contentView: some View {
+        ScrollView {
+            if let category = viewModel.selectedCategory {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 110), spacing: 16)], spacing: 16) {
+                    ForEach(viewModel.seriesByGenre[category.id] ?? []) { series in
+                        GeometryReader { geo in
+                            UnifiedMediaCardView(item: series, width: geo.size.width)
+                                .onTapGesture {
+                                    selectedDetailSeries = series
+                                }
+                        }
+                        .aspectRatio(3/4, contentMode: .fit)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 16)
+            } else {
+                homeRailsView
+            }
+        }
+        .ignoresSafeArea(edges: viewModel.selectedCategory == nil ? .top : .init())
     }
     
     @ViewBuilder
