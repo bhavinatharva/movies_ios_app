@@ -239,8 +239,8 @@ struct SeriesDetailView: View {
         
         let nextEp = episodesList[currentIndex + 1]
         let title = "\(nextEp.episodeNum ?? 0). \(nextEp.title)"
-        return (title: title, action: { [weak self] in
-            self?.playEpisode(nextEp)
+        return (title: title, action: {
+            self.playEpisode(nextEp)
         })
     }
     
