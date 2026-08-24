@@ -44,6 +44,7 @@ struct SeriesDetailView: View {
                         Rectangle()
                             .fill(Color.gray.opacity(0.2))
                             .frame(height: 200)
+                            .shimmer()
                     }
                     
                     VStack(alignment: .leading, spacing: 10) {
@@ -107,6 +108,7 @@ struct SeriesDetailView: View {
                                                 RoundedRectangle(cornerRadius: 6)
                                                     .fill(Color.gray.opacity(0.3))
                                                     .frame(width: 100, height: 60)
+                                                    .shimmer()
                                                     .overlay(
                                                         Image(systemName: "play.fill")
                                                             .foregroundColor(.white)

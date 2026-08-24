@@ -62,7 +62,7 @@ struct LiveTVDetailView: View {
                                     AsyncImage(url: logoUrl) { image in
                                         image.resizable().scaledToFit().padding(8)
                                     } placeholder: {
-                                        ProgressView()
+                                        RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.1)).shimmer()
                                     }
                                 } else {
                                     Image(systemName: "tv").font(.title).foregroundColor(.white.opacity(0.5))
