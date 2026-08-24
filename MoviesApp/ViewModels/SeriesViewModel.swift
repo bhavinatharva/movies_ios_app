@@ -97,28 +97,34 @@ class SeriesViewModel {
             }
             
             let dataManager = IPTVDataManager.shared
-            // Categorize by genre
-            var catsMap: [String: [UnifiedMediaItem]] = [:]
-            for s in dataManager.series {
-                let genre = s.genres?.first ?? "General"
-                if catsMap[genre] == nil {
-                    catsMap[genre] = []
-                }
-                catsMap[genre]?.append(s)
-            }
             
-            let cats = catsMap.keys.sorted().map { name in
-                XtreamCategory(id: name, name: name)
-            }
+            let (cats, mappedGenres) = await Task.detached(priority: .userInitiated) {
+                // Categorize by genre
+                var catsMap: [String: [UnifiedMediaItem]] = [:]
+                for s in dataManager.series {
+                    let genre = s.genres?.first ?? "General"
+                    catsMap[genre, default: []].append(s)
+                }
+                
+                let categories = catsMap.keys.sorted().map { name in
+                    XtreamCategory(id: name, name: name)
+                }
+                
+                var tempByGenre: [String: [UnifiedMediaItem]] = [:]
+                for cat in categories {
+                    tempByGenre[cat.id] = catsMap[cat.id] ?? []
+                }
+                
+                return (categories, tempByGenre)
+            }.value
             
             await MainActor.run {
                 self.categories = cats
-                for cat in cats {
-                    self.seriesByGenre[cat.id] = catsMap[cat.id] ?? []
-                }
+                self.seriesByGenre = mappedGenres
+                
                 if let firstCat = cats.first {
                     self.selectedCategory = firstCat
-                    self.series = catsMap[firstCat.id] ?? []
+                    self.series = mappedGenres[firstCat.id] ?? []
                     if self.heroSeries == nil {
                         self.heroSeries = self.series.first
                     }

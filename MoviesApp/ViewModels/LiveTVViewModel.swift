@@ -74,14 +74,17 @@ class LiveTVViewModel {
         }
         
         let channels = IPTVDataManager.shared.liveChannels
+        let categorized = IPTVDataManager.shared.categorizedChannels
+        
+        let (uniqueCats, sortedGrouped) = await Task.detached(priority: .userInitiated) {
+            let unique = Array(Set(channels.compactMap { $0.category })).sorted()
+            let grouped = categorized.map { ($0.key, $0.value) }.sorted(by: { $0.0 < $1.0 })
+            return (unique, grouped)
+        }.value
         
         await MainActor.run {
             self.allChannels = channels
-            let uniqueCategories = Array(Set(channels.compactMap { $0.category })).sorted()
-            self.categories = ["All"] + uniqueCategories
-            
-            // Build groups instantly from already categorized data
-            let sortedGrouped = IPTVDataManager.shared.categorizedChannels.map { ($0.key, $0.value) }.sorted(by: { $0.0 < $1.0 })
+            self.categories = ["All"] + uniqueCats
             self.groupedChannels = sortedGrouped
             
             self.filterChannels()

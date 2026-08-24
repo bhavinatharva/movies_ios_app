@@ -104,18 +104,24 @@ class VODMoviesViewModel {
             }
             
             let dataManager = IPTVDataManager.shared
-            let cats = dataManager.categorizedMovies.keys.sorted().map { name in
-                XtreamCategory(id: name, name: name)
-            }
+            let (cats, mappedGenres) = await Task.detached(priority: .userInitiated) {
+                let sortedKeys = dataManager.categorizedMovies.keys.sorted()
+                let categories = sortedKeys.map { XtreamCategory(id: $0, name: $0) }
+                
+                var tempByGenre: [String: [UnifiedMediaItem]] = [:]
+                for cat in categories {
+                    tempByGenre[cat.id] = dataManager.categorizedMovies[cat.id] ?? []
+                }
+                return (categories, tempByGenre)
+            }.value
             
             await MainActor.run {
                 self.categories = cats
-                for cat in cats {
-                    self.moviesByGenre[cat.id] = dataManager.categorizedMovies[cat.id] ?? []
-                }
+                self.moviesByGenre = mappedGenres
+                
                 if let firstCat = cats.first {
                     self.selectedCategory = firstCat
-                    self.movies = dataManager.categorizedMovies[firstCat.id] ?? []
+                    self.movies = mappedGenres[firstCat.id] ?? []
                     if self.heroMovie == nil {
                         self.heroMovie = self.movies.first
                     }
