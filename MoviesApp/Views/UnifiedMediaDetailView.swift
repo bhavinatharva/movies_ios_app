@@ -324,8 +324,10 @@ struct UnifiedMediaDetailView: View {
                                     AsyncImage(url: actor.imageUrl) { phase in
                                         switch phase {
                                         case .empty:
-                                            ProgressView()
+                                            Circle()
+                                                .fill(Color.white.opacity(0.1))
                                                 .frame(width: 70, height: 70)
+                                                .shimmer()
                                         case .success(let image):
                                             image
                                                 .resizable()

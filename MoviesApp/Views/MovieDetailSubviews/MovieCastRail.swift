@@ -34,8 +34,10 @@ struct MovieCastRail: View {
                                 AsyncImage(url: person.imageUrl) { phase in
                                     switch phase {
                                     case .empty:
-                                        ProgressView()
+                                        Circle()
+                                            .fill(Color.gray.opacity(0.2))
                                             .frame(width: 80, height: 80)
+                                            .shimmer()
                                     case .success(let image):
                                         image
                                             .resizable()
