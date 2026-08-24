@@ -1,6 +1,5 @@
 //
 //  LiveTVView.swift
-
 //
 
 import SwiftUI
@@ -9,66 +8,43 @@ struct LiveTVView: View {
     @Environment(\.colorScheme) var colorScheme
     @AppStorage("has_default_playlist") private var hasDefaultPlaylist = false
     @AppStorage("active_playlist_url") private var activePlaylistUrl = ""
-    @State private var viewModel = LiveTVViewModel()
+    @Bindable private var dataManager = IPTVDataManager.shared
     
     // Split View State
     @State private var selectedCategory: String? = "All"
     @State private var selectedChannelForDetail: IPTVChannel?
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
+    @State private var searchQuery: String = ""
+    
+    var categories: [String] {
+        ["All"] + dataManager.categorizedChannels.keys.sorted()
+    }
+    
+    var filteredChannels: [IPTVChannel] {
+        let cat = selectedCategory ?? "All"
+        let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        var result = cat == "All" ? dataManager.liveChannels : (dataManager.categorizedChannels[cat] ?? [])
+        if !query.isEmpty {
+            result = result.filter { $0.name.localizedCaseInsensitiveContains(query) }
+        }
+        return result
+    }
     
     var body: some View {
         if !hasDefaultPlaylist {
             emptyPlaylistView
-        } else if viewModel.isLoading {
+        } else if dataManager.homeStatus == .loading || dataManager.homeStatus == .notstarted {
+            loadingSkeletonView
+        } else if case .error(let error) = dataManager.homeStatus {
             ZStack {
                 Color.appBackground.ignoresSafeArea()
-                ScrollView {
-                    VStack(spacing: 24) {
-                        // Skeleton Hero Header
-                        Rectangle()
-                            .fill(Color.gray.opacity(0.15))
-                            .frame(height: 450)
-                            .shimmer()
-                        
-                        // Skeleton Rails
-                        ForEach(0..<3, id: \.self) { _ in
-                            VStack(alignment: .leading, spacing: 12) {
-                                Rectangle()
-                                    .fill(Color.gray.opacity(0.15))
-                                    .frame(width: 140, height: 20)
-                                    .padding(.horizontal, 16)
-                                    .shimmer()
-                                
-                                ScrollView(.horizontal, showsIndicators: false) {
-                                    HStack(spacing: 16) {
-                                        ForEach(0..<4, id: \.self) { _ in
-                                            RoundedRectangle(cornerRadius: 12)
-                                                .fill(Color.gray.opacity(0.1))
-                                                .frame(width: 140, height: 210)
-                                                .shimmer()
-                                        }
-                                    }
-                                    .padding(.horizontal, 16)
-                                }
-                            }
-                        }
-                    }
-                    .padding(.bottom, 40)
-                }
-            }
-            .task(id: activePlaylistUrl) {
-                if hasDefaultPlaylist { await viewModel.loadData() }
-            }
-        } else if let error = viewModel.errorMessage {
-            ZStack {
-                Color.appBackground.ignoresSafeArea()
-                ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(error))
+                ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(error.localizedDescription))
             }
         } else {
             NavigationSplitView(columnVisibility: $columnVisibility) {
                 // Sidebar: Categories
                 List(selection: $selectedCategory) {
-                    ForEach(viewModel.categories, id: \.self) { category in
+                    ForEach(categories, id: \.self) { category in
                         NavigationLink(value: category) {
                             Text(category)
                                 .font(.headline)
@@ -76,17 +52,12 @@ struct LiveTVView: View {
                     }
                 }
                 .navigationTitle("Live TV")
-                .onChange(of: selectedCategory) { _, newCat in
-                    if let cat = newCat {
-                        viewModel.selectCategory(cat)
-                    }
-                }
             } content: {
                 // Content: Channels List
                 ScrollView {
-                    if viewModel.filteredChannels.isEmpty {
-                        if !viewModel.searchQuery.isEmpty {
-                            ContentUnavailableView.search(text: viewModel.searchQuery)
+                    if filteredChannels.isEmpty {
+                        if !searchQuery.isEmpty {
+                            ContentUnavailableView.search(text: searchQuery)
                                 .padding(.top, 40)
                         } else {
                             ContentUnavailableView("No Channels", systemImage: "tv.slash")
@@ -94,7 +65,7 @@ struct LiveTVView: View {
                         }
                     } else {
                         LazyVStack(spacing: 8) {
-                            ForEach(viewModel.filteredChannels) { channel in
+                            ForEach(filteredChannels) { channel in
                                 Button(action: {
                                     selectedChannelForDetail = channel
                                 }) {
@@ -110,11 +81,9 @@ struct LiveTVView: View {
                 .background(Color.appBackground.ignoresSafeArea())
                 .navigationTitle(selectedCategory ?? "All Channels")
                 .navigationBarTitleDisplayMode(.inline)
+                .searchable(text: $searchQuery, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search channels...")
                 .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
-                        NavigationLink(destination: SearchView()) {
-                            Image(systemName: "magnifyingglass")
-                        }
                         NavigationLink(destination: SettingsView()) {
                             Image(systemName: "gearshape.fill")
                         }
@@ -131,22 +100,49 @@ struct LiveTVView: View {
                     }
                 }
             }
-            .task(id: activePlaylistUrl) {
-                if hasDefaultPlaylist {
-                    await viewModel.loadData()
-                    if selectedChannelForDetail == nil {
-                        selectedChannelForDetail = viewModel.heroChannel ?? viewModel.allChannels.first
-                    }
+            .onAppear {
+                if selectedChannelForDetail == nil {
+                    selectedChannelForDetail = dataManager.liveChannels.first
                 }
             }
-            .onAppear {
-                viewModel.updateUserData()
-            }
-            .onChange(of: UserDataManager.shared.favorites) { _, _ in
-                viewModel.updateUserData()
-            }
-            .onChange(of: UserDataManager.shared.recentlyWatched) { _, _ in
-                viewModel.updateUserData()
+        }
+    }
+    
+    private var loadingSkeletonView: some View {
+        ZStack {
+            Color.appBackground.ignoresSafeArea()
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Skeleton Hero Header
+                    Rectangle()
+                        .fill(Color.gray.opacity(0.15))
+                        .frame(height: 450)
+                        .shimmer()
+                    
+                    // Skeleton Rails
+                    ForEach(0..<3, id: \.self) { _ in
+                        VStack(alignment: .leading, spacing: 12) {
+                            Rectangle()
+                                .fill(Color.gray.opacity(0.15))
+                                .frame(width: 140, height: 20)
+                                .padding(.horizontal, 16)
+                                .shimmer()
+                            
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 16) {
+                                    ForEach(0..<4, id: \.self) { _ in
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .fill(Color.gray.opacity(0.1))
+                                            .frame(width: 140, height: 210)
+                                            .shimmer()
+                                    }
+                                }
+                                .padding(.horizontal, 16)
+                            }
+                        }
+                    }
+                }
+                .padding(.bottom, 40)
             }
         }
     }
