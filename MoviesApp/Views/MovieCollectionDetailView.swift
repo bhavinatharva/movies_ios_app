@@ -82,8 +82,12 @@ struct MovieCollectionDetailView: View {
                 }
                 
                 // Grid of movies
-                let columns = [GridItem(.adaptive(minimum: 110), spacing: 16)]
-                LazyVGrid(columns: columns, spacing: 20) {
+                let columns = [
+                    GridItem(.flexible(), spacing: 16),
+                    GridItem(.flexible(), spacing: 16),
+                    GridItem(.flexible(), spacing: 16)
+                ]
+                LazyVGrid(columns: columns, spacing: 16) {
                     ForEach(collection.movies) { movie in
                         Button(action: {
                             onMovieSelect(movie)

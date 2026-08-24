@@ -21,7 +21,12 @@ struct RecentView: View {
                     )
                 } else {
                     ScrollView {
-                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 16)], spacing: 16) {
+                        let columns = [
+                            GridItem(.flexible(), spacing: 16),
+                            GridItem(.flexible(), spacing: 16),
+                            GridItem(.flexible(), spacing: 16)
+                        ]
+                        LazyVGrid(columns: columns, spacing: 16) {
                             ForEach(userDataManager.recentlyWatched) { item in
                                 UnifiedMediaCardView(item: item)
                                     .onTapGesture {

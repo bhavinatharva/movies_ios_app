@@ -74,8 +74,10 @@ final class GlobalPlayerManager: ObservableObject {
     }
     
     func play(url: URL, title: String?, artwork: String?, isLive: Bool = false, streamId: String? = nil, subtitle: String? = nil, nextEpisodeTitle: String? = nil, onPlayNext: (() -> Void)? = nil) {
-        // If it's already playing the exact same stream, just maximize
-        if let currentItem = player.currentItem, let asset = currentItem.asset as? AVURLAsset, asset.url == url {
+        // If it's already playing the exact same stream, just maximize.
+        // We check currentUrl instead of the AVPlayerItem to prevent a race condition 
+        // where StreamingPlayerView might re-trigger play before the first background load completes.
+        if self.currentUrl == url {
             playbackError = nil
             maximize()
             return
@@ -151,6 +153,7 @@ final class GlobalPlayerManager: ObservableObject {
         self.playbackError = nil
         self.currentTitle = nil
         self.currentArtwork = nil
+        self.currentUrl = nil
     }
     
     func togglePlayPause() {
