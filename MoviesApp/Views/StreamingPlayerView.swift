@@ -178,10 +178,20 @@ struct StreamingPlayerView: View {
                 LockScreenController(isLocked: $isLocked)
             }
             
-            // 9. Error Overlay
-            if let errorMsg = playerManager.playbackError {
-                errorOverlayView(message: errorMsg)
+        }
+        .alert("Stream Error", isPresented: Binding(
+            get: { playerManager.playbackError != nil },
+            set: { if !$0 { playerManager.playbackError = nil } }
+        )) {
+            Button("Retry") {
+                teardownPlayerView()
+                setupPlayer()
             }
+            Button("Go Back", role: .cancel) {
+                dismiss()
+            }
+        } message: {
+            Text(playerManager.playbackError ?? "Unknown error occurred.")
         }
         .statusBarHidden(true)
         .onAppear {
@@ -207,7 +217,7 @@ struct StreamingPlayerView: View {
     private var topOverlayView: some View {
         HStack(spacing: 16) {
             Button(action: {
-                playerManager.minimize()
+                playerManager.stop()
                 dismiss()
             }) {
                 Image(systemName: "chevron.left")
@@ -581,56 +591,6 @@ struct StreamingPlayerView: View {
                 .cornerRadius(12)
                 .padding(.bottom, 140)
         }.transition(.move(edge: .bottom).combined(with: .opacity))
-    }
-    
-    private func errorOverlayView(message: String) -> some View {
-        VStack(spacing: 16) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 50))
-                .foregroundColor(.yellow)
-            
-            Text("Stream Error")
-                .font(.title2)
-                .fontWeight(.bold)
-                .foregroundColor(.white)
-            
-            Text(message)
-                .font(.subheadline)
-                .foregroundColor(.white.opacity(0.8))
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 40)
-            
-            HStack(spacing: 20) {
-                Button(action: {
-                    dismiss()
-                }) {
-                    Text("Go Back")
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 12)
-                        .background(Color.white.opacity(0.2))
-                        .cornerRadius(12)
-                }
-                
-                Button(action: {
-                    teardownPlayerView()
-                    setupPlayer()
-                }) {
-                    Text("Retry")
-                        .fontWeight(.bold)
-                        .foregroundColor(.black)
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 12)
-                        .background(Color.white)
-                        .cornerRadius(12)
-                }
-            }
-            .padding(.top, 10)
-        }
-        .padding(30)
-        .background(Color.black.opacity(0.85))
-        .cornerRadius(20)
     }
     
     // MARK: - Logic Helpers

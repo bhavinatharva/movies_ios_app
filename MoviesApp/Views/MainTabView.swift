@@ -60,12 +60,10 @@ struct MainTabView: View {
                 .ignoresSafeArea(.keyboard, edges: .bottom)
             }
             
-            // Global Persistent Mini Player Overlay
-            MiniPlayerView()
         }
         .fullScreenCover(isPresented: Binding(
-            get: { !globalPlayerManager.isMinimized && globalPlayerManager.currentTitle != nil },
-            set: { _ in } // Dismissal is handled by StreamingPlayerView calling minimize()
+            get: { globalPlayerManager.currentTitle != nil },
+            set: { _ in } // Dismissal is handled by StreamingPlayerView calling stop()
         )) {
             if let title = globalPlayerManager.currentTitle,
                let urlStr = globalPlayerManager.player.currentItem?.asset as? AVURLAsset {
