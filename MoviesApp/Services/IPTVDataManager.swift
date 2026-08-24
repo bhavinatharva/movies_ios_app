@@ -11,7 +11,6 @@ import Combine
 
 enum IPTVTab: String, CaseIterable, Identifiable, Codable {
     case home
-    case search
     case recent
     case liveTV
     case vod
@@ -22,7 +21,6 @@ enum IPTVTab: String, CaseIterable, Identifiable, Codable {
     var title: String {
         switch self {
         case .home: return "Home"
-        case .search: return "Search"
         case .recent: return "Recent"
         case .liveTV: return "Live TV"
         case .vod: return "VOD"
@@ -33,7 +31,6 @@ enum IPTVTab: String, CaseIterable, Identifiable, Codable {
     var systemImage: String {
         switch self {
         case .home: return "house.fill"
-        case .search: return "magnifyingglass"
         case .recent: return "clock.fill"
         case .liveTV: return "tv.fill"
         case .vod: return "film.fill"
@@ -285,7 +282,7 @@ class IPTVDataManager {
                     AuthManager.shared.saveCredentials(creds)
                     
                     // 4. Dynamically generate tabs based on Xtream API configuration
-                    var tabs: [IPTVTab] = [.home, .search, .recent]
+                    var tabs: [IPTVTab] = [.home, .recent]
                     if !(liveCats ?? []).isEmpty || !finalChannels.isEmpty { 
                         tabs.append(.liveTV)
                     }
@@ -388,7 +385,7 @@ class IPTVDataManager {
             self.categorizedMovies = Dictionary(grouping: finalMovies) { $0.genres?.first ?? "General" }
             
             // 4. Adapt tabs dynamically based on contents parsed!
-            var tabs: [IPTVTab] = [.home, .search, .recent]
+            var tabs: [IPTVTab] = [.home, .recent]
             if !finalLive.isEmpty { 
                 tabs.append(.liveTV)
             }

@@ -124,6 +124,13 @@ struct SeriesView: View {
             }
             .navigationTitle(Constants.StringConstants.tabSeries)
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    NavigationLink(destination: SearchView()) {
+                        Image(systemName: "magnifyingglass")
+                    }
+                }
+            }
             .navigationDestination(item: $selectedDetailSeries) { series in
                 SeriesDetailView(series: series)
             }

@@ -49,8 +49,12 @@ struct RecentView: View {
             }
             .navigationTitle("Recent")
             .toolbar {
-                if !userDataManager.recentlyWatched.isEmpty {
-                    ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItemGroup(placement: .navigationBarTrailing) {
+                    NavigationLink(destination: SearchView()) {
+                        Image(systemName: "magnifyingglass")
+                    }
+                    
+                    if !userDataManager.recentlyWatched.isEmpty {
                         Button("Clear", role: .destructive) {
                             withAnimation {
                                 userDataManager.clearHistory()

@@ -98,8 +98,6 @@ struct MainTabView: View {
         switch tab {
         case .home:
             HomeView()
-        case .search:
-            SearchView()
         case .recent:
             RecentView()
         case .liveTV:

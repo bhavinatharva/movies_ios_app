@@ -95,6 +95,13 @@ struct AdultView: View {
         }
         .navigationTitle("Adult (18+)")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                NavigationLink(destination: SearchView()) {
+                    Image(systemName: "magnifyingglass")
+                }
+            }
+        }
         .task {
             await viewModel.loadAdultContent()
         }

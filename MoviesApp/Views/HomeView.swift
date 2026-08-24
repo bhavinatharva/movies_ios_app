@@ -176,6 +176,12 @@ struct HomeView: View {
             Spacer()
             
             HStack(spacing: 20) {
+                NavigationLink(destination: SearchView()) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(.white)
+                }
+                
                 if PlaylistManager.shared.fetchDefaultPlaylist()?.userConsentedAdult == true {
                     NavigationLink(destination: AdultView()) {
                         Text("Adult(18+)")

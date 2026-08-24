@@ -141,6 +141,13 @@ struct VODMoviesView: View {
             }
             .navigationTitle(Constants.StringConstants.tabMovies)
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    NavigationLink(destination: SearchView()) {
+                        Image(systemName: "magnifyingglass")
+                    }
+                }
+            }
             .task {
                 if viewModel.categories.isEmpty {
                     await viewModel.loadCategories()

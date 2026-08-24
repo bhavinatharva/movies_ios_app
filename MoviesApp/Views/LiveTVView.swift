@@ -110,6 +110,13 @@ struct LiveTVView: View {
                 .background(Color.appBackground.ignoresSafeArea())
                 .navigationTitle(selectedCategory ?? "All Channels")
                 .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        NavigationLink(destination: SearchView()) {
+                            Image(systemName: "magnifyingglass")
+                        }
+                    }
+                }
             } detail: {
                 // Detail: Player + Info
                 if let channel = selectedChannelForDetail {
