@@ -29,7 +29,7 @@ struct SearchView: View {
                     } else if isIPTVActive && searchText.isEmpty {
                         // Empty/Start state description for IPTV search
                         ContentUnavailableView {
-                            Label("Search IPTV Content", systemImage: "magnifyingglass")
+                            Label("Search Content", systemImage: "magnifyingglass")
                         } description: {
                             Text("Find Live TV channels, VOD movies, and series from your M3U playlist instantly.")
                         }
@@ -89,7 +89,7 @@ struct SearchView: View {
                     }
                 }
             }
-            .navigationTitle(isIPTVActive ? "Search IPTV" : (searchByMovies ? Constants.StringConstants.movieSearch : Constants.StringConstants.tvSearch))
+            .navigationTitle(isIPTVActive ? "Search.." : (searchByMovies ? Constants.StringConstants.movieSearch : Constants.StringConstants.tvSearch))
             .toolbar {
                 if !isIPTVActive {
                     ToolbarItem(placement: .topBarTrailing) {

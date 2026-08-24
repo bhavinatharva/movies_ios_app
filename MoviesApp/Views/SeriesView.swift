@@ -196,6 +196,9 @@ struct SeriesView: View {
             NavigationLink(destination: SearchView()) {
                 Image(systemName: "magnifyingglass")
             }
+            NavigationLink(destination: SettingsView()) {
+                Image(systemName: "gearshape.fill")
+            }
             categoryMenu
         }
     }

@@ -106,8 +106,6 @@ struct MainTabView: View {
             VODMoviesView()
         case .series:
             SeriesView()
-        case .settings:
-            SettingsView()
         }
     }
 }

@@ -115,6 +115,9 @@ struct LiveTVView: View {
                         NavigationLink(destination: SearchView()) {
                             Image(systemName: "magnifyingglass")
                         }
+                        NavigationLink(destination: SettingsView()) {
+                            Image(systemName: "gearshape.fill")
+                        }
                     }
                 }
             } detail: {

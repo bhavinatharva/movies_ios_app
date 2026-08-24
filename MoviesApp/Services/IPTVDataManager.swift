@@ -15,7 +15,6 @@ enum IPTVTab: String, CaseIterable, Identifiable, Codable {
     case liveTV
     case movies
     case series
-    case settings
     
     var id: String { self.rawValue }
     
@@ -26,7 +25,6 @@ enum IPTVTab: String, CaseIterable, Identifiable, Codable {
         case .liveTV: return "Live TV"
         case .movies: return "Movies"
         case .series: return "Series"
-        case .settings: return "Settings"
         }
     }
     
@@ -37,7 +35,6 @@ enum IPTVTab: String, CaseIterable, Identifiable, Codable {
         case .liveTV: return "tv.fill"
         case .movies: return "film.fill"
         case .series: return "play.tv.fill"
-        case .settings: return "gearshape.fill"
         }
     }
 }
@@ -48,7 +45,7 @@ class IPTVDataManager {
     static let shared = IPTVDataManager()
     
     var homeStatus: ApiFetchStatus = .notstarted
-    var availableTabs: [IPTVTab] = [.home, .recent, .settings]
+    var availableTabs: [IPTVTab] = [.home, .recent]
     
     // Loaded Playlist State
     var currentLoadedPlaylistUrl: String? = nil
@@ -213,7 +210,7 @@ class IPTVDataManager {
                 self.recommendedSeries = []
                 self.topRatedSeries = []
                 self.m3uEpisodes = [:]
-                self.availableTabs = [.home, .recent, .settings]
+                self.availableTabs = [.home, .recent]
                 self.homeStatus = .notstarted
                 self.currentLoadedPlaylistUrl = nil
             }
@@ -387,7 +384,6 @@ class IPTVDataManager {
                     if !(seriesCats ?? []).isEmpty || !finalSeries.isEmpty { 
                         tabs.append(.series) 
                     }
-                    tabs.append(.settings)
                     
                     self.availableTabs = tabs
                     self.homeStatus = .success
@@ -514,7 +510,6 @@ class IPTVDataManager {
             if !finalSeries.isEmpty { 
                 tabs.append(.series) 
             }
-            tabs.append(.settings)
             
             self.availableTabs = tabs
             self.homeStatus = .success

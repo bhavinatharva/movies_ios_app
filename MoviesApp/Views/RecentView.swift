@@ -53,6 +53,9 @@ struct RecentView: View {
                     NavigationLink(destination: SearchView()) {
                         Image(systemName: "magnifyingglass")
                     }
+                    NavigationLink(destination: SettingsView()) {
+                        Image(systemName: "gearshape.fill")
+                    }
                     
                     if !userDataManager.recentlyWatched.isEmpty {
                         Button("Clear", role: .destructive) {
