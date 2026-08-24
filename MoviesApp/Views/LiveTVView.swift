@@ -51,25 +51,30 @@ struct LiveTVView: View {
                 }
             } content: {
                 // Content: Channels List
-                List(selection: $selectedChannelForDetail) {
+                ScrollView {
                     if viewModel.filteredChannels.isEmpty {
                         if !viewModel.searchQuery.isEmpty {
                             ContentUnavailableView.search(text: viewModel.searchQuery)
+                                .padding(.top, 40)
                         } else {
                             ContentUnavailableView("No Channels", systemImage: "tv.slash")
+                                .padding(.top, 40)
                         }
                     } else {
-                        ForEach(viewModel.filteredChannels) { channel in
-                            NavigationLink(value: channel) {
-                                LiveChannelCardView(channel: channel, isSelected: selectedChannelForDetail?.id == channel.id)
+                        LazyVStack(spacing: 8) {
+                            ForEach(viewModel.filteredChannels) { channel in
+                                Button(action: {
+                                    selectedChannelForDetail = channel
+                                }) {
+                                    LiveChannelCardView(channel: channel, isSelected: selectedChannelForDetail?.id == channel.id)
+                                }
+                                .buttonStyle(PressScaleButtonStyle())
+                                .padding(.horizontal, 16)
                             }
-                            .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-                            .listRowSeparator(.hidden)
-                            .listRowBackground(Color.clear)
                         }
+                        .padding(.vertical, 8)
                     }
                 }
-                .listStyle(.plain)
                 .background(Color.appBackground.ignoresSafeArea())
                 .navigationTitle(selectedCategory ?? "All Channels")
                 .navigationBarTitleDisplayMode(.inline)
