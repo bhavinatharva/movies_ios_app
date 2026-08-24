@@ -6,7 +6,8 @@
 import SwiftUI
 
 struct VODMoviesView: View {
-    @State private var viewModel = VODMoviesViewModel()
+    @Bindable private var dataManager = IPTVDataManager.shared
+    @State private var selectedCategory: XtreamCategory?
     @State private var selectedMovie: UnifiedMediaItem?
     @State private var showingCategoryFilter = false
     
@@ -20,39 +21,32 @@ struct VODMoviesView: View {
                 Color.appBackground.ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                    if viewModel.isLoading {
+                    if dataManager.homeStatus == .loading {
                         skeletonView
-                    } else if let error = viewModel.errorMessage {
-                        ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(error))
+                    } else if case .error(let underlyingError) = dataManager.homeStatus {
+                        ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(underlyingError.localizedDescription))
                     } else {
                         contentView
                     }
                 }
             }
-            .navigationTitle(viewModel.selectedCategory?.name ?? Constants.StringConstants.tabMovies)
+            .navigationTitle(selectedCategory?.name ?? Constants.StringConstants.tabMovies)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 trailingToolbarItems
             }
             .task {
-                if viewModel.categories.isEmpty {
-                    await viewModel.loadCategories()
-                }
+                // Data is loaded globally by IPTVDataManager, no need to fetch here
             }
             .navigationDestination(item: $selectedMovie) { movie in
                 UnifiedMediaDetailView(item: movie)
             }
             .sheet(isPresented: $showingCategoryFilter) {
                 CategoryFilterView(
-                    categories: viewModel.categories,
-                    selectedCategory: viewModel.selectedCategory,
+                    categories: dataManager.vodCategories,
+                    selectedCategory: selectedCategory,
                     onSelect: { category in
-                        viewModel.selectedCategory = category
-                        if let cat = category {
-                            Task {
-                                await viewModel.loadMoviesIfNeeded(for: cat.id)
-                            }
-                        }
+                        selectedCategory = category
                     }
                 )
             }
@@ -99,9 +93,9 @@ struct VODMoviesView: View {
     @ViewBuilder
     private var contentView: some View {
         ScrollView {
-            if let category = viewModel.selectedCategory {
+            if let category = selectedCategory {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 110), spacing: 16)], spacing: 16) {
-                    ForEach(viewModel.moviesByGenre[category.id] ?? []) { movie in
+                    ForEach(dataManager.categorizedMovies[category.id] ?? []) { movie in
                         GeometryReader { geo in
                             UnifiedMediaCardView(item: movie, width: geo.size.width)
                                 .onTapGesture {
@@ -118,24 +112,25 @@ struct VODMoviesView: View {
                 homeRailsView
             }
         }
-        .ignoresSafeArea(edges: viewModel.selectedCategory == nil ? .top : .init())
+        .ignoresSafeArea(edges: selectedCategory == nil ? .top : .init())
     }
     
     @ViewBuilder
     private var homeRailsView: some View {
         LazyVStack(spacing: 28) {
             // 1. Hero Featured Movie
-            if let hero = viewModel.heroMovie {
+            if let hero = dataManager.heroMovie {
                 IPTVHeroHeaderView(item: hero) {
                     UserDataManager.shared.addToHistory(hero)
                     selectedMovie = hero
                 }
             }
             // 2. Continue Watching
-            if !viewModel.continueWatching.isEmpty {
+            let continueWatching = UserDataManager.shared.recentlyWatched.filter { $0.mediaType != .tvSeries }
+            if !continueWatching.isEmpty {
                 UnifiedMediaListView(
                     header: "Continue Watching",
-                    items: viewModel.continueWatching,
+                    items: continueWatching,
                     onSelect: { item in
                         UserDataManager.shared.addToHistory(item)
                         selectedMovie = item
@@ -144,10 +139,10 @@ struct VODMoviesView: View {
             }
             
             // 3. Trending Movies
-            if !viewModel.trendingMovies.isEmpty {
+            if !dataManager.trendingMovies.isEmpty {
                 UnifiedMediaListView(
                     header: "Trending Movies",
-                    items: viewModel.trendingMovies,
+                    items: dataManager.trendingMovies,
                     onSelect: { item in
                         UserDataManager.shared.addToHistory(item)
                         selectedMovie = item
@@ -156,10 +151,10 @@ struct VODMoviesView: View {
             }
             
             // 4. New Releases
-            if !viewModel.newReleases.isEmpty {
+            if !dataManager.newReleases.isEmpty {
                 UnifiedMediaListView(
                     header: "New Releases",
-                    items: viewModel.newReleases,
+                    items: dataManager.newReleases,
                     onSelect: { item in
                         UserDataManager.shared.addToHistory(item)
                         selectedMovie = item
@@ -168,10 +163,10 @@ struct VODMoviesView: View {
             }
             
             // 5. Recommended
-            if !viewModel.recommended.isEmpty {
+            if !dataManager.recommendedMovies.isEmpty {
                 UnifiedMediaListView(
                     header: "Recommended For You",
-                    items: viewModel.recommended,
+                    items: dataManager.recommendedMovies,
                     onSelect: { item in
                         UserDataManager.shared.addToHistory(item)
                         selectedMovie = item
@@ -180,10 +175,10 @@ struct VODMoviesView: View {
             }
             
             // 6. Top Rated
-            if !viewModel.topRated.isEmpty {
+            if !dataManager.topRatedMovies.isEmpty {
                 UnifiedMediaListView(
                     header: "Top Rated Movies",
-                    items: viewModel.topRated,
+                    items: dataManager.topRatedMovies,
                     onSelect: { item in
                         UserDataManager.shared.addToHistory(item)
                         selectedMovie = item
@@ -192,8 +187,8 @@ struct VODMoviesView: View {
             }
             
             // 7. Vertical Genre Sections with Horizontal Sliders
-            ForEach(viewModel.categories) { cat in
-                VODGenreRowView(category: cat, viewModel: viewModel) { movie in
+            ForEach(dataManager.vodCategories.prefix(15)) { cat in
+                VODGenreRowView(category: cat, dataManager: dataManager) { movie in
                     UserDataManager.shared.addToHistory(movie)
                     selectedMovie = movie
                 }
@@ -225,42 +220,17 @@ struct VODMoviesView: View {
 // MARK: - Lazy Loading Genre Row View
 struct VODGenreRowView: View {
     let category: XtreamCategory
-    var viewModel: VODMoviesViewModel
+    var dataManager: IPTVDataManager
     let onSelect: (UnifiedMediaItem) -> Void
     
     var body: some View {
         Group {
-            if let items = viewModel.moviesByGenre[category.id] {
-                if !items.isEmpty {
-                    UnifiedMediaListView(
-                        header: category.name,
-                        items: items,
-                        onSelect: onSelect
-                    )
-                }
-            } else {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(category.name)
-                        .font(.title3)
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                        .padding(.horizontal)
-                    
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 16) {
-                            ForEach(0..<4, id: \.self) { _ in
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color.gray.opacity(0.15))
-                                    .frame(width: 140, height: 186.6)
-                                    .shimmer()
-                            }
-                        }
-                        .padding(.horizontal)
-                    }
-                }
-                .task {
-                    await viewModel.loadMoviesIfNeeded(for: category.id)
-                }
+            if let items = dataManager.categorizedMovies[category.id], !items.isEmpty {
+                UnifiedMediaListView(
+                    header: category.name,
+                    items: items,
+                    onSelect: onSelect
+                )
             }
         }
     }

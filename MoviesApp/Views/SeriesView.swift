@@ -6,7 +6,8 @@
 import SwiftUI
 
 struct SeriesView: View {
-    @State private var viewModel = SeriesViewModel()
+    @Bindable private var dataManager = IPTVDataManager.shared
+    @State private var selectedCategory: XtreamCategory?
     @State private var selectedDetailSeries: UnifiedMediaItem?
     @State private var showingCategoryFilter = false
     
@@ -20,16 +21,16 @@ struct SeriesView: View {
                 Color.appBackground.ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                    if viewModel.isLoading {
+                    if dataManager.homeStatus == .loading {
                         skeletonView
-                    } else if let error = viewModel.errorMessage {
-                        ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(error))
+                    } else if case .error(let underlyingError) = dataManager.homeStatus {
+                        ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(underlyingError.localizedDescription))
                     } else {
                         contentView
                     }
                 }
             }
-            .navigationTitle(viewModel.selectedCategory?.name ?? Constants.StringConstants.tabSeries)
+            .navigationTitle(selectedCategory?.name ?? Constants.StringConstants.tabSeries)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 trailingToolbarItems
@@ -38,21 +39,14 @@ struct SeriesView: View {
                 SeriesDetailView(series: series)
             }
             .task {
-                if viewModel.categories.isEmpty {
-                    await viewModel.loadCategories()
-                }
+                // Loaded globally
             }
             .sheet(isPresented: $showingCategoryFilter) {
                 CategoryFilterView(
-                    categories: viewModel.categories,
-                    selectedCategory: viewModel.selectedCategory,
+                    categories: dataManager.seriesCategories,
+                    selectedCategory: selectedCategory,
                     onSelect: { category in
-                        viewModel.selectedCategory = category
-                        if let cat = category {
-                            Task {
-                                await viewModel.loadSeriesIfNeeded(for: cat.id)
-                            }
-                        }
+                        selectedCategory = category
                     }
                 )
             }
@@ -99,9 +93,9 @@ struct SeriesView: View {
     @ViewBuilder
     private var contentView: some View {
         ScrollView {
-            if let category = viewModel.selectedCategory {
+            if let category = selectedCategory {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 110), spacing: 16)], spacing: 16) {
-                    ForEach(viewModel.seriesByGenre[category.id] ?? []) { series in
+                    ForEach(dataManager.categorizedSeries[category.id] ?? []) { series in
                         GeometryReader { geo in
                             UnifiedMediaCardView(item: series, width: geo.size.width)
                                 .onTapGesture {
@@ -117,66 +111,78 @@ struct SeriesView: View {
                 homeRailsView
             }
         }
-        .ignoresSafeArea(edges: viewModel.selectedCategory == nil ? .top : .init())
+        .ignoresSafeArea(edges: selectedCategory == nil ? .top : .init())
     }
     
     @ViewBuilder
     private var homeRailsView: some View {
         LazyVStack(spacing: 28) {
             // 1. Featured Hero Series
-                if let hero = viewModel.heroSeries {
+                if let hero = dataManager.heroSeries {
                     IPTVHeroHeaderView(item: hero) {
                         selectedDetailSeries = hero
                     }
                 }
                 
                 // 2. Continue Watching
-                if !viewModel.continueWatching.isEmpty {
+                let continueWatching = UserDataManager.shared.recentlyWatched.filter { $0.mediaType == .tvSeries }
+                if !continueWatching.isEmpty {
                     UnifiedMediaListView(
                         header: "Continue Watching",
-                        items: viewModel.continueWatching,
+                        items: continueWatching,
                         onSelect: { item in
                             selectedDetailSeries = item
                         }
                     )
                 }
                 
-                // 3. Recently Added Episodes
-                if !viewModel.recentlyAdded.isEmpty {
+                // 3. Trending Series
+                if !dataManager.trendingSeries.isEmpty {
                     UnifiedMediaListView(
-                        header: "Recently Added Episodes",
-                        items: viewModel.recentlyAdded,
+                        header: "Trending Series",
+                        items: dataManager.trendingSeries,
                         onSelect: { item in
                             selectedDetailSeries = item
                         }
                     )
                 }
                 
-                // 6. Recommended For You
-                if !viewModel.recommended.isEmpty {
+                // 4. New Releases
+                if !dataManager.newReleaseSeries.isEmpty {
+                    UnifiedMediaListView(
+                        header: "New Releases",
+                        items: dataManager.newReleaseSeries,
+                        onSelect: { item in
+                            selectedDetailSeries = item
+                        }
+                    )
+                }
+                
+                // 5. Recommended For You
+                if !dataManager.recommendedSeries.isEmpty {
                     UnifiedMediaListView(
                         header: "Recommended For You",
-                        items: viewModel.recommended,
+                        items: dataManager.recommendedSeries,
                         onSelect: { item in
                             selectedDetailSeries = item
                         }
                     )
                 }
                 
-                // 7. Top Rated
-                if !viewModel.topRated.isEmpty {
+                // 6. Top Rated
+                if !dataManager.topRatedSeries.isEmpty {
                     UnifiedMediaListView(
                         header: "Top Rated Series",
-                        items: viewModel.topRated,
+                        items: dataManager.topRatedSeries,
                         onSelect: { item in
                             selectedDetailSeries = item
                         }
                     )
                 }
                 
-                // 8. Vertical Genre Sections with Horizontal Sliders
-                ForEach(viewModel.categories) { category in
-                    SeriesGenreRowView(category: category, viewModel: viewModel) { series in
+                // 7. Vertical Genre Sections with Horizontal Sliders
+                ForEach(dataManager.seriesCategories.prefix(15)) { category in
+                    SeriesGenreRowView(category: category, dataManager: dataManager) { series in
                         selectedDetailSeries = series
                     }
                 }
@@ -207,42 +213,17 @@ struct SeriesView: View {
 // MARK: - Lazy Loading Genre Row View for Series
 struct SeriesGenreRowView: View {
     let category: XtreamCategory
-    var viewModel: SeriesViewModel
+    var dataManager: IPTVDataManager
     let onSelect: (UnifiedMediaItem) -> Void
     
     var body: some View {
         Group {
-            if let items = viewModel.seriesByGenre[category.id] {
-                if !items.isEmpty {
-                    UnifiedMediaListView(
-                        header: category.name,
-                        items: items,
-                        onSelect: onSelect
-                    )
-                }
-            } else {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(category.name)
-                        .font(.title3)
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                        .padding(.horizontal)
-                    
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 16) {
-                            ForEach(0..<4, id: \.self) { _ in
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color.gray.opacity(0.15))
-                                    .frame(width: 140, height: 186.6)
-                                    .shimmer()
-                            }
-                        }
-                        .padding(.horizontal)
-                    }
-                }
-                .task {
-                    await viewModel.loadSeriesIfNeeded(for: category.id)
-                }
+            if let items = dataManager.categorizedSeries[category.id], !items.isEmpty {
+                UnifiedMediaListView(
+                    header: category.name,
+                    items: items,
+                    onSelect: onSelect
+                )
             }
         }
     }

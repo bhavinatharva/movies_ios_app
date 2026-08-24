@@ -66,6 +66,25 @@ class IPTVDataManager {
     // Categorized stores for fast retrieval
     var categorizedChannels: [String: [IPTVChannel]] = [:]
     var categorizedMovies: [String: [UnifiedMediaItem]] = [:]
+    var categorizedSeries: [String: [UnifiedMediaItem]] = [:]
+    
+    // Categories metadata
+    var vodCategories: [XtreamCategory] = []
+    var seriesCategories: [XtreamCategory] = []
+    
+    // Curated content for Movies
+    var heroMovie: UnifiedMediaItem?
+    var trendingMovies: [UnifiedMediaItem] = []
+    var newReleases: [UnifiedMediaItem] = []
+    var recommendedMovies: [UnifiedMediaItem] = []
+    var topRatedMovies: [UnifiedMediaItem] = []
+    
+    // Curated content for Series
+    var heroSeries: UnifiedMediaItem?
+    var trendingSeries: [UnifiedMediaItem] = []
+    var newReleaseSeries: [UnifiedMediaItem] = []
+    var recommendedSeries: [UnifiedMediaItem] = []
+    var topRatedSeries: [UnifiedMediaItem] = []
     
     // Cache for M3U TV Series Episodes
     // Series ID -> [SeasonNumberString: [XtreamEpisode]]
@@ -155,6 +174,19 @@ class IPTVDataManager {
                 self.uncategorized = []
                 self.categorizedChannels = [:]
                 self.categorizedMovies = [:]
+                self.categorizedSeries = [:]
+                self.vodCategories = []
+                self.seriesCategories = []
+                self.heroMovie = nil
+                self.trendingMovies = []
+                self.newReleases = []
+                self.recommendedMovies = []
+                self.topRatedMovies = []
+                self.heroSeries = nil
+                self.trendingSeries = []
+                self.newReleaseSeries = []
+                self.recommendedSeries = []
+                self.topRatedSeries = []
                 self.m3uEpisodes = [:]
                 self.currentLoadedPlaylistUrl = nil
             }
@@ -167,6 +199,19 @@ class IPTVDataManager {
                 self.uncategorized = []
                 self.categorizedChannels = [:]
                 self.categorizedMovies = [:]
+                self.categorizedSeries = [:]
+                self.vodCategories = []
+                self.seriesCategories = []
+                self.heroMovie = nil
+                self.trendingMovies = []
+                self.newReleases = []
+                self.recommendedMovies = []
+                self.topRatedMovies = []
+                self.heroSeries = nil
+                self.trendingSeries = []
+                self.newReleaseSeries = []
+                self.recommendedSeries = []
+                self.topRatedSeries = []
                 self.m3uEpisodes = [:]
                 self.availableTabs = [.home, .recent, .settings]
                 self.homeStatus = .notstarted
@@ -271,6 +316,38 @@ class IPTVDataManager {
                 let finalVODs = AdultContentDetector.filterAdultMedia(unifiedVODs, consented: consented)
                 let finalSeries = AdultContentDetector.filterAdultMedia(unifiedSeries, consented: consented)
                 
+                let finalCategorizedSeries = Dictionary(grouping: finalSeries) { $0.genres?.first ?? "General" }
+                
+                let (trending, newR, topR, recs, hero, tSeries, nSeries, topSeries, rSeries, hSeries, vCats, sCats) = await Task.detached(priority: .userInitiated) {
+                    var itemsForTrending = finalVODs
+                    let trendingList = IPTVDataManager.pickRandom(&itemsForTrending, limit: 15)
+                    
+                    let newReleasesList = Array(finalVODs.prefix(15))
+                    
+                    var itemsForTop = finalVODs
+                    let topRatedList = IPTVDataManager.pickRandom(&itemsForTop, limit: 15)
+                    
+                    let recommendedList = UserDataManager.shared.generateRecommendations(from: finalVODs)
+                    
+                    var itemsForTrendingSeries = finalSeries
+                    let tSeriesList = IPTVDataManager.pickRandom(&itemsForTrendingSeries, limit: 15)
+                    
+                    let nSeriesList = Array(finalSeries.prefix(15))
+                    
+                    var itemsForTopSeries = finalSeries
+                    let topSeriesList = IPTVDataManager.pickRandom(&itemsForTopSeries, limit: 15)
+                    
+                    let rSeriesList = UserDataManager.shared.generateRecommendations(from: finalSeries)
+                    
+                    let sortedVODKeys = Dictionary(grouping: finalVODs) { $0.genres?.first ?? "General" }.keys.sorted()
+                    let vCatsList = sortedVODKeys.map { XtreamCategory(id: $0, name: $0) }
+                    
+                    let sortedSeriesKeys = finalCategorizedSeries.keys.sorted()
+                    let sCatsList = sortedSeriesKeys.map { XtreamCategory(id: $0, name: $0) }
+                    
+                    return (trendingList, newReleasesList, topRatedList, recommendedList, finalVODs.first, tSeriesList, nSeriesList, topSeriesList, rSeriesList, finalSeries.first, vCatsList, sCatsList)
+                }.value
+                
                 await MainActor.run {
                     // Sync loaded channels and media items
                     self.liveChannels = finalChannels
@@ -280,6 +357,21 @@ class IPTVDataManager {
                     self.categorizedMovies = Dictionary(grouping: finalVODs) { $0.genres?.first ?? "General" }
                     
                     self.series = finalSeries
+                    self.categorizedSeries = finalCategorizedSeries
+                    
+                    self.heroMovie = hero
+                    self.trendingMovies = trending
+                    self.newReleases = newR
+                    self.topRatedMovies = topR
+                    self.recommendedMovies = recs
+                    self.vodCategories = (vodCats ?? []).isEmpty ? vCats : vodCats!
+                    
+                    self.heroSeries = hSeries
+                    self.trendingSeries = tSeries
+                    self.newReleaseSeries = nSeries
+                    self.topRatedSeries = topSeries
+                    self.recommendedSeries = rSeries
+                    self.seriesCategories = (seriesCats ?? []).isEmpty ? sCats : seriesCats!
                     
                     // Save credentials in AuthManager so sub-viewmodels can fetch VOD/Series details later
                     AuthManager.shared.saveCredentials(creds)
@@ -389,6 +481,27 @@ class IPTVDataManager {
             
             self.categorizedChannels = Dictionary(grouping: finalLive) { $0.category ?? "General" }
             self.categorizedMovies = Dictionary(grouping: finalMovies) { $0.genres?.first ?? "General" }
+            self.categorizedSeries = Dictionary(grouping: finalSeries) { $0.genres?.first ?? "General" }
+            
+            let sortedVODKeys = self.categorizedMovies.keys.sorted()
+            self.vodCategories = sortedVODKeys.map { XtreamCategory(id: $0, name: $0) }
+            
+            let sortedSeriesKeys = self.categorizedSeries.keys.sorted()
+            self.seriesCategories = sortedSeriesKeys.map { XtreamCategory(id: $0, name: $0) }
+            
+            self.heroMovie = finalMovies.first
+            var trendingMvs = finalMovies
+            self.trendingMovies = IPTVDataManager.pickRandom(&trendingMvs, limit: 15)
+            self.newReleases = Array(finalMovies.prefix(15))
+            var topRatedMvs = finalMovies
+            self.topRatedMovies = IPTVDataManager.pickRandom(&topRatedMvs, limit: 15)
+            
+            self.heroSeries = finalSeries.first
+            var trendingSrs = finalSeries
+            self.trendingSeries = IPTVDataManager.pickRandom(&trendingSrs, limit: 15)
+            self.newReleaseSeries = Array(finalSeries.prefix(15))
+            var topRatedSrs = finalSeries
+            self.topRatedSeries = IPTVDataManager.pickRandom(&topRatedSrs, limit: 15)
             
             // 4. Adapt tabs dynamically based on contents parsed!
             var tabs: [IPTVTab] = [.home, .recent]
@@ -496,5 +609,16 @@ class IPTVDataManager {
         }
         
         return ParsedSeriesResult(seriesList: seriesList, episodesMap: episodesMap)
+    }
+    
+    nonisolated private static func pickRandom<T>(_ array: inout [T], limit: Int) -> [T] {
+        var result: [T] = []
+        let count = min(limit, array.count)
+        for i in 0..<count {
+            let randomIndex = Int.random(in: i..<array.count)
+            array.swapAt(i, randomIndex)
+            result.append(array[i])
+        }
+        return result
     }
 }
