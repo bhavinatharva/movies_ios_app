@@ -60,15 +60,18 @@ class AdultViewModel {
         
         // 1. Get adult live channels
         let allLive = IPTVDataManager.shared.liveChannels
-        let liveChs = allLive
-            .filter { $0.isAdult }
-            .map { $0.toUnified }
         
-        var tempGroupedLive: [String: [UnifiedMediaItem]] = [:]
-        for channel in allLive where channel.isAdult {
-            let catName = channel.category ?? "Live"
-            tempGroupedLive[catName, default: []].append(channel.toUnified)
-        }
+        let (liveChs, tempGroupedLive) = await Task.detached(priority: .userInitiated) {
+            let filteredLive = allLive.filter { $0.isAdult }
+            let mappedLive = filteredLive.map { $0.toUnified }
+            
+            var grouped: [String: [UnifiedMediaItem]] = [:]
+            for channel in filteredLive {
+                let catName = channel.category ?? "Live"
+                grouped[catName, default: []].append(channel.toUnified)
+            }
+            return (mappedLive, grouped)
+        }.value
         
         // 2. Fetch/Filter Movies & Series
         var tempGroupedMovies: [String: [UnifiedMediaItem]] = [:]

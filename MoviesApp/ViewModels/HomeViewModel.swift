@@ -61,23 +61,32 @@ class HomeViewModel {
             return
         }
         
-        var items: [UnifiedMediaItem] = []
-        for ch in dataManager.liveChannels {
-            if favIds.contains(ch.toUnified.id) {
-                items.append(ch.toUnified)
+        // Copy arrays locally to avoid threading issues with dataManager
+        let liveChannels = dataManager.liveChannels
+        let movies = dataManager.movies
+        let series = dataManager.series
+        
+        Task.detached(priority: .userInitiated) {
+            var items: [UnifiedMediaItem] = []
+            for ch in liveChannels {
+                if favIds.contains(ch.toUnified.id) {
+                    items.append(ch.toUnified)
+                }
+            }
+            for mv in movies {
+                if favIds.contains(mv.id) {
+                    items.append(mv)
+                }
+            }
+            for sr in series {
+                if favIds.contains(sr.id) {
+                    items.append(sr)
+                }
+            }
+            await MainActor.run {
+                self.favorites = items
             }
         }
-        for mv in dataManager.movies {
-            if favIds.contains(mv.id) {
-                items.append(mv)
-            }
-        }
-        for sr in dataManager.series {
-            if favIds.contains(sr.id) {
-                items.append(sr)
-            }
-        }
-        self.favorites = items
     }
     
     func refreshContent() async {

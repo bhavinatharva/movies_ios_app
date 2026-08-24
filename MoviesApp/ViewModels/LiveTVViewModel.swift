@@ -37,10 +37,19 @@ class LiveTVViewModel {
     
     func updateUserData() {
         let favIds = UserDataManager.shared.favorites
-        self.favorites = allChannels.filter { favIds.contains($0.toUnified.id) }
-        
         let historyIds = UserDataManager.shared.recentlyWatched.filter { $0.mediaType == .liveTV }.map { $0.id }
-        self.recentlyWatched = allChannels.filter { historyIds.contains($0.toUnified.id) }
+        
+        let all = allChannels
+        
+        Task.detached(priority: .userInitiated) {
+            let favs = all.filter { favIds.contains($0.toUnified.id) }
+            let history = all.filter { historyIds.contains($0.toUnified.id) }
+            
+            await MainActor.run {
+                self.favorites = favs
+                self.recentlyWatched = history
+            }
+        }
     }
     
     func loadData() async {
