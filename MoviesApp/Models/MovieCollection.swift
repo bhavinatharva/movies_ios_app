@@ -53,6 +53,63 @@ struct MovieCollection: Identifiable, Hashable {
     }
     
     static func == (lhs: MovieCollection, rhs: MovieCollection) -> Bool {
-        lhs.id == rhs.id
+        return lhs.id == rhs.id
+    }
+    
+    var subCollections: [(name: String, movies: [UnifiedMediaItem])] {
+        var groups: [String: [UnifiedMediaItem]] = [:]
+        
+        for movie in movies {
+            let title = movie.title
+            var groupName = "Other"
+            
+            var cleanedTitle = title
+            let prefixesToRemove = ["The ", "A ", "An "]
+            for prefix in prefixesToRemove {
+                if cleanedTitle.lowercased().hasPrefix(prefix.lowercased()) {
+                    cleanedTitle = String(cleanedTitle.dropFirst(prefix.count))
+                    break
+                }
+            }
+            
+            if let colonRange = cleanedTitle.range(of: ":") {
+                groupName = String(cleanedTitle[..<colonRange.lowerBound]).trimmingCharacters(in: .whitespaces)
+            } else if let dashRange = cleanedTitle.range(of: " - ") {
+                groupName = String(cleanedTitle[..<dashRange.lowerBound]).trimmingCharacters(in: .whitespaces)
+            } else {
+                if let firstWord = cleanedTitle.components(separatedBy: " ").first, firstWord.count > 2 {
+                    groupName = firstWord
+                } else {
+                    groupName = cleanedTitle
+                }
+            }
+            
+            groups[groupName, default: []].append(movie)
+        }
+        
+        var finalGroups: [(name: String, movies: [UnifiedMediaItem])] = []
+        var others: [UnifiedMediaItem] = []
+        
+        for (name, items) in groups {
+            if items.count > 1 {
+                finalGroups.append((name: "\(name) Movies", movies: items.sorted { ($0.releaseDate ?? "") < ($1.releaseDate ?? "") }))
+            } else {
+                others.append(contentsOf: items)
+            }
+        }
+        
+        finalGroups.sort { $0.movies.count > $1.movies.count }
+        
+        if !others.isEmpty {
+            if finalGroups.isEmpty {
+                return [("Movies in Collection", movies)]
+            } else {
+                others.sort { ($0.releaseDate ?? "") < ($1.releaseDate ?? "") }
+                // Only add 'Other Movies' if we actually formed subgroups
+                finalGroups.append((name: "Other Movies", movies: others))
+            }
+        }
+        
+        return finalGroups
     }
 }

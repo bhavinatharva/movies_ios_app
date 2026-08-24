@@ -81,24 +81,16 @@ struct MovieCollectionDetailView: View {
                     .padding(20)
                 }
                 
-                // Grid of movies
-                let columns = [
-                    GridItem(.adaptive(minimum: 110), spacing: 16)
-                ]
-                LazyVGrid(columns: columns, spacing: 16) {
-                    ForEach(collection.movies) { movie in
-                        Button(action: {
-                            onMovieSelect(movie)
-                        }) {
-                            GeometryReader { geo in
-                                UnifiedMediaCardView(item: movie, width: geo.size.width)
-                            }
-                            .aspectRatio(3/4, contentMode: .fit)
-                        }
-                        .buttonStyle(PressScaleButtonStyle())
+                VStack(spacing: 16) {
+                    ForEach(collection.subCollections, id: \.name) { sub in
+                        UnifiedMediaListView(
+                            header: sub.name,
+                            items: sub.movies,
+                            onSelect: onMovieSelect
+                        )
                     }
                 }
-                .padding(20)
+                .padding(.vertical, 8)
             }
         }
         .background(Color.appBackground.ignoresSafeArea())
