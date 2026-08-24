@@ -104,7 +104,7 @@ struct SearchView: View {
                     }
                 }
             }
-            .searchable(text: $searchText, prompt: Constants.StringConstants.search)
+            .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: Constants.StringConstants.search)
             .task(id: searchText) {
                 try? await Task.sleep(for: .milliseconds(300))
                 
