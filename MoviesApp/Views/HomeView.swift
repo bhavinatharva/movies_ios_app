@@ -78,6 +78,8 @@ struct HomeView: View {
                                     .padding(.bottom, 40)
                                 }
                                 .ignoresSafeArea(edges: .top)
+                                
+                                headerView
                             } else {
                                 contentView
                                 headerView
