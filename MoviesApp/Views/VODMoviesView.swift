@@ -155,7 +155,8 @@ struct VODMoviesView: View {
                         .ignoresSafeArea(edges: viewModel.selectedCategory == nil ? .top : .init())
                     }
                 }
-                .navigationTitle(viewModel.selectedCategory?.categoryName ?? Constants.StringConstants.tabMovies)
+            }
+            .navigationTitle(viewModel.selectedCategory?.categoryName ?? Constants.StringConstants.tabMovies)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItemGroup(placement: .navigationBarTrailing) {
