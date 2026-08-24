@@ -28,31 +28,10 @@ struct VODMoviesView: View {
                     }
                 }
             }
-            .navigationTitle(viewModel.selectedCategory?.categoryName ?? Constants.StringConstants.tabMovies)
+            .navigationTitle(viewModel.selectedCategory?.name ?? Constants.StringConstants.tabMovies)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItemGroup(placement: .navigationBarTrailing) {
-                    NavigationLink(destination: SearchView()) {
-                        Image(systemName: "magnifyingglass")
-                    }
-                    
-                    Menu {
-                        Button("All (Home)") {
-                            viewModel.selectedCategory = nil
-                        }
-                        
-                        ForEach(viewModel.categories, id: \.id) { category in
-                            Button(category.categoryName ?? category.id) {
-                                viewModel.selectedCategory = category
-                                Task {
-                                    await viewModel.loadMoviesIfNeeded(for: category.id)
-                                }
-                            }
-                        }
-                    } label: {
-                        Image(systemName: "line.3.horizontal.decrease.circle")
-                    }
-                }
+                trailingToolbarItems
             }
             .task {
                 if viewModel.categories.isEmpty {
@@ -206,6 +185,36 @@ struct VODMoviesView: View {
             }
         }
         .padding(.bottom, 30) // Clear custom tab bar
+    }
+    
+    @ToolbarContentBuilder
+    private var trailingToolbarItems: some ToolbarContent {
+        ToolbarItemGroup(placement: .navigationBarTrailing) {
+            NavigationLink(destination: SearchView()) {
+                Image(systemName: "magnifyingglass")
+            }
+            categoryMenu
+        }
+    }
+    
+    @ViewBuilder
+    private var categoryMenu: some View {
+        Menu {
+            Button("All (Home)") {
+                viewModel.selectedCategory = nil
+            }
+            
+            ForEach(viewModel.categories) { category in
+                Button(category.name) {
+                    viewModel.selectedCategory = category
+                    Task {
+                        await viewModel.loadMoviesIfNeeded(for: category.id)
+                    }
+                }
+            }
+        } label: {
+            Image(systemName: "line.3.horizontal.decrease.circle")
+        }
     }
 }
 
