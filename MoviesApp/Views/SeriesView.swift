@@ -102,7 +102,7 @@ struct SeriesView: View {
                                     selectedDetailSeries = series
                                 }
                         }
-                        .aspectRatio(3/4, contentMode: .fit)
+                        .aspectRatio(2/3, contentMode: .fit)
                     }
                 }
                 .padding(.horizontal, 16)

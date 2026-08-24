@@ -69,7 +69,7 @@ struct SearchView: View {
                                                 }
                                             }
                                     }
-                                    .aspectRatio(3/4, contentMode: .fit)
+                                    .aspectRatio(2/3, contentMode: .fit)
                                 }
                             } else {
                                 ForEach(searchViewModel.searchingMovies) { title in
@@ -79,7 +79,7 @@ struct SearchView: View {
                                                 navigationPath.append(title)
                                             }
                                     }
-                                    .aspectRatio(3/4, contentMode: .fit)
+                                    .aspectRatio(2/3, contentMode: .fit)
                                 }
                             }
                         }
