@@ -19,21 +19,6 @@ struct SeriesView: View {
                 Color.appBackground.ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                    // Search Bar
-                    HStack {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundColor(.gray)
-                        TextField("Search series...", text: $viewModel.searchText)
-                            .foregroundColor(.primary)
-                            .autocapitalization(.none)
-                            .disableAutocorrection(true)
-                    }
-                    .padding(10)
-                    .background(Color.appCardBackground)
-                    .cornerRadius(8)
-                    .padding(.horizontal)
-                    .padding(.vertical, 8)
-                    
                     if viewModel.isLoading {
                         ScrollView {
                             VStack(spacing: 24) {
@@ -73,8 +58,7 @@ struct SeriesView: View {
                     } else {
                         ScrollView {
                             LazyVStack(spacing: 28) {
-                                if viewModel.searchText.isEmpty {
-                                    // 1. Featured Hero Series
+                                // 1. Featured Hero Series
                                     if let hero = viewModel.heroSeries {
                                         IPTVHeroHeaderView(item: hero) {
                                             selectedDetailSeries = hero
@@ -131,34 +115,6 @@ struct SeriesView: View {
                                             selectedDetailSeries = series
                                         }
                                     }
-                                } else {
-                                    if viewModel.filteredSeries.isEmpty {
-                                        ContentUnavailableView.search(text: viewModel.searchText)
-                                    } else {
-                                        // Search results grid view
-                                        VStack(alignment: .leading, spacing: 16) {
-                                            Text("Search Results")
-                                                .font(.title3)
-                                                .fontWeight(.bold)
-                                                .foregroundColor(.white)
-                                                .padding(.horizontal)
-                                            
-                                            LazyVGrid(columns: columns, spacing: 16) {
-                                                ForEach(viewModel.filteredSeries) { series in
-                                                    GeometryReader { geo in
-                                                        UnifiedMediaCardView(item: series, width: geo.size.width)
-                                                            .onTapGesture {
-                                                                selectedDetailSeries = series
-                                                            }
-                                                    }
-                                                    .aspectRatio(3/4, contentMode: .fit)
-                                                }
-                                            }
-                                            .padding(.horizontal)
-                                        }
-                                        .padding(.top, 12)
-                                    }
-                                }
                             }
                             .padding(.bottom, 30) // Clear tab bar space
                         }

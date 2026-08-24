@@ -95,19 +95,9 @@ struct ActorsView: View {
             .task {
                 await actorViewModel.getActors(searchPhase: "")
             }
-            .searchable(text: $searchText, prompt: Constants.StringConstants.search)
-            .task(id: searchText) {
-                if !searchText.isEmpty {
-                    try? await Task.sleep(for: .milliseconds(500))
-                    if !Task.isCancelled {
-                        await actorViewModel.getActors(searchPhase: searchText)
-                    }
-                }
-            }
         }
     }
 }
-
 #Preview {
     ActorsView()
 }

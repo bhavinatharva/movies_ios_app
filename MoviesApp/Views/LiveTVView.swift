@@ -110,10 +110,6 @@ struct LiveTVView: View {
                 .background(Color.appBackground.ignoresSafeArea())
                 .navigationTitle(selectedCategory ?? "All Channels")
                 .navigationBarTitleDisplayMode(.inline)
-                .searchable(text: $viewModel.searchQuery, prompt: "Search channels...")
-                .onChange(of: viewModel.searchQuery) { _, _ in
-                    viewModel.filterChannels()
-                }
             } detail: {
                 // Detail: Player + Info
                 if let channel = selectedChannelForDetail {

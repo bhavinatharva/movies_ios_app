@@ -20,21 +20,6 @@ struct AdultView: View {
             Color.appBackground.ignoresSafeArea()
             
             VStack(spacing: 0) {
-                // Search Bar
-                HStack {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundColor(.gray)
-                    TextField("Search adult content...", text: $viewModel.searchText)
-                        .foregroundColor(.primary)
-                        .autocapitalization(.none)
-                        .disableAutocorrection(true)
-                }
-                .padding(10)
-                .background(Color.appCardBackground)
-                .cornerRadius(8)
-                .padding(.horizontal)
-                .padding(.vertical, 8)
-                
                 // Segmented Tab Picker
                 Picker("Tabs", selection: $viewModel.selectedTab) {
                     ForEach(AdultViewModel.AdultTab.allCases) { tab in
@@ -92,39 +77,14 @@ struct AdultView: View {
                     } else {
                         ScrollView {
                             LazyVStack(spacing: 28) {
-                                if viewModel.searchText.isEmpty {
-                                    ForEach(groupedItems, id: \.category) { group in
-                                        UnifiedMediaListView(
-                                            header: group.category,
-                                            items: group.items,
-                                            onSelect: { item in
-                                                handleMediaSelection(item)
-                                            }
-                                        )
-                                    }
-                                } else {
-                                    if currentItems.isEmpty {
-                                        ContentUnavailableView.search(text: viewModel.searchText)
-                                    } else {
-                                        VStack(alignment: .leading, spacing: 16) {
-                                            Text("Search Results")
-                                                .font(.title3)
-                                                .fontWeight(.bold)
-                                                .foregroundColor(.white)
-                                                .padding(.horizontal)
-                                            
-                                            LazyVGrid(columns: columns, spacing: 16) {
-                                                ForEach(currentItems) { item in
-                                                    UnifiedMediaCardView(item: item, width: nil)
-                                                        .onTapGesture {
-                                                            handleMediaSelection(item)
-                                                        }
-                                                }
-                                            }
-                                            .padding(.horizontal)
+                                ForEach(groupedItems, id: \.category) { group in
+                                    UnifiedMediaListView(
+                                        header: group.category,
+                                        items: group.items,
+                                        onSelect: { item in
+                                            handleMediaSelection(item)
                                         }
-                                        .padding(.top, 12)
-                                    }
+                                    )
                                 }
                             }
                             .padding(.bottom, 30)

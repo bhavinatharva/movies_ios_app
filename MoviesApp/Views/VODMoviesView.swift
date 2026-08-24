@@ -19,21 +19,6 @@ struct VODMoviesView: View {
                 Color.appBackground.ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                    // Search Bar
-                    HStack {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundColor(.gray)
-                        TextField("Search movies...", text: $viewModel.searchText)
-                            .foregroundColor(.primary)
-                            .autocapitalization(.none)
-                            .disableAutocorrection(true)
-                    }
-                    .padding(10)
-                    .background(Color.appCardBackground)
-                    .cornerRadius(8)
-                    .padding(.horizontal)
-                    .padding(.vertical, 8)
-                    
                     if viewModel.isLoading {
                         ScrollView {
                             VStack(spacing: 24) {
@@ -73,15 +58,13 @@ struct VODMoviesView: View {
                     } else {
                         ScrollView {
                             LazyVStack(spacing: 28) {
-                                if viewModel.searchText.isEmpty {
-                                    // 1. Hero Featured Movie
-                                    if let hero = viewModel.heroMovie {
-                                        IPTVHeroHeaderView(item: hero) {
-                                            UserDataManager.shared.addToHistory(hero)
-                                            selectedMovie = hero
-                                        }
+                                // 1. Hero Featured Movie
+                                if let hero = viewModel.heroMovie {
+                                    IPTVHeroHeaderView(item: hero) {
+                                        UserDataManager.shared.addToHistory(hero)
+                                        selectedMovie = hero
                                     }
-                                    
+                                }
                                     // 2. Continue Watching
                                     if !viewModel.continueWatching.isEmpty {
                                         UnifiedMediaListView(
@@ -149,35 +132,6 @@ struct VODMoviesView: View {
                                             selectedMovie = movie
                                         }
                                     }
-                                } else {
-                                    // Search results grid view
-                                    if viewModel.filteredMovies.isEmpty {
-                                        ContentUnavailableView.search(text: viewModel.searchText)
-                                    } else {
-                                        VStack(alignment: .leading, spacing: 16) {
-                                            Text("Search Results")
-                                                .font(.title3)
-                                                .fontWeight(.bold)
-                                                .foregroundColor(.white)
-                                                .padding(.horizontal)
-                                            
-                                            LazyVGrid(columns: columns, spacing: 16) {
-                                                ForEach(viewModel.filteredMovies) { movie in
-                                                    GeometryReader { geo in
-                                                        UnifiedMediaCardView(item: movie, width: geo.size.width)
-                                                            .onTapGesture {
-                                                                UserDataManager.shared.addToHistory(movie)
-                                                                selectedMovie = movie
-                                                            }
-                                                    }
-                                                    .aspectRatio(3/4, contentMode: .fit)
-                                                }
-                                            }
-                                            .padding(.horizontal)
-                                        }
-                                        .padding(.top, 12)
-                                    }
-                                }
                             }
                             .padding(.bottom, 30) // Clear custom tab bar
                         }
