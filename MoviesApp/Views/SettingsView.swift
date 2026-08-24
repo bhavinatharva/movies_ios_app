@@ -14,22 +14,13 @@ struct SettingsView: View {
     @State private var activePlaylist: Playlist?
     @State private var allowAdultContent: Bool = false
     
-    // Playback and Custom Settings preferences (persisted persistently)
-    @AppStorage("resume_playback") private var resumePlayback = true
-    @AppStorage("auto_play_next") private var autoPlayNext = true
-    @AppStorage("auto_play_trailers") private var autoPlayTrailers = true
-    @AppStorage("start_on_live") private var startOnLive = false
-    @AppStorage("epg_display") private var epgDisplay = true
-    @AppStorage("default_audio_lang") private var defaultAudioLang = "English"
-    @AppStorage("default_sub_lang") private var defaultSubLang = "Off"
+
     
     @State private var userDataManager = UserDataManager.shared
     @State private var showHistoryAlert = false
     @State private var showFavoritesAlert = false
     
-    private let audioLanguages = ["English", "Spanish", "French", "German", "Japanese"]
-    private let subtitleLanguages = ["Off", "English", "Spanish", "French", "German"]
-    
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -39,15 +30,8 @@ struct SettingsView: View {
                     VStack(spacing: 24) {
                         profileHeader
                         
-                        premiumBannerSection
                         
                         playlistSection
-                        
-                        playerSettingsSection
-                        
-                        liveTVSettingsSection
-                        
-                        audioSubtitlesSection
                         
                         if let playlist = activePlaylist, playlist.hasAdultContent {
                             adultContentSection(playlist: playlist)
@@ -101,47 +85,7 @@ struct SettingsView: View {
         .padding(.vertical, 16)
     }
     
-    @State private var showPremiumPaywall = false
-    
-    private var premiumBannerSection: some View {
-        Button(action: {
-            let generator = UIImpactFeedbackGenerator(style: .medium)
-            generator.impactOccurred()
-            showPremiumPaywall = true
-        }) {
-            HStack(spacing: 16) {
-                Image(systemName: "sparkles")
-                    .font(.title2)
-                    .foregroundColor(.yellow)
-                
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Upgrade to PRO")
-                        .font(.headline)
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                    
-                    Text("Unlock unlimited features & ad-free streaming.")
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.8))
-                }
-                
-                Spacer()
-                
-                Image(systemName: "chevron.right")
-                    .foregroundColor(.white.opacity(0.6))
-            }
-            .padding(16)
-            .background(
-                LinearGradient(colors: [Color.accentColor, Color.purple], startPoint: .leading, endPoint: .trailing)
-            )
-            .cornerRadius(16)
-            .shadow(color: Color.accentColor.opacity(0.4), radius: 8, y: 4)
-        }
-        .buttonStyle(PressScaleButtonStyle())
-        .fullScreenCover(isPresented: $showPremiumPaywall) {
-            PremiumPaywallView()
-        }
-    }
+
     
     private var playlistSection: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -183,105 +127,7 @@ struct SettingsView: View {
         }
     }
     
-    private var playerSettingsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            sectionTitle("PLAYER SETTINGS")
-            
-            SettingsCardContainer {
-                SettingsRowUIComponent(
-                    icon: "arrow.uturn.backward.circle.fill",
-                    iconColor: .blue,
-                    title: "Resume Playback",
-                    subtitle: "Automatically resume where you left off",
-                    trailing: Toggle("", isOn: $resumePlayback).labelsHidden()
-                )
-                
-                Divider().background(Color.white.opacity(0.1)).padding(.leading, 48)
-                
-                SettingsRowUIComponent(
-                    icon: "forward.end.fill",
-                    iconColor: .purple,
-                    title: "Auto-Play Next Episode",
-                    subtitle: "Start next episode automatically",
-                    trailing: Toggle("", isOn: $autoPlayNext).labelsHidden()
-                )
-                
-                Divider().background(Color.white.opacity(0.1)).padding(.leading, 48)
-                
-                SettingsRowUIComponent(
-                    icon: "film.fill",
-                    iconColor: .indigo,
-                    title: "Auto-Play Trailers",
-                    subtitle: "Play movie trailers on detail pages",
-                    trailing: Toggle("", isOn: $autoPlayTrailers).labelsHidden()
-                )
-            }
-        }
-    }
-    
-    private var liveTVSettingsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            sectionTitle("LIVE TV SETTINGS")
-            
-            SettingsCardContainer {
-                SettingsRowUIComponent(
-                    icon: "tv.fill",
-                    iconColor: .pink,
-                    title: "Start on Live TV",
-                    subtitle: "Launch Live TV tab automatically on startup",
-                    trailing: Toggle("", isOn: $startOnLive).labelsHidden()
-                )
-                
-                Divider().background(Color.white.opacity(0.1)).padding(.leading, 48)
-                
-                SettingsRowUIComponent(
-                    icon: "calendar.badge.clock",
-                    iconColor: .cyan,
-                    title: "Show EPG Information",
-                    subtitle: "Display program timelines for channels",
-                    trailing: Toggle("", isOn: $epgDisplay).labelsHidden()
-                )
-            }
-        }
-    }
-    
-    private var audioSubtitlesSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            sectionTitle("AUDIO & SUBTITLES")
-            
-            SettingsCardContainer {
-                SettingsRowUIComponent(
-                    icon: "speaker.wave.2.bubble.left.fill",
-                    iconColor: .teal,
-                    title: "Default Audio",
-                    subtitle: "Preferred language for audio tracks",
-                    trailing: Picker("", selection: $defaultAudioLang) {
-                        ForEach(audioLanguages, id: \.self) { lang in
-                            Text(lang).tag(lang)
-                        }
-                    }
-                    .tint(.gray)
-                    .labelsHidden()
-                )
-                
-                Divider().background(Color.white.opacity(0.1)).padding(.leading, 48)
-                
-                SettingsRowUIComponent(
-                    icon: "captions.bubble.fill",
-                    iconColor: .green,
-                    title: "Default Subtitle",
-                    subtitle: "Preferred language for closed captions",
-                    trailing: Picker("", selection: $defaultSubLang) {
-                        ForEach(subtitleLanguages, id: \.self) { sub in
-                            Text(sub).tag(sub)
-                        }
-                    }
-                    .tint(.gray)
-                    .labelsHidden()
-                )
-            }
-        }
-    }
+
     
     private func adultContentSection(playlist: Playlist) -> some View {
         VStack(alignment: .leading, spacing: 12) {
