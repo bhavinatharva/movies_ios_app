@@ -447,50 +447,6 @@ struct IPTVHeroHeaderView: View {
                     .padding(.horizontal, 24)
                     .shadow(color: .black.opacity(0.8), radius: 8, x: 0, y: 4)
                 
-                // Netflix-Style Action Buttons
-                HStack(spacing: 16) {
-                    // White Play Button
-                    Button(action: {
-                        let generator = UIImpactFeedbackGenerator(style: .medium)
-                        generator.impactOccurred()
-                        onPlay()
-                    }) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "play.fill")
-                                .font(.body)
-                            Text("Play")
-                                .fontWeight(.bold)
-                        }
-                        .font(.system(size: 15))
-                        .padding(.horizontal, 28)
-                        .padding(.vertical, 10)
-                        .background(Color.white)
-                        .foregroundColor(.black)
-                        .cornerRadius(8)
-                    }
-                    .buttonStyle(PressScaleButtonStyle())
-                    
-                    // Translucent Info Button
-                    Button(action: {
-                        let generator = UIImpactFeedbackGenerator(style: .medium)
-                        generator.impactOccurred()
-                        onPlay()
-                    }) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "info.circle")
-                                .font(.body)
-                            Text("Info")
-                                .fontWeight(.bold)
-                        }
-                        .font(.system(size: 15))
-                        .padding(.horizontal, 28)
-                        .padding(.vertical, 10)
-                        .background(Color.white.opacity(0.2))
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
-                    }
-                    .buttonStyle(PressScaleButtonStyle())
-                }
             }
             .padding(.bottom, 24)
         }
