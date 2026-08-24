@@ -197,6 +197,8 @@ struct VODMoviesView: View {
         }
         .padding(.bottom, 30) // Clear custom tab bar
     }
+}
+
 // MARK: - Lazy Loading Genre Row View
 struct VODGenreRowView: View {
     let category: XtreamCategory

@@ -179,6 +179,8 @@ struct SeriesView: View {
         }
         .padding(.bottom, 30) // Clear tab bar space
     }
+}
+
 // MARK: - Lazy Loading Genre Row View for Series
 struct SeriesGenreRowView: View {
     let category: XtreamCategory
