@@ -43,37 +43,43 @@ struct SearchView: View {
                         .padding(.top, 60)
                     } else {
                         // Render Grid View
-                        LazyVGrid(columns: [GridItem(.flexible(), spacing: 16), GridItem(.flexible(), spacing: 16), GridItem(.flexible(), spacing: 16)], spacing: 16) {
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 110), spacing: 16)], spacing: 16) {
                             if isIPTVActive {
                                 ForEach(searchViewModel.iptvResults) { item in
-                                    UnifiedMediaCardView(item: item, width: nil)
-                                        .onTapGesture {
-                                            let generator = UIImpactFeedbackGenerator(style: .medium)
-                                            generator.impactOccurred()
-                                            if item.mediaType == .movie || item.mediaType == .tvSeries {
-                                                selectedPlayableItem = item
-                                            } else {
-                                                UserDataManager.shared.addToHistory(item)
-                                                if let url = item.streamUrl {
-                                                    GlobalPlayerManager.shared.play(
-                                                        url: url,
-                                                        title: item.title,
-                                                        artwork: item.posterPath,
-                                                        isLive: item.mediaType == .liveTV,
-                                                        streamId: item.id
-                                                    )
-                                                } else {
+                                    GeometryReader { geo in
+                                        UnifiedMediaCardView(item: item, width: geo.size.width)
+                                            .onTapGesture {
+                                                let generator = UIImpactFeedbackGenerator(style: .medium)
+                                                generator.impactOccurred()
+                                                if item.mediaType == .movie || item.mediaType == .tvSeries {
                                                     selectedPlayableItem = item
+                                                } else {
+                                                    UserDataManager.shared.addToHistory(item)
+                                                    if let url = item.streamUrl {
+                                                        GlobalPlayerManager.shared.play(
+                                                            url: url,
+                                                            title: item.title,
+                                                            artwork: item.posterPath,
+                                                            isLive: item.mediaType == .liveTV,
+                                                            streamId: item.id
+                                                        )
+                                                    } else {
+                                                        selectedPlayableItem = item
+                                                    }
                                                 }
                                             }
-                                        }
+                                    }
+                                    .aspectRatio(3/4, contentMode: .fit)
                                 }
                             } else {
                                 ForEach(searchViewModel.searchingMovies) { title in
-                                    MovieCardView(movie: title, width: nil)
-                                        .onTapGesture {
-                                            navigationPath.append(title)
-                                        }
+                                    GeometryReader { geo in
+                                        MovieCardView(movie: title, width: geo.size.width)
+                                            .onTapGesture {
+                                                navigationPath.append(title)
+                                            }
+                                    }
+                                    .aspectRatio(3/4, contentMode: .fit)
                                 }
                             }
                         }

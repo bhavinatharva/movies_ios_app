@@ -13,7 +13,8 @@ enum IPTVTab: String, CaseIterable, Identifiable, Codable {
     case home
     case recent
     case liveTV
-    case vod
+    case movies
+    case series
     case settings
     
     var id: String { self.rawValue }
@@ -23,7 +24,8 @@ enum IPTVTab: String, CaseIterable, Identifiable, Codable {
         case .home: return "Home"
         case .recent: return "Recent"
         case .liveTV: return "Live TV"
-        case .vod: return "VOD"
+        case .movies: return "Movies"
+        case .series: return "Series"
         case .settings: return "Settings"
         }
     }
@@ -33,7 +35,8 @@ enum IPTVTab: String, CaseIterable, Identifiable, Codable {
         case .home: return "house.fill"
         case .recent: return "clock.fill"
         case .liveTV: return "tv.fill"
-        case .vod: return "film.fill"
+        case .movies: return "film.fill"
+        case .series: return "play.tv.fill"
         case .settings: return "gearshape.fill"
         }
     }
@@ -286,8 +289,11 @@ class IPTVDataManager {
                     if !(liveCats ?? []).isEmpty || !finalChannels.isEmpty { 
                         tabs.append(.liveTV)
                     }
-                    if !(vodCats ?? []).isEmpty || !finalVODs.isEmpty || !(seriesCats ?? []).isEmpty || !finalSeries.isEmpty { 
-                        tabs.append(.vod) 
+                    if !(vodCats ?? []).isEmpty || !finalVODs.isEmpty { 
+                        tabs.append(.movies) 
+                    }
+                    if !(seriesCats ?? []).isEmpty || !finalSeries.isEmpty { 
+                        tabs.append(.series) 
                     }
                     tabs.append(.settings)
                     
@@ -389,8 +395,11 @@ class IPTVDataManager {
             if !finalLive.isEmpty { 
                 tabs.append(.liveTV)
             }
-            if !finalMovies.isEmpty || !finalSeries.isEmpty { 
-                tabs.append(.vod) 
+            if !finalMovies.isEmpty { 
+                tabs.append(.movies) 
+            }
+            if !finalSeries.isEmpty { 
+                tabs.append(.series) 
             }
             tabs.append(.settings)
             

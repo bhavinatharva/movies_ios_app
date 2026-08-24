@@ -102,8 +102,10 @@ struct MainTabView: View {
             RecentView()
         case .liveTV:
             LiveTVView()
-        case .vod:
-            VODView()
+        case .movies:
+            VODMoviesView()
+        case .series:
+            SeriesView()
         case .settings:
             SettingsView()
         }
