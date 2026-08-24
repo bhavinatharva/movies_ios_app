@@ -318,19 +318,42 @@ struct UnifiedMediaDetailView: View {
                     
                     ScrollView(.horizontal, showsIndicators: false) {
                         LazyHStack(spacing: 16) {
-                            let actors = castStr.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
-                            ForEach(actors, id: \.self) { actor in
+                            let actors = castStr.parseCastMembers(role: "Actor")
+                            ForEach(actors) { actor in
                                 VStack(spacing: 8) {
-                                    Circle()
-                                        .fill(Color.white.opacity(0.1))
-                                        .frame(width: 70, height: 70)
-                                        .overlay(
-                                            Image(systemName: "person.fill")
-                                                .foregroundColor(.white.opacity(0.5))
-                                                .font(.title)
-                                        )
+                                    AsyncImage(url: actor.imageUrl) { phase in
+                                        switch phase {
+                                        case .empty:
+                                            ProgressView()
+                                                .frame(width: 70, height: 70)
+                                        case .success(let image):
+                                            image
+                                                .resizable()
+                                                .scaledToFill()
+                                                .frame(width: 70, height: 70)
+                                                .clipShape(Circle())
+                                        case .failure:
+                                            Circle()
+                                                .fill(Color.white.opacity(0.1))
+                                                .frame(width: 70, height: 70)
+                                                .overlay(
+                                                    Image(systemName: "person.fill")
+                                                        .foregroundColor(.white.opacity(0.5))
+                                                        .font(.title)
+                                                )
+                                        @unknown default:
+                                            Circle()
+                                                .fill(Color.white.opacity(0.1))
+                                                .frame(width: 70, height: 70)
+                                                .overlay(
+                                                    Image(systemName: "person.fill")
+                                                        .foregroundColor(.white.opacity(0.5))
+                                                        .font(.title)
+                                                )
+                                        }
+                                    }
                                     
-                                    Text(actor)
+                                    Text(actor.name)
                                         .font(.caption)
                                         .fontWeight(.medium)
                                         .foregroundColor(.white)

@@ -4,10 +4,22 @@ struct MovieCastRail: View {
     let castString: String?
     let directorString: String?
     
-    var body: some View {
-        let combinedList = parseCastAndDirector()
+    private var combinedList: [CastMember] {
+        var list: [CastMember] = []
         
-        if !combinedList.isEmpty {
+        if let director = directorString, !director.isEmpty {
+            list.append(contentsOf: director.parseCastMembers(role: "Director"))
+        }
+        
+        if let cast = castString, !cast.isEmpty {
+            list.append(contentsOf: cast.parseCastMembers(role: "Actor"))
+        }
+        
+        return list
+    }
+    
+    var body: some View {
+        if let _ = castString, !combinedList.isEmpty {
             VStack(alignment: .leading, spacing: 16) {
                 Text("Cast & Crew")
                     .font(.title3)
@@ -17,17 +29,25 @@ struct MovieCastRail: View {
                 
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(spacing: 16) {
-                        ForEach(combinedList, id: \.name) { person in
+                        ForEach(combinedList) { person in
                             VStack(spacing: 8) {
-                                Circle()
-                                    .fill(Color.gray.opacity(0.2))
-                                    .frame(width: 80, height: 80)
-                                    .overlay(
-                                        Image(systemName: "person.crop.circle.fill")
+                                AsyncImage(url: person.imageUrl) { phase in
+                                    switch phase {
+                                    case .empty:
+                                        ProgressView()
+                                            .frame(width: 80, height: 80)
+                                    case .success(let image):
+                                        image
                                             .resizable()
-                                            .foregroundColor(.white.opacity(0.3))
-                                            .padding(10)
-                                    )
+                                            .scaledToFill()
+                                            .frame(width: 80, height: 80)
+                                            .clipShape(Circle())
+                                    case .failure:
+                                        fallbackCircle
+                                    @unknown default:
+                                        fallbackCircle
+                                    }
+                                }
                                 
                                 Text(person.name)
                                     .font(.caption)
@@ -50,23 +70,15 @@ struct MovieCastRail: View {
         }
     }
     
-    private func parseCastAndDirector() -> [(name: String, role: String)] {
-        var list: [(name: String, role: String)] = []
-        
-        if let director = directorString, !director.isEmpty {
-            let directors = director.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
-            for d in directors {
-                list.append((name: d, role: "Director"))
-            }
-        }
-        
-        if let cast = castString, !cast.isEmpty {
-            let actors = cast.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
-            for a in actors {
-                list.append((name: a, role: "Actor"))
-            }
-        }
-        
-        return list
+    private var fallbackCircle: some View {
+        Circle()
+            .fill(Color.gray.opacity(0.2))
+            .frame(width: 80, height: 80)
+            .overlay(
+                Image(systemName: "person.crop.circle.fill")
+                    .resizable()
+                    .foregroundColor(.white.opacity(0.3))
+                    .padding(10)
+            )
     }
 }
