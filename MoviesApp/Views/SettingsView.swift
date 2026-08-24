@@ -1,6 +1,6 @@
 //
 //  SettingsView.swift
-//  MoviesApp
+
 //
 //  Created by Bhavin Parghi on 10/11/25.
 //
@@ -418,7 +418,7 @@ struct SettingsView: View {
             Text("App Version 1.0 (Build 26)")
                 .font(.caption)
                 .foregroundColor(.gray)
-            Text("© 2026 MoviesApp. All rights reserved.")
+            Text("© 2026 IPTV. All rights reserved.")
                 .font(.caption2)
                 .foregroundColor(.gray.opacity(0.7))
         }

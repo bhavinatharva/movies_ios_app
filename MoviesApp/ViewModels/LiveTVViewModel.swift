@@ -1,6 +1,6 @@
 //
 //  LiveTVViewModel.swift
-//  MoviesApp
+
 //
 
 import Foundation

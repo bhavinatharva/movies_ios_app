@@ -1,6 +1,6 @@
 //
 //  AdultView.swift
-//  MoviesApp
+
 //
 
 import SwiftUI

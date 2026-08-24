@@ -1,6 +1,6 @@
 //
 //  StreamingPlayerView.swift
-//  MoviesApp
+
 //
 
 import SwiftUI

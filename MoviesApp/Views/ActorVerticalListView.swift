@@ -1,7 +1,7 @@
 
 //
 //  VerticalListView.swift
-//  MoviesApp
+
 //
 //  Created by Bhavin Parghi on 12/11/25.
 //

@@ -1,6 +1,6 @@
 //
 //  SeriesDetailView.swift
-//  MoviesApp
+
 //
 
 import SwiftUI

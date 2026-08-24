@@ -1,6 +1,6 @@
 //
 //  SeriesViewModel.swift
-//  MoviesApp
+
 //
 
 import Foundation

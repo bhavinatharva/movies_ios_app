@@ -1,6 +1,6 @@
 //
 //  IPTVRequestManager.swift
-//  MoviesApp
+
 //
 //  Created by Antigravity on 19/05/26.
 //

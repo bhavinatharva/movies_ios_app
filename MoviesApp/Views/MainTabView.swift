@@ -1,6 +1,6 @@
 //
 //  MainTabView.swift
-//  MoviesApp
+
 //
 
 import SwiftUI
@@ -117,7 +117,7 @@ struct SidebarView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("MoviesApp")
+            Text("IPTV")
                 .font(.title2)
                 .fontWeight(.black)
                 .foregroundColor(.accentColor)

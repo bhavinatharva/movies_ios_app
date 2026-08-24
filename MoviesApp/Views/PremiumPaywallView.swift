@@ -1,6 +1,6 @@
 //
 //  PremiumPaywallView.swift
-//  MoviesApp
+
 //
 
 import SwiftUI

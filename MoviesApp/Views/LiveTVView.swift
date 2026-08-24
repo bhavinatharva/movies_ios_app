@@ -1,6 +1,6 @@
 //
 //  LiveTVView.swift
-//  MoviesApp
+
 //
 
 import SwiftUI

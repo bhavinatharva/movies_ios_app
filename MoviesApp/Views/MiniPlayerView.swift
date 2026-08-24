@@ -1,6 +1,6 @@
 //
 //  MiniPlayerView.swift
-//  MoviesApp
+
 //
 //  Created by Antigravity on 14/05/26.
 //

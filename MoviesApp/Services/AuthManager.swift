@@ -1,6 +1,6 @@
 //
 //  AuthManager.swift
-//  MoviesApp
+
 //
 //  Created by Antigravity on 15/05/26.
 //

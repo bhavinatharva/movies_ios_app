@@ -1,6 +1,6 @@
 //
 //  LiveTVComponents.swift
-//  MoviesApp
+
 //
 
 import SwiftUI

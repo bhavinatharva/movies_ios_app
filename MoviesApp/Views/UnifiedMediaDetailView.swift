@@ -1,6 +1,6 @@
 //
 //  UnifiedMediaDetailView.swift
-//  MoviesApp
+
 //
 
 import SwiftUI

@@ -1,6 +1,6 @@
 //
 //  PlaylistsListView.swift
-//  MoviesApp
+
 //
 //  Created by Antigravity on 18/05/26.
 //

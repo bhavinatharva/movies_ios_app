@@ -1,6 +1,6 @@
 //
 //  VODMoviesViewModel.swift
-//  MoviesApp
+
 //
 
 import Foundation

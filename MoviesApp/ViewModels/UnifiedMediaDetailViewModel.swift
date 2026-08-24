@@ -1,6 +1,6 @@
 //
 //  UnifiedMediaDetailViewModel.swift
-//  MoviesApp
+
 //
 
 import Foundation

@@ -1,6 +1,6 @@
 //
 //  MovieCollection.swift
-//  MoviesApp
+
 //
 //  Created by Antigravity on 21/05/26.
 //

@@ -1,6 +1,6 @@
 //
 //  AdultViewModel.swift
-//  MoviesApp
+
 //
 
 import Foundation

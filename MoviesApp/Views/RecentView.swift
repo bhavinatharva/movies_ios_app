@@ -1,6 +1,6 @@
 //
 //  RecentView.swift
-//  MoviesApp
+
 //
 
 import SwiftUI

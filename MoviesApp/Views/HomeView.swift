@@ -1,6 +1,6 @@
 //
 //  HomeView.swift
-//  MoviesApp
+
 //
 
 import SwiftUI

@@ -1,6 +1,6 @@
 //
 //  VODMoviesView.swift
-//  MoviesApp
+
 //
 
 import SwiftUI
