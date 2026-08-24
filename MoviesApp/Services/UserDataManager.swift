@@ -34,7 +34,7 @@ class UserDataManager {
     var favorites: Set<String> = []
     var recentlyWatched: [UnifiedMediaItem] = []
     var watchProgress: [String: Double] = [:] // streamId -> duration in seconds
-    var currentTheme: AppTheme = .dark {
+    var currentTheme: AppTheme = .system {
         didSet {
             UserDefaults.standard.set(currentTheme.rawValue, forKey: themeKey)
         }
@@ -91,7 +91,7 @@ class UserDataManager {
            let theme = AppTheme(rawValue: themeStr) {
             self.currentTheme = theme
         } else {
-            self.currentTheme = .dark
+            self.currentTheme = .system
         }
     }
     

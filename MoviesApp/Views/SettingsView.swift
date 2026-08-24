@@ -10,6 +10,7 @@ import CoreData
 
 struct SettingsView: View {
     @AppStorage("has_default_playlist") private var hasDefaultPlaylist = false
+    @Environment(\.colorScheme) private var colorScheme
     
     @State private var activePlaylist: Playlist?
     @State private var allowAdultContent: Bool = false
@@ -159,28 +160,23 @@ struct SettingsView: View {
             sectionTitle("APPEARANCE")
             
             SettingsCardContainer {
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack(spacing: 12) {
-                        Image(systemName: "paintpalette.fill")
-                            .foregroundColor(.orange)
-                            .frame(width: 32, height: 32)
-                            .background(Color.orange.opacity(0.2))
-                            .cornerRadius(8)
-                        
-                        Text("App Theme")
-                            .font(.body)
-                            .foregroundColor(.white)
-                    }
-                    
-                    Picker("Theme", selection: $userDataManager.currentTheme) {
-                        ForEach(AppTheme.allCases) { theme in
-                            Text(theme.rawValue).tag(theme)
+                SettingsRowUIComponent(
+                    icon: "moon.fill",
+                    iconColor: .indigo,
+                    title: "Dark Mode",
+                    subtitle: "Use dark theme for the app",
+                    trailing: Toggle("", isOn: Binding(
+                        get: { 
+                            if userDataManager.currentTheme == .system {
+                                return colorScheme == .dark
+                            }
+                            return userDataManager.currentTheme == .dark
+                        },
+                        set: { isDark in
+                            userDataManager.currentTheme = isDark ? .dark : .light
                         }
-                    }
-                    .pickerStyle(.segmented)
-                }
-                .padding(.vertical, 12)
-                .padding(.horizontal, 16)
+                    )).labelsHidden()
+                )
             }
         }
     }

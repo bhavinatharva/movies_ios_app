@@ -836,7 +836,10 @@ struct StreamingPlayerView: View {
             if let urlAsset = item.asset as? AVURLAsset {
                 do {
                     let variants = try await urlAsset.load(.variants)
-                    let heights = variants.compactMap { $0.videoAttributes?.presentationSize.height }
+                    let heights = variants.compactMap { variant -> Double? in
+                        guard let height = variant.videoAttributes?.presentationSize.height else { return nil }
+                        return Double(height)
+                    }
                     let uniqueHeights = Array(Set(heights)).sorted(by: >)
                     
                     await MainActor.run {
