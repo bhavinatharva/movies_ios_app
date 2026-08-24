@@ -56,6 +56,12 @@ struct StreamingPlayerView: View {
     @State private var lastProgressSaveTime: Date = .distantPast
     private let progressSaveInterval: TimeInterval = 15
     
+    // Video Quality State
+    @AppStorage("preferred_video_quality") private var preferredVideoQuality: Double = 0
+    @State private var showQualityActionSheet = false
+    @State private var availableQualities: [Double] = []
+    @State private var currentQuality: Double = 0
+    
     // Sliders state
     @State private var brightnessLevel: Double = 0.5
     @State private var volumeLevel: Double = 0.5
@@ -458,6 +464,35 @@ struct StreamingPlayerView: View {
                     Button("Cancel", role: .cancel) {}
                 }
                 
+                // Video Quality Button
+                if !availableQualities.isEmpty {
+                    Button(action: { 
+                        Task {
+                            await fetchMediaOptions()
+                            showQualityActionSheet = true
+                        }
+                    }) {
+                        Image(systemName: "4k.tv.fill")
+                            .font(.system(size: 18))
+                            .foregroundColor(currentQuality == 0 ? .white : .accentColor)
+                            .frame(width: 44, height: 44)
+                            .background(Color.white.opacity(0.15))
+                            .clipShape(Circle())
+                    }
+                    .confirmationDialog("Video Quality", isPresented: $showQualityActionSheet, titleVisibility: .visible) {
+                        Button("Auto\(currentQuality == 0 ? " ✓" : "")") {
+                            setQuality(0)
+                        }
+                        
+                        ForEach(availableQualities, id: \.self) { quality in
+                            Button("\(Int(quality))p\(currentQuality == quality ? " ✓" : "")") {
+                                setQuality(quality)
+                            }
+                        }
+                        Button("Cancel", role: .cancel) {}
+                    }
+                }
+                
                 Button(action: {
                     if let vlcUrl = URL(string: "vlc://\(currentUrl.absoluteString)"), UIApplication.shared.canOpenURL(vlcUrl) {
                         UIApplication.shared.open(vlcUrl)
@@ -607,6 +642,11 @@ struct StreamingPlayerView: View {
         
         saveToHistory()
         resetTimer()
+        
+        // Fetch qualities right away so we can apply preferences or show the button
+        Task {
+            await fetchMediaOptions()
+        }
     }
     
     private func teardownPlayerView() {
@@ -789,6 +829,49 @@ struct StreamingPlayerView: View {
             await MainActor.run {
                 self.audioGroup = audibleGroup
                 self.availableAudio = options
+            }
+        }
+        
+        if #available(iOS 15.0, *) {
+            if let urlAsset = item.asset as? AVURLAsset {
+                do {
+                    let variants = try await urlAsset.load(.variants)
+                    let heights = variants.compactMap { $0.videoAttributes?.presentationSize.height }
+                    let uniqueHeights = Array(Set(heights)).sorted(by: >)
+                    
+                    await MainActor.run {
+                        self.availableQualities = uniqueHeights
+                        // Apply preferred quality automatically if it exists, but only do this once per stream load
+                        if self.currentQuality == 0 {
+                            if self.preferredVideoQuality > 0 && uniqueHeights.contains(self.preferredVideoQuality) {
+                                self.setQuality(self.preferredVideoQuality)
+                            } else if self.preferredVideoQuality == 0 {
+                                self.setQuality(0)
+                            }
+                        }
+                    }
+                } catch {
+                    print("Failed to load variants: \(error)")
+                }
+            }
+        }
+    }
+    
+    private func setQuality(_ quality: Double) {
+        currentQuality = quality
+        preferredVideoQuality = quality // Save globally
+        
+        if let item = playerManager.player.currentItem {
+            if quality == 0 {
+                // Reset to Auto
+                item.preferredMaximumResolution = .zero
+                triggerToast("Quality: Auto")
+            } else {
+                // Find a variant that matches this height to get the proper CGSize, or construct one
+                // Usually width is proportional, but providing just height/width max limit works.
+                // We'll set a large width to ensure height is the limiting factor.
+                item.preferredMaximumResolution = CGSize(width: 9999, height: quality)
+                triggerToast("Quality: \(Int(quality))p")
             }
         }
     }
