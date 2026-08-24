@@ -21,8 +21,16 @@ struct MovieDetailView: View {
             
             switch viewModel.status {
             case .notstarted, .loading:
-                ProgressView()
-                    .scaleEffect(1.5)
+                VStack(spacing: 0) {
+                    Rectangle().fill(Color.gray.opacity(0.15)).frame(height: 200).shimmer()
+                    VStack(alignment: .leading, spacing: 16) {
+                        Rectangle().fill(Color.gray.opacity(0.15)).frame(width: 200, height: 30).shimmer()
+                        Rectangle().fill(Color.gray.opacity(0.15)).frame(width: 150, height: 20).shimmer()
+                        Rectangle().fill(Color.gray.opacity(0.15)).frame(height: 80).shimmer()
+                    }
+                    .padding()
+                    Spacer()
+                }
             case .success:
                 if let movie = viewModel.movieDetail {
                     detailContent(movie: movie)

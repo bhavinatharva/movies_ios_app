@@ -27,7 +27,16 @@ struct SeriesDetailView: View {
             Color.appBackground.ignoresSafeArea()
             
             if isLoading {
-                ProgressView("Loading Series Info...")
+                VStack(spacing: 0) {
+                    Rectangle().fill(Color.gray.opacity(0.15)).frame(height: 200).shimmer()
+                    VStack(alignment: .leading, spacing: 16) {
+                        Rectangle().fill(Color.gray.opacity(0.15)).frame(width: 200, height: 30).shimmer()
+                        Rectangle().fill(Color.gray.opacity(0.15)).frame(width: 150, height: 20).shimmer()
+                        Rectangle().fill(Color.gray.opacity(0.15)).frame(height: 80).shimmer()
+                    }
+                    .padding()
+                    Spacer()
+                }
             } else if let error = errorMessage {
                 ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(error))
             } else {

@@ -21,7 +21,23 @@ struct ActorsView: View {
                 
                 switch actorViewModel.actorStatus {
                 case .notstarted, .loading:
-                    ProgressView()
+                    ScrollView {
+                        VStack(spacing: 24) {
+                            Rectangle().fill(Color.gray.opacity(0.15)).frame(height: 450).shimmer()
+                            ForEach(0..<3, id: \.self) { _ in
+                                VStack(alignment: .leading, spacing: 12) {
+                                    Rectangle().fill(Color.gray.opacity(0.15)).frame(width: 140, height: 20).padding(.horizontal, 16).shimmer()
+                                    ScrollView(.horizontal, showsIndicators: false) {
+                                        HStack(spacing: 16) {
+                                            ForEach(0..<4, id: \.self) { _ in
+                                                RoundedRectangle(cornerRadius: 12).fill(Color.gray.opacity(0.1)).frame(width: 140, height: 210).shimmer()
+                                            }
+                                        }.padding(.horizontal, 16)
+                                    }
+                                }
+                            }
+                        }.padding(.bottom, 40)
+                    }
                 case .success:
                     ScrollView {
                         VStack(spacing: 24) {

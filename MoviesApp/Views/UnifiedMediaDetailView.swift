@@ -145,9 +145,11 @@ struct UnifiedMediaDetailView: View {
                         .shadow(radius: 2)
                     
                     if viewModel.isLoading {
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: .accentColor))
+                        Rectangle()
+                            .fill(Color.gray.opacity(0.15))
+                            .frame(width: 120, height: 16)
                             .padding(.top, 4)
+                            .shimmer()
                     }
                 }
                 Spacer()

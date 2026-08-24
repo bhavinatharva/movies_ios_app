@@ -18,7 +18,24 @@ struct UpcomingView: View {
                 
                 switch upcomingModel.upcomingStatus {
                 case ApiFetchStatus.notstarted, .loading:
-                    ProgressView()
+                    ScrollView {
+                        VStack(spacing: 16) {
+                            ForEach(0..<10, id: \.self) { _ in
+                                HStack(spacing: 16) {
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(Color.gray.opacity(0.15))
+                                        .frame(width: 100, height: 140)
+                                    VStack(alignment: .leading, spacing: 12) {
+                                        Rectangle().fill(Color.gray.opacity(0.15)).frame(height: 20)
+                                        Rectangle().fill(Color.gray.opacity(0.15)).frame(width: 150, height: 16)
+                                    }
+                                }
+                                .padding(.horizontal)
+                                .shimmer()
+                            }
+                        }
+                        .padding(.vertical)
+                    }
                 case ApiFetchStatus.success:
                     VerticalListView(titles:upcomingModel.upcomingMovies,canDelete: false)
                         .navigationDestination(for: TrendingModel.self) { title in

@@ -208,12 +208,9 @@ struct SeriesGenreRowView: View {
                         HStack(spacing: 16) {
                             ForEach(0..<4, id: \.self) { _ in
                                 RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color.appCardBackground)
+                                    .fill(Color.gray.opacity(0.15))
                                     .frame(width: 140, height: 186.6)
-                                    .overlay(
-                                        ProgressView()
-                                            .tint(.gray)
-                                    )
+                                    .shimmer()
                             }
                         }
                         .padding(.horizontal)

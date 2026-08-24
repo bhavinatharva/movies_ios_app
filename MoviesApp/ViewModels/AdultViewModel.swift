@@ -58,100 +58,38 @@ class AdultViewModel {
             self.errorMessage = nil
         }
         
-        // 1. Get adult live channels
         let allLive = IPTVDataManager.shared.liveChannels
+        let allMovies = IPTVDataManager.shared.movies
+        let allSeries = IPTVDataManager.shared.series
         
-        let (liveChs, tempGroupedLive) = await Task.detached(priority: .userInitiated) {
+        let (liveChs, tempGroupedLive, moviesList, tempGroupedMovies, seriesList, tempGroupedSeries) = await Task.detached(priority: .userInitiated) {
+            // Live
             let filteredLive = allLive.filter { $0.isAdult }
             let mappedLive = filteredLive.map { $0.toUnified }
-            
-            var grouped: [String: [UnifiedMediaItem]] = [:]
+            var gLive: [String: [UnifiedMediaItem]] = [:]
             for channel in filteredLive {
                 let catName = channel.category ?? "Live"
-                grouped[catName, default: []].append(channel.toUnified)
-            }
-            return (mappedLive, grouped)
-        }.value
-        
-        // 2. Fetch/Filter Movies & Series
-        var tempGroupedMovies: [String: [UnifiedMediaItem]] = [:]
-        var tempGroupedSeries: [String: [UnifiedMediaItem]] = [:]
-        var moviesList: [UnifiedMediaItem] = []
-        var seriesList: [UnifiedMediaItem] = []
-        
-        if let creds = authManager.credentials {
-            // Xtream Codes: Fetch adult VOD & series categories, and then load streams for those categories
-            do {
-                // Fetch VOD Categories
-                let vodCats = try await iptvService.fetchVODCategories(creds: creds)
-                let adultVodCats = vodCats.filter { isAdultString($0.name) }
-                
-                // Fetch Series Categories
-                let seriesCats = try await iptvService.fetchSeriesCategories(creds: creds)
-                let adultSeriesCats = seriesCats.filter { isAdultString($0.name) }
-                
-                // Load VOD streams for adult categories concurrently
-                await withTaskGroup(of: (String, [UnifiedMediaItem]).self) { group in
-                    for cat in adultVodCats {
-                        group.addTask {
-                            do {
-                                let streams = try await self.iptvService.fetchVODStreams(creds: creds, categoryId: cat.id)
-                                let mapped = await MainActor.run { streams.map { UnifiedMediaItem(from: $0, creds: creds) } }
-                                return (cat.name, mapped)
-                            } catch {
-                                return (cat.name, [])
-                            }
-                        }
-                    }
-                    
-                    for await (catName, items) in group {
-                        if !items.isEmpty {
-                            moviesList.append(contentsOf: items)
-                            tempGroupedMovies[catName, default: []].append(contentsOf: items)
-                        }
-                    }
-                }
-                
-                // Load series for adult categories concurrently
-                await withTaskGroup(of: (String, [UnifiedMediaItem]).self) { group in
-                    for cat in adultSeriesCats {
-                        group.addTask {
-                            do {
-                                let series = try await self.iptvService.fetchSeries(creds: creds, categoryId: cat.id)
-                                let mapped = await MainActor.run { series.map { UnifiedMediaItem(from: $0) } }
-                                return (cat.name, mapped)
-                            } catch {
-                                return (cat.name, [])
-                            }
-                        }
-                    }
-                    
-                    for await (catName, items) in group {
-                        if !items.isEmpty {
-                            seriesList.append(contentsOf: items)
-                            tempGroupedSeries[catName, default: []].append(contentsOf: items)
-                        }
-                    }
-                }
-            } catch {
-                await MainActor.run {
-                    self.errorMessage = "Failed to fetch adult content from IPTV server: \(error.localizedDescription)"
-                }
-            }
-        } else {
-            // M3U Playlist: Everything is already in IPTVDataManager
-            moviesList = IPTVDataManager.shared.movies.filter { $0.isAdult }
-            for movie in moviesList {
-                let catName = movie.genres?.first ?? "Movies"
-                tempGroupedMovies[catName, default: []].append(movie)
+                gLive[catName, default: []].append(channel.toUnified)
             }
             
-            seriesList = IPTVDataManager.shared.series.filter { $0.isAdult }
-            for series in seriesList {
-                let catName = series.genres?.first ?? "Series"
-                tempGroupedSeries[catName, default: []].append(series)
+            // Movies
+            let filteredMovies = allMovies.filter { $0.isAdult }
+            var gMovies: [String: [UnifiedMediaItem]] = [:]
+            for movie in filteredMovies {
+                let catName = movie.genres?.first ?? "Movies"
+                gMovies[catName, default: []].append(movie)
             }
-        }
+            
+            // Series
+            let filteredSeries = allSeries.filter { $0.isAdult }
+            var gSeries: [String: [UnifiedMediaItem]] = [:]
+            for series in filteredSeries {
+                let catName = series.genres?.first ?? "Series"
+                gSeries[catName, default: []].append(series)
+            }
+            
+            return (mappedLive, gLive, filteredMovies, gMovies, filteredSeries, gSeries)
+        }.value
         
         // Also merge with any cached media in IPTVLocalDatabase if they match isAdult
         let localMovies = IPTVLocalDatabase.shared.fetchMediaItems(type: .movie).filter { $0.isAdult }

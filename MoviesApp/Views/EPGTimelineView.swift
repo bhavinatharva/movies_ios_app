@@ -13,7 +13,27 @@ struct EPGTimelineView: View {
             Color.appBackground.ignoresSafeArea()
             
             if viewModel.isLoading {
-                ProgressView("Loading TV Guide...")
+                VStack(spacing: 0) {
+                    HStack {
+                        Rectangle().fill(Color.gray.opacity(0.15)).frame(width: 100, height: 28).shimmer()
+                        Spacer()
+                        Rectangle().fill(Color.gray.opacity(0.15)).frame(width: 80, height: 32).cornerRadius(16).shimmer()
+                    }
+                    .padding()
+                    .background(Color.appCardBackground)
+                    
+                    VStack(spacing: 4) {
+                        ForEach(0..<8, id: \.self) { _ in
+                            HStack(spacing: 4) {
+                                Rectangle().fill(Color.gray.opacity(0.15)).frame(width: 120, height: 60).shimmer()
+                                Rectangle().fill(Color.gray.opacity(0.1)).frame(height: 60).shimmer()
+                                Rectangle().fill(Color.gray.opacity(0.1)).frame(width: 200, height: 60).shimmer()
+                            }
+                        }
+                    }
+                    .padding(.top, 4)
+                    Spacer()
+                }
             } else if let error = viewModel.errorMessage {
                 ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(error))
             } else if viewModel.channels.isEmpty {
