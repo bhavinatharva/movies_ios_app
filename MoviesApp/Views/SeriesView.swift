@@ -179,50 +179,6 @@ struct SeriesView: View {
         }
         .padding(.bottom, 30) // Clear tab bar space
     }
-                            }
-                        }
-                        .ignoresSafeArea(edges: viewModel.selectedCategory == nil ? .top : .init())
-                    }
-                }
-            }
-            .navigationTitle(viewModel.selectedCategory?.categoryName ?? Constants.StringConstants.tabSeries)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItemGroup(placement: .navigationBarTrailing) {
-                    NavigationLink(destination: SearchView()) {
-                        Image(systemName: "magnifyingglass")
-                    }
-                    
-                    Menu {
-                        Button("All (Home)") {
-                            viewModel.selectedCategory = nil
-                        }
-                        
-                        ForEach(viewModel.categories, id: \.id) { category in
-                            Button(category.categoryName ?? category.id) {
-                                viewModel.selectedCategory = category
-                                Task {
-                                    await viewModel.loadSeriesIfNeeded(for: category.id)
-                                }
-                            }
-                        }
-                    } label: {
-                        Image(systemName: "line.3.horizontal.decrease.circle")
-                    }
-                }
-            }
-            .navigationDestination(item: $selectedDetailSeries) { series in
-                SeriesDetailView(series: series)
-            }
-            .task {
-                if viewModel.categories.isEmpty {
-                    await viewModel.loadCategories()
-                }
-            }
-        }
-    }
-}
-
 // MARK: - Lazy Loading Genre Row View for Series
 struct SeriesGenreRowView: View {
     let category: XtreamCategory

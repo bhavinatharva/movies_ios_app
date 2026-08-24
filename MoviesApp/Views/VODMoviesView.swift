@@ -197,50 +197,6 @@ struct VODMoviesView: View {
         }
         .padding(.bottom, 30) // Clear custom tab bar
     }
-                            }
-                        }
-                        .ignoresSafeArea(edges: viewModel.selectedCategory == nil ? .top : .init())
-                    }
-                }
-            }
-            .navigationTitle(viewModel.selectedCategory?.categoryName ?? Constants.StringConstants.tabMovies)
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItemGroup(placement: .navigationBarTrailing) {
-                        NavigationLink(destination: SearchView()) {
-                            Image(systemName: "magnifyingglass")
-                        }
-                        
-                        Menu {
-                            Button("All (Home)") {
-                                viewModel.selectedCategory = nil
-                            }
-                            
-                            ForEach(viewModel.categories, id: \.id) { category in
-                                Button(category.categoryName ?? category.id) {
-                                    viewModel.selectedCategory = category
-                                    Task {
-                                        await viewModel.loadMoviesIfNeeded(for: category.id)
-                                    }
-                                }
-                            }
-                        } label: {
-                            Image(systemName: "line.3.horizontal.decrease.circle")
-                        }
-                    }
-                }
-            .task {
-                if viewModel.categories.isEmpty {
-                    await viewModel.loadCategories()
-                }
-            }
-            .fullScreenCover(item: $selectedMovie) { movie in
-                UnifiedMediaDetailView(item: movie)
-            }
-        }
-    }
-}
-
 // MARK: - Lazy Loading Genre Row View
 struct VODGenreRowView: View {
     let category: XtreamCategory
