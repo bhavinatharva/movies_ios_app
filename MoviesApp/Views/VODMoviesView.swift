@@ -8,6 +8,7 @@ import SwiftUI
 struct VODMoviesView: View {
     @State private var viewModel = VODMoviesViewModel()
     @State private var selectedMovie: UnifiedMediaItem?
+    @State private var showingCategoryFilter = false
     
     private let columns = [
         GridItem(.adaptive(minimum: 110), spacing: 16)
@@ -38,8 +39,22 @@ struct VODMoviesView: View {
                     await viewModel.loadCategories()
                 }
             }
-            .fullScreenCover(item: $selectedMovie) { movie in
+            .navigationDestination(item: $selectedMovie) { movie in
                 UnifiedMediaDetailView(item: movie)
+            }
+            .sheet(isPresented: $showingCategoryFilter) {
+                CategoryFilterView(
+                    categories: viewModel.categories,
+                    selectedCategory: viewModel.selectedCategory,
+                    onSelect: { category in
+                        viewModel.selectedCategory = category
+                        if let cat = category {
+                            Task {
+                                await viewModel.loadMoviesIfNeeded(for: cat.id)
+                            }
+                        }
+                    }
+                )
             }
         }
     }
@@ -199,19 +214,8 @@ struct VODMoviesView: View {
     
     @ViewBuilder
     private var categoryMenu: some View {
-        Menu {
-            Button("All (Home)") {
-                viewModel.selectedCategory = nil
-            }
-            
-            ForEach(viewModel.categories) { category in
-                Button(category.name) {
-                    viewModel.selectedCategory = category
-                    Task {
-                        await viewModel.loadMoviesIfNeeded(for: category.id)
-                    }
-                }
-            }
+        Button {
+            showingCategoryFilter = true
         } label: {
             Image(systemName: "line.3.horizontal.decrease.circle")
         }

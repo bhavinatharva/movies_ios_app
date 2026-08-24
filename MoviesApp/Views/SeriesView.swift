@@ -8,6 +8,7 @@ import SwiftUI
 struct SeriesView: View {
     @State private var viewModel = SeriesViewModel()
     @State private var selectedDetailSeries: UnifiedMediaItem?
+    @State private var showingCategoryFilter = false
     
     private let columns = [
         GridItem(.adaptive(minimum: 110), spacing: 16)
@@ -40,6 +41,20 @@ struct SeriesView: View {
                 if viewModel.categories.isEmpty {
                     await viewModel.loadCategories()
                 }
+            }
+            .sheet(isPresented: $showingCategoryFilter) {
+                CategoryFilterView(
+                    categories: viewModel.categories,
+                    selectedCategory: viewModel.selectedCategory,
+                    onSelect: { category in
+                        viewModel.selectedCategory = category
+                        if let cat = category {
+                            Task {
+                                await viewModel.loadSeriesIfNeeded(for: cat.id)
+                            }
+                        }
+                    }
+                )
             }
         }
     }
@@ -181,19 +196,8 @@ struct SeriesView: View {
     
     @ViewBuilder
     private var categoryMenu: some View {
-        Menu {
-            Button("All (Home)") {
-                viewModel.selectedCategory = nil
-            }
-            
-            ForEach(viewModel.categories) { category in
-                Button(category.name) {
-                    viewModel.selectedCategory = category
-                    Task {
-                        await viewModel.loadSeriesIfNeeded(for: category.id)
-                    }
-                }
-            }
+        Button {
+            showingCategoryFilter = true
         } label: {
             Image(systemName: "line.3.horizontal.decrease.circle")
         }
