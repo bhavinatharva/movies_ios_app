@@ -31,24 +31,28 @@ struct MovieCastRail: View {
                     LazyHStack(spacing: 16) {
                         ForEach(combinedList) { person in
                             VStack(spacing: 8) {
-                                AsyncImage(url: person.imageUrl) { phase in
-                                    switch phase {
-                                    case .empty:
-                                        Circle()
-                                            .fill(Color.gray.opacity(0.2))
-                                            .frame(width: 80, height: 80)
-                                            .shimmer()
-                                    case .success(let image):
-                                        image
-                                            .resizable()
-                                            .scaledToFill()
-                                            .frame(width: 80, height: 80)
-                                            .clipShape(Circle())
-                                    case .failure:
-                                        fallbackCircle
-                                    @unknown default:
-                                        fallbackCircle
+                                if let imageUrl = person.imageUrl {
+                                    AsyncImage(url: imageUrl) { phase in
+                                        switch phase {
+                                        case .empty:
+                                            Circle()
+                                                .fill(Color.gray.opacity(0.2))
+                                                .frame(width: 80, height: 80)
+                                                .shimmer()
+                                        case .success(let image):
+                                            image
+                                                .resizable()
+                                                .scaledToFill()
+                                                .frame(width: 80, height: 80)
+                                                .clipShape(Circle())
+                                        case .failure:
+                                            initialsCircle(for: person.name)
+                                        @unknown default:
+                                            initialsCircle(for: person.name)
+                                        }
                                     }
+                                } else {
+                                    initialsCircle(for: person.name)
                                 }
                                 
                                 Text(person.name)
@@ -72,15 +76,23 @@ struct MovieCastRail: View {
         }
     }
     
-    private var fallbackCircle: some View {
-        Circle()
-            .fill(Color.gray.opacity(0.2))
+    private func initialsCircle(for name: String) -> some View {
+        let initials = name
+            .split(separator: " ")
+            .prefix(2)
+            .compactMap { $0.first.map { String($0) } }
+            .joined()
+        
+        let colors: [Color] = [.indigo, .purple, .teal, .orange, .pink, .blue]
+        let colorIndex = abs(name.hashValue) % colors.count
+        
+        return Circle()
+            .fill(colors[colorIndex].opacity(0.7))
             .frame(width: 80, height: 80)
             .overlay(
-                Image(systemName: "person.crop.circle.fill")
-                    .resizable()
-                    .foregroundColor(.white.opacity(0.3))
-                    .padding(10)
+                Text(initials.uppercased())
+                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                    .foregroundColor(.white)
             )
     }
 }
