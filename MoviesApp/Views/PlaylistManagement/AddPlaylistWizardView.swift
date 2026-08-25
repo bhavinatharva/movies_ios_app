@@ -137,6 +137,7 @@ struct AddPlaylistWizardView: View {
                                 
                                 Button("Cancel") {
                                     importTask?.cancel()
+                                    IPTVDataManager.shared.cancelImport()
                                     isLoading = false
                                 }
                                 .buttonStyle(.bordered)
@@ -169,9 +170,8 @@ struct AddPlaylistWizardView: View {
         IPTVDataManager.shared.importProgress = 0.0
         
         defer {
-            if !isLoading || errorMessage != nil {
-                IPTVDataManager.shared.importProgress = nil
-            }
+            // Always reset importProgress when the wizard exits (success, failure, or cancel).
+            IPTVDataManager.shared.importProgress = nil
         }
         
         var targetUrl = urlString // We'll just pass the URL or build Xtream URL if needed
