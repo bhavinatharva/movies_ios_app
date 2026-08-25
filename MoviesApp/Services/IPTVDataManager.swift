@@ -50,9 +50,8 @@ class IPTVDataManager {
     // Loaded Playlist State
     var currentLoadedPlaylistUrl: String? = nil
     
-    @Published var homeStatus: HomeStatus = .notstarted
-    @Published var importProgress: Double? = nil
-    @Published var showAdultConsentPrompt: Bool = false
+    var importProgress: Double? = nil
+    var showAdultConsentPrompt: Bool = false
     var pendingAdultConsentPlaylist: Playlist? = nil
     
     // Classified data arrays

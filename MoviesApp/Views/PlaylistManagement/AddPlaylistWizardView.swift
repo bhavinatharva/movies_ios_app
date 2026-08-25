@@ -13,6 +13,7 @@ struct AddPlaylistWizardView: View {
     
     @State private var isLoading = false
     @State private var errorMessage: String?
+    @State private var importTask: Task<Void, Never>?
     
     private let playlistManager = PlaylistManager.shared
     
@@ -66,13 +67,7 @@ struct AddPlaylistWizardView: View {
                     }
                 }
                 
-                if let error = errorMessage {
-                    Section {
-                        Text(error)
-                            .foregroundColor(.red)
-                            .font(.footnote)
-                    }
-                }
+                // Error message moved to the overlay as requested
             }
             .navigationTitle("Add Playlist")
             .navigationBarTitleDisplayMode(.large)
@@ -86,7 +81,7 @@ struct AddPlaylistWizardView: View {
                         ProgressView()
                     } else {
                         Button("Add") {
-                            Task { await processPlaylist() }
+                            importTask = Task { await processPlaylist() }
                         }
                         .fontWeight(.bold)
                         .disabled(urlString.isEmpty && playlistType != 2)
@@ -99,17 +94,55 @@ struct AddPlaylistWizardView: View {
                     ZStack {
                         Color.black.opacity(0.6).ignoresSafeArea()
                         VStack(spacing: 20) {
-                            if let progress = IPTVDataManager.shared.importProgress {
-                                WaterWaveProgressView(progress: progress, waveHeight: 0.05, waveFrequency: 1.5, waveSpeed: 2.0, color: .accentColor)
-                                    .frame(width: 150, height: 150)
+                            if let error = errorMessage {
+                                // Error State
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .font(.system(size: 50))
+                                    .foregroundColor(.red)
+                                Text("Import Failed")
+                                    .font(.title2).bold()
+                                    .foregroundColor(.white)
+                                Text(error)
+                                    .font(.body)
+                                    .foregroundColor(.white)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal)
+                                
+                                HStack(spacing: 20) {
+                                    Button("Retry") {
+                                        importTask = Task { await processPlaylist() }
+                                    }
+                                    .buttonStyle(.borderedProminent)
+                                    
+                                    Button("Cancel") {
+                                        isLoading = false
+                                        errorMessage = nil
+                                    }
+                                    .buttonStyle(.bordered)
+                                    .tint(.white)
+                                }
                             } else {
-                                ProgressView()
-                                    .scaleEffect(1.5)
-                                    .tint(.accentColor)
+                                // Loading State
+                                if let progress = IPTVDataManager.shared.importProgress {
+                                    WaterWaveProgressView(progress: progress, waveHeight: 0.05, waveFrequency: 1.5, waveSpeed: 2.0, color: .accentColor)
+                                        .frame(width: 150, height: 150)
+                                } else {
+                                    ProgressView()
+                                        .scaleEffect(1.5)
+                                        .tint(.accentColor)
+                                }
+                                Text("Processing Playlist...")
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                                
+                                Button("Cancel") {
+                                    importTask?.cancel()
+                                    isLoading = false
+                                }
+                                .buttonStyle(.bordered)
+                                .tint(.white)
+                                .padding(.top, 10)
                             }
-                            Text("Processing Playlist...")
-                                .font(.headline)
-                                .foregroundColor(.white)
                         }
                     }
                 }
@@ -130,13 +163,15 @@ struct AddPlaylistWizardView: View {
     }
     
     private func processPlaylist() async {
-        guard !isLoading else { return } // Prevent duplicates
+        guard !isLoading || errorMessage != nil else { return } // Prevent duplicates, allow retry
         isLoading = true
         errorMessage = nil
         IPTVDataManager.shared.importProgress = 0.0
         
         defer {
-            IPTVDataManager.shared.importProgress = nil
+            if !isLoading || errorMessage != nil {
+                IPTVDataManager.shared.importProgress = nil
+            }
         }
         
         var targetUrl = urlString // We'll just pass the URL or build Xtream URL if needed
@@ -170,13 +205,11 @@ struct AddPlaylistWizardView: View {
         
         guard validationResult.isValid, let sanitizedStr = validationResult.sanitizedUrl else {
             errorMessage = validationResult.errorMessage ?? "Invalid IPTV source. Please enter a valid URL."
-            isLoading = false
             return
         }
         
         guard let url = URL(string: sanitizedStr) else {
             errorMessage = "Invalid URL format."
-            isLoading = false
             return
         }
         
@@ -191,7 +224,6 @@ struct AddPlaylistWizardView: View {
             if let httpResponse = response as? HTTPURLResponse {
                 if httpResponse.statusCode == 404 || httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
                     errorMessage = "Access denied or URL invalid (Status: \(httpResponse.statusCode))."
-                    isLoading = false
                     return
                 }
                 
@@ -208,20 +240,33 @@ struct AddPlaylistWizardView: View {
                 
                 if let content = String(data: initialData, encoding: .utf8)?.lowercased(), content.contains("<html") {
                     errorMessage = "Server returned an HTML page instead of playlist data."
-                    isLoading = false
                     return
                 }
             }
+        } catch is CancellationError {
+            // Task cancelled
+            return
         } catch {
+            let nsError = error as NSError
+            if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled {
+                // Task cancelled
+                return
+            }
             errorMessage = "Connection Failed: \(error.localizedDescription)"
-            isLoading = false
             return
         }
         
         let finalName = name.isEmpty ? "My Playlist" : name
+        if Task.isCancelled { return }
+        
         playlistManager.addPlaylist(name: finalName, url: sanitizedStr)
         
         await IPTVDataManager.shared.refreshContent()
+        
+        if Task.isCancelled {
+            // Cleanup on cancel if needed, though refreshContent might have run
+            return
+        }
         
         // Success
         isLoading = false
