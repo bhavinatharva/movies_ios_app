@@ -8,7 +8,7 @@
 import Foundation
 
 class M3UParser {
-    static func parseStream(from url: URL) async throws -> AsyncThrowingStream<IPTVChannel, Error> {
+    static func parseStream(from url: URL, onProgress: ((Double?) -> Void)? = nil) async throws -> AsyncThrowingStream<IPTVChannel, Error> {
         return AsyncThrowingStream(IPTVChannel.self) { continuation in
             let task = Task(priority: .userInitiated) {
                 do {
@@ -25,6 +25,9 @@ class M3UParser {
                         return
                     }
                     
+                    let expectedLength = response.expectedContentLength
+                    var bytesRead: Int64 = 0
+                    
                     var currentInfo: [String: String] = [:]
                     
                     for try await line in bytes.lines {
@@ -34,6 +37,19 @@ class M3UParser {
                         }
                         
                         let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
+                        
+                        // Roughly estimate bytes read
+                        bytesRead += Int64(line.utf8.count + 1)
+                        if expectedLength > 0 {
+                            let progress = min(1.0, Double(bytesRead) / Double(expectedLength))
+                            Task { @MainActor in
+                                onProgress?(progress)
+                            }
+                        } else {
+                            Task { @MainActor in
+                                onProgress?(nil)
+                            }
+                        }
                         
                         #if DEBUG
                         print("📡 [M3UParser] Fetched Line: \(trimmedLine)")

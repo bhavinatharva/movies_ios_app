@@ -94,6 +94,26 @@ struct AddPlaylistWizardView: View {
                 }
             }
             .disabled(isLoading)
+            .overlay {
+                if isLoading {
+                    ZStack {
+                        Color.black.opacity(0.6).ignoresSafeArea()
+                        VStack(spacing: 20) {
+                            if let progress = IPTVDataManager.shared.importProgress {
+                                WaterWaveProgressView(progress: progress, waveHeight: 0.05, waveFrequency: 1.5, waveSpeed: 2.0, color: .accentColor)
+                                    .frame(width: 150, height: 150)
+                            } else {
+                                ProgressView()
+                                    .scaleEffect(1.5)
+                                    .tint(.accentColor)
+                            }
+                            Text("Processing Playlist...")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                        }
+                    }
+                }
+            }
         }
     }
     
@@ -110,8 +130,14 @@ struct AddPlaylistWizardView: View {
     }
     
     private func processPlaylist() async {
+        guard !isLoading else { return } // Prevent duplicates
         isLoading = true
         errorMessage = nil
+        IPTVDataManager.shared.importProgress = 0.0
+        
+        defer {
+            IPTVDataManager.shared.importProgress = nil
+        }
         
         var targetUrl = urlString // We'll just pass the URL or build Xtream URL if needed
         if playlistType == 0 {

@@ -50,8 +50,9 @@ class IPTVDataManager {
     // Loaded Playlist State
     var currentLoadedPlaylistUrl: String? = nil
     
-    // Adult Content Consent State
-    var showAdultConsentPrompt: Bool = false
+    @Published var homeStatus: HomeStatus = .notstarted
+    @Published var importProgress: Double? = nil
+    @Published var showAdultConsentPrompt: Bool = false
     var pendingAdultConsentPlaylist: Playlist? = nil
     
     // Classified data arrays
@@ -407,7 +408,11 @@ class IPTVDataManager {
         let channels = try await fetchWithRetry {
             try await Task.detached(priority: .userInitiated) {
                 var parsedChannels: [IPTVChannel] = []
-                let stream = try await M3UParser.parseStream(from: url)
+                let stream = try await M3UParser.parseStream(from: url) { progress in
+                    Task { @MainActor in
+                        self.importProgress = progress
+                    }
+                }
                 for try await channel in stream {
                     parsedChannels.append(channel)
                 }
