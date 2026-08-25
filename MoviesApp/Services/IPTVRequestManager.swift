@@ -17,11 +17,11 @@ enum IPTVEndpointType {
     
     var timeoutInterval: TimeInterval {
         switch self {
-        case .live: return 120 // Live streams can take time to generate
-        case .vod, .series: return 90 // Heavy JSON payloads
-        case .epg: return 180 // Massive XML/JSON files
-        case .auth: return 30 // Quick auth checks
-        case .m3u: return 120 // Full text file
+        case .live: return 300 // Live streams can take time to generate
+        case .vod, .series: return 300 // Heavy JSON payloads
+        case .epg: return 300 // Massive XML/JSON files
+        case .auth: return 60 // Quick auth checks
+        case .m3u: return 300 // Full text file
         }
     }
 }
@@ -61,7 +61,9 @@ actor IPTVRequestManager {
         // 3. Create a new network task with retry logic
         let task = Task<Data, Error> {
             let session = sessions[type] ?? .shared
-            return try await executeWithExponentialBackoff(url: url, session: session)
+            var request = URLRequest(url: url)
+            request.timeoutInterval = type.timeoutInterval
+            return try await executeWithExponentialBackoff(request: request, session: session)
         }
         
         activeTasks[url] = task
@@ -77,13 +79,13 @@ actor IPTVRequestManager {
     }
     
     /// Executes a request with 1s, 2s, 4s exponential backoff
-    private func executeWithExponentialBackoff(url: URL, session: URLSession, maxRetries: Int = 3) async throws -> Data {
+    private func executeWithExponentialBackoff(request: URLRequest, session: URLSession, maxRetries: Int = 3) async throws -> Data {
         var attempts = 0
         var currentDelay = 1.0
         
         while attempts < maxRetries {
             do {
-                let (data, response) = try await session.data(from: url)
+                let (data, response) = try await session.data(for: request)
                 if let httpResponse = response as? HTTPURLResponse {
                     if (400...499).contains(httpResponse.statusCode) {
                         // Do not retry client errors like 404 Not Found or 401 Unauthorized
