@@ -74,7 +74,7 @@ struct UnifiedMediaCardView: View {
         ZStack(alignment: .bottomLeading) {
             let encodedPosterUrl = item.posterPath?.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? item.posterPath
             if let posterUrlString = encodedPosterUrl, !posterUrlString.isEmpty, let posterUrl = URL(string: posterUrlString) {
-                AsyncImage(url: posterUrl) { phase in
+                AsyncImage(url: posterUrl, urlSession: ImageCacheSession.shared) { phase in
                     switch phase {
                     case .success(let image):
                         image

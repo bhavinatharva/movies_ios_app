@@ -8,6 +8,11 @@
 import Foundation
 
 class M3UParser {
+    // Compiled once; reused for every #EXTINF: line — avoids 5000+ compilations per import.
+    private static let extinfRegex: NSRegularExpression? = try? NSRegularExpression(
+        pattern: "([a-zA-Z0-9\\-]+)=[\"']([^\"']*)[\"']",
+        options: []
+    )
     static func parseStream(from url: URL, onProgress: ((Double?) -> Void)? = nil) async throws -> AsyncThrowingStream<IPTVChannel, Error> {
         return AsyncThrowingStream(IPTVChannel.self) { continuation in
             let task = Task(priority: .userInitiated) {
@@ -28,6 +33,10 @@ class M3UParser {
                     let expectedLength = response.expectedContentLength
                     var bytesRead: Int64 = 0
                     
+                    // Progress throttling — update MainActor at most once per 50 lines or 1% delta
+                    var linesSinceLastProgress = 0
+                    var lastReportedProgress: Double = -1
+                    
                     var currentInfo: [String: String] = [:]
                     
                     for try await line in bytes.lines {
@@ -40,14 +49,17 @@ class M3UParser {
                         
                         // Roughly estimate bytes read
                         bytesRead += Int64(line.utf8.count + 1)
-                        if expectedLength > 0 {
-                            let progress = min(1.0, Double(bytesRead) / Double(expectedLength))
-                            Task { @MainActor in
-                                onProgress?(progress)
-                            }
-                        } else {
-                            Task { @MainActor in
-                                onProgress?(nil)
+                        linesSinceLastProgress += 1
+                        if linesSinceLastProgress >= 50 {
+                            linesSinceLastProgress = 0
+                            if expectedLength > 0 {
+                                let progress = min(1.0, Double(bytesRead) / Double(expectedLength))
+                                if progress - lastReportedProgress >= 0.01 || progress >= 1.0 {
+                                    lastReportedProgress = progress
+                                    Task { @MainActor in onProgress?(progress) }
+                                }
+                            } else {
+                                Task { @MainActor in onProgress?(nil) }
                             }
                         }
                         
@@ -130,9 +142,8 @@ class M3UParser {
     private static func parseExtInf(_ line: String) -> [String: String] {
         var info: [String: String] = [:]
         
-        // Extract all key="value" or key='value' pairs using regex
-        let pattern = "([a-zA-Z0-9\\-]+)=[\"']([^\"']*)[\"']"
-        if let regex = try? NSRegularExpression(pattern: pattern, options: []) {
+        // Use the pre-compiled regex (compiled once at class load, not per call)
+        if let regex = extinfRegex {
             let matches = regex.matches(in: line, options: [], range: NSRange(location: 0, length: line.utf16.count))
             for match in matches {
                 if let keyRange = Range(match.range(at: 1), in: line),
