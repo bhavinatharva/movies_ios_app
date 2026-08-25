@@ -26,7 +26,7 @@ struct WaterWaveProgressView: View {
                 // Percentage Text
                 Text(String(format: "%.0f%%", progress * 100))
                     .font(.system(size: size * 0.25, weight: .bold, design: .rounded))
-                    .foregroundColor(progress > 0.4 ? .white : .primary)
+                    .foregroundColor(.white)
             }
             .frame(width: size, height: size)
             .position(x: geometry.size.width / 2, y: geometry.size.height / 2)

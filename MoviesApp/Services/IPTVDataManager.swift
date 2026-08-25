@@ -264,12 +264,16 @@ class IPTVDataManager {
                 
                 let (liveCats, vodCats, seriesCats) = await (liveCatsTask, vodCatsTask, seriesCatsTask)
                 
+                await MainActor.run { self.importProgress = 0.15 }
+                
                 // 3. Fetch Live streams, VODs, and Series concurrently to immediately satisfy Home screen layout
                 async let liveTask = try? self.fetchWithRetry { try await self.iptvService.fetchXtreamChannels(creds: creds) }
                 async let vodTask = try? self.fetchWithRetry { try await self.iptvService.fetchVODStreams(creds: creds) }
                 async let seriesTask = try? self.fetchWithRetry { try await self.iptvService.fetchSeries(creds: creds) }
                 
                 let (fetchedChannelsResult, fetchedVODsResult, fetchedSeriesResult) = await (liveTask, vodTask, seriesTask)
+                
+                await MainActor.run { self.importProgress = 0.60 }
                 
                 let fetchedChannels = fetchedChannelsResult ?? []
                 let fetchedVODs = fetchedVODsResult ?? []
@@ -289,6 +293,8 @@ class IPTVDataManager {
                     let s = fetchedSeries.map { UnifiedMediaItem(from: $0) }
                     return (v, s)
                 }.value
+                
+                await MainActor.run { self.importProgress = 0.90 }
                 
                 // 1. Adult Content Detection
                 let hasAdult = AdultContentDetector.hasAdultContent(channels: fetchedChannels, media: unifiedVODs + unifiedSeries)
