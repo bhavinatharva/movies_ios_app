@@ -41,6 +41,8 @@ actor IPTVRequestManager {
         let types: [IPTVEndpointType] = [.live, .vod, .series, .epg, .auth, .m3u]
         for type in types {
             let config = URLSessionConfiguration.default
+            config.requestCachePolicy = .reloadIgnoringLocalCacheData
+            config.urlCache = nil
             config.timeoutIntervalForRequest = type.timeoutInterval
             config.timeoutIntervalForResource = type.timeoutInterval * 2
             sessions[type] = URLSession(configuration: config)

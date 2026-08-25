@@ -157,6 +157,13 @@ class IPTVDataManager {
     private func performRefreshContent(clearFirst: Bool) async {
         let currentDefaultPlaylist = playlistManager.fetchDefaultPlaylist()
         
+        if clearFirst {
+            URLCache.shared.removeAllCachedResponses()
+            Task {
+                await IPTVRequestManager.shared.reset()
+            }
+        }
+        
         if !clearFirst, let defaultPlaylist = currentDefaultPlaylist, self.homeStatus == .success, self.currentLoadedPlaylistUrl == defaultPlaylist.url {
             #if DEBUG
             print("🌐 [IPTVDataManager] Playlist already loaded. Skipping refresh.")
