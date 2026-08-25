@@ -31,6 +31,12 @@ final class GlobalPlayerManager: ObservableObject {
     @Published var nextEpisodeTitle: String?
     @Published var onPlayNext: (() -> Void)?
     
+    // Skip Intro state
+    @Published var currentIntroMarker: IntroMarker? = nil
+    @Published var showSkipIntro: Bool = false
+    
+    private let introService: IntroMarkerServiceProtocol = DummyIntroMarkerService.shared
+    
     @Published var playbackError: String?
     
     private var currentUrl: URL?
@@ -61,6 +67,15 @@ final class GlobalPlayerManager: ObservableObject {
             guard let self = self else { return }
             if !self.isUserSeeking {
                 self.currentTime = time.seconds
+                
+                if !self.isLive, let marker = self.currentIntroMarker {
+                    let isWithinIntro = time.seconds >= marker.start && time.seconds < marker.end
+                    if self.showSkipIntro != isWithinIntro {
+                        self.showSkipIntro = isWithinIntro
+                    }
+                } else if self.showSkipIntro {
+                    self.showSkipIntro = false
+                }
             }
             if let d = self.player.currentItem?.duration {
                 let seconds = d.seconds
@@ -69,7 +84,7 @@ final class GlobalPlayerManager: ObservableObject {
         }
         
         statusObservation = player.publisher(for: \.timeControlStatus).sink { [weak self] status in
-            self?.isPlaying = (status == .playing)
+            self?.isPlaying = (status == .playing || status == .waitingToPlayAtSpecifiedRate)
         }
     }
     
@@ -107,7 +122,13 @@ final class GlobalPlayerManager: ObservableObject {
             let asset = AVURLAsset(url: url, options: options)
             let item = AVPlayerItem(asset: asset)
             
+            let streamIdentifier = await self.streamId ?? ""
+            let marker = await self.introService.fetchIntroMarker(for: streamIdentifier)
+            
             await MainActor.run {
+                self.currentIntroMarker = marker
+                self.showSkipIntro = false
+                
                 if self.isLive {
                     item.preferredForwardBufferDuration = 1.0
                 } else {
@@ -151,18 +172,18 @@ final class GlobalPlayerManager: ObservableObject {
         self.isPlaying = false
         self.isMinimized = false
         self.playbackError = nil
+        self.currentIntroMarker = nil
+        self.showSkipIntro = false
         self.currentTitle = nil
         self.currentArtwork = nil
         self.currentUrl = nil
     }
     
     func togglePlayPause() {
-        if player.timeControlStatus == .playing {
+        if player.timeControlStatus == .playing || player.timeControlStatus == .waitingToPlayAtSpecifiedRate {
             player.pause()
-            isPlaying = false
         } else {
             player.play()
-            isPlaying = true
         }
     }
     

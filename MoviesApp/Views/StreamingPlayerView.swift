@@ -174,6 +174,11 @@ struct StreamingPlayerView: View {
                 nextEpisodeOverlayView
             }
             
+            // 6.5. Skip Intro Overlay
+            if playerManager.showSkipIntro && !isLocked {
+                skipIntroOverlayView
+            }
+            
             // 7. Dynamic Info Toast
             if showToast {
                 toastOverlayView
@@ -612,6 +617,44 @@ struct StreamingPlayerView: View {
                 .padding(.trailing, 40).padding(.bottom, 120)
             }
         }.onAppear { startNextEpisodeTimer() }
+    }
+    
+    private var skipIntroOverlayView: some View {
+        VStack {
+            Spacer()
+            HStack {
+                Spacer()
+                Button(action: {
+                    if let end = playerManager.currentIntroMarker?.end {
+                        playerManager.player.seek(to: CMTime(seconds: end, preferredTimescale: 1))
+                        playerManager.showSkipIntro = false
+                        resetTimer()
+                        let generator = UIImpactFeedbackGenerator(style: .medium)
+                        generator.impactOccurred()
+                    }
+                }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "forward.frame.fill")
+                            .font(.system(size: 14))
+                        Text("Skip Intro")
+                            .font(.system(size: 14, weight: .bold))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 12)
+                    .background(Color.black.opacity(0.6))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.white.opacity(0.3), lineWidth: 1)
+                    )
+                    .cornerRadius(8)
+                }
+                .padding(.trailing, 40)
+                .padding(.bottom, showControls ? 140 : 40)
+            }
+        }
+        .transition(.move(edge: .trailing).combined(with: .opacity))
+        .animation(.spring(), value: showControls)
     }
     
     private var toastOverlayView: some View {
