@@ -434,98 +434,28 @@ class IPTVDataManager {
     
     // MARK: - M3U Processing (Progressive Chunked Loading)
     //
-    // Channels are delivered to the UI in batches of `batchSize` to make the Live TV
-    // tab appear after the very first batch (~200 channels, typically within 1-2 seconds),
+    // Channels are delivered to the UI in batches of `batchSize` so the Live TV
+    // tab appears after the very first batch (~200 channels, typically within 1-2 seconds),
     // rather than waiting for the entire file to download and parse.
-    //
-    // Flow:
-    //   1. Start streaming parse on a background task.
-    //   2. Accumulate channels into a batch buffer.
-    //   3. Every batchSize channels:
-    //      a. Classify the batch in a detached background task.
-    //      b. On MainActor: append to published arrays, set homeStatus=.success after first batch.
-    //   4. After all channels are parsed, run a reconciliation pass (categories, curated picks, tabs)
-    //      on a detached task, then update the MainActor-published categorisation dictionaries.
     private func processAsM3U(url: URL, defaultPlaylist: Playlist) async throws {
         let batchSize = 200
         
-        // Accumulators on the main actor (appended progressively)
+        // Local accumulators — mutated only on the @MainActor (this class is @MainActor)
         var allLive: [IPTVChannel] = []
         var allMovies: [UnifiedMediaItem] = []
-        var allSeries: [IPTVChannel] = []      // raw; processed into series hierarchy at end
+        var allSeries: [IPTVChannel] = []      // raw; converted to hierarchy at reconciliation
         var allUncategorized: [UnifiedMediaItem] = []
         
         var firstBatchDelivered = false
         var batchBuffer: [IPTVChannel] = []
         batchBuffer.reserveCapacity(batchSize)
         
-        // Adult consent state (resolved once before processing begins)
+        // Adult consent resolved once before any parsing
         let updatedPlaylist = self.playlistManager.fetchAllPlaylists().first { $0.id == defaultPlaylist.id } ?? defaultPlaylist
-        var consentResolved: Bool? = updatedPlaylist.userConsentedAdult
+        let consentResolved: Bool? = updatedPlaylist.userConsentedAdult
         var adultPromptShown = false
         
-        // Helper: flush one batch of raw channels into published arrays.
-        @Sendable func flushBatch(_ batch: [IPTVChannel]) async {
-            // Classify off main thread
-            let (batchLive, batchMovies, batchSeriesRaw, batchUncategorized) = await Task.detached(priority: .userInitiated) {
-                var live: [IPTVChannel] = []
-                var movies: [UnifiedMediaItem] = []
-                var seriesRaw: [IPTVChannel] = []
-                var uncategorized: [UnifiedMediaItem] = []
-                for ch in batch {
-                    switch ch.mediaType {
-                    case .liveTV:        live.append(ch)
-                    case .movie:         movies.append(ch.toUnified)
-                    case .tvSeries:      seriesRaw.append(ch)
-                    case .uncategorized: uncategorized.append(ch.toUnified)
-                    }
-                }
-                return (live, movies, seriesRaw, uncategorized)
-            }.value
-            
-            // Adult detection on first batch
-            if !adultPromptShown {
-                let hasAdult = AdultContentDetector.hasAdultContent(
-                    channels: batchLive,
-                    media: batchMovies + batchUncategorized
-                )
-                if hasAdult && !defaultPlaylist.hasAdultContent {
-                    self.playlistManager.markAdultContentDetected(for: defaultPlaylist.id)
-                }
-                if hasAdult && consentResolved == nil {
-                    await MainActor.run {
-                        self.pendingAdultConsentPlaylist = updatedPlaylist
-                        self.showAdultConsentPrompt = true
-                    }
-                    adultPromptShown = true
-                }
-            }
-            
-            // Filter
-            let filteredLive         = AdultContentDetector.filterAdultChannels(batchLive,        consented: consentResolved)
-            let filteredMovies       = AdultContentDetector.filterAdultMedia(batchMovies,         consented: consentResolved)
-            let filteredUncategorized = AdultContentDetector.filterAdultMedia(batchUncategorized, consented: consentResolved)
-            
-            // Append to accumulators
-            allLive.append(contentsOf: filteredLive)
-            allMovies.append(contentsOf: filteredMovies)
-            allSeries.append(contentsOf: batchSeriesRaw)   // series raw; filtered at end
-            allUncategorized.append(contentsOf: filteredUncategorized)
-            
-            // Publish incrementally on MainActor
-            await MainActor.run {
-                self.liveChannels.append(contentsOf: filteredLive)
-                self.movies.append(contentsOf: filteredMovies)
-                self.uncategorized.append(contentsOf: filteredUncategorized)
-                
-                // Show UI after the very first batch so users see content immediately
-                if !firstBatchDelivered && (!filteredLive.isEmpty || !filteredMovies.isEmpty) {
-                    firstBatchDelivered = true
-                    
-                    // Determine available tabs from what we have so far
-                    var tabs: [IPTVTab] = [.home, .recent]
-                    if !self.liveChannels.isEmpty { tabs.append(.liveTV) }
-        // --- Streaming parse loop ---
+        // --- Streaming parse ---
         let stream = try await fetchWithRetry {
             try await M3UParser.parseStream(from: url) { [weak self] progress in
                 guard let self else { return }
@@ -542,26 +472,28 @@ class IPTVDataManager {
                 try await processBatch(
                     batch, defaultPlaylist: defaultPlaylist, updatedPlaylist: updatedPlaylist,
                     allLive: &allLive, allMovies: &allMovies, allSeries: &allSeries,
-                    allUncategorized: &allUncategorized, firstBatchDelivered: &firstBatchDelivered,
+                    allUncategorized: &allUncategorized,
+                    firstBatchDelivered: &firstBatchDelivered,
                     consentResolved: consentResolved, adultPromptShown: &adultPromptShown
                 )
             }
         }
         
-        // Flush remaining channels
+        // Flush the tail
         if !batchBuffer.isEmpty {
             try await processBatch(
                 batchBuffer, defaultPlaylist: defaultPlaylist, updatedPlaylist: updatedPlaylist,
                 allLive: &allLive, allMovies: &allMovies, allSeries: &allSeries,
-                allUncategorized: &allUncategorized, firstBatchDelivered: &firstBatchDelivered,
+                allUncategorized: &allUncategorized,
+                firstBatchDelivered: &firstBatchDelivered,
                 consentResolved: consentResolved, adultPromptShown: &adultPromptShown
             )
         }
         
         if Task.isCancelled { throw CancellationError() }
         
-        // --- Reconciliation pass (categorisation, series hierarchy, curated picks) ---
-        // Snapshot local accumulator values for the detached task (immutable capture = concurrency-safe)
+        // --- Reconciliation pass ---
+        // Immutable snapshots capture safely in detached tasks.
         let snapLive    = allLive
         let snapMovies  = allMovies
         let snapSeries  = allSeries
@@ -572,12 +504,12 @@ class IPTVDataManager {
             let finalSeries = AdultContentDetector.filterAdultMedia(parsed.seriesList, consented: snapConsent)
             let finalSeriesIds = Set(finalSeries.map { $0.id })
             let finalEpisodesMap = parsed.episodesMap.filter { finalSeriesIds.contains($0.key) }
-            let catChannels = Dictionary(grouping: snapLive) { $0.category ?? "General" }
+            let catChannels = Dictionary(grouping: snapLive)   { $0.category ?? "General" }
             let catMovies   = Dictionary(grouping: snapMovies) { $0.genres?.first ?? "General" }
             return (ParsedSeriesResult(seriesList: finalSeries, episodesMap: finalEpisodesMap), catChannels, catMovies)
         }.value
         
-        // Curated picks (random sampling, off main thread)
+        // Curated picks — immutable snapshots
         let snapMovies2    = allMovies
         let snapSeriesList = parsedSeriesResult.seriesList
         let snapCatMovies  = finalCatMovies
@@ -587,44 +519,38 @@ class IPTVDataManager {
             var mv2 = snapMovies2; let topRatedMovies = Self.pickRandom(&mv2, limit: 15)
             let newReleases = Array(snapMovies2.prefix(15))
             let recommended = UserDataManager.shared.generateRecommendations(from: snapMovies2)
-            
             var s1 = snapSeriesList; let tSeries  = Self.pickRandom(&s1, limit: 15)
             var s2 = snapSeriesList; let topSeries = Self.pickRandom(&s2, limit: 15)
             let nSeries = Array(snapSeriesList.prefix(15))
-            
             let vCats = snapCatMovies.keys.sorted().map { XtreamCategory(id: $0, name: $0) }
-            let sCats = Dictionary(grouping: snapSeriesList) { $0.genres?.first ?? "General" }.keys.sorted().map { XtreamCategory(id: $0, name: $0) }
-            
+            let sCats = Dictionary(grouping: snapSeriesList) { $0.genres?.first ?? "General" }
+                .keys.sorted().map { XtreamCategory(id: $0, name: $0) }
             return (trendingMovies, newReleases, topRatedMovies, recommended, tSeries, nSeries, topSeries, vCats, sCats)
         }.value
         
-        // Final reconciliation on MainActor
+        // Apply final state — already on @MainActor, no MainActor.run {} needed
         self.categorizedChannels = finalCatChannels
         self.categorizedMovies   = finalCatMovies
-        
-        self.series            = parsedSeriesResult.seriesList
-        self.categorizedSeries = Dictionary(grouping: parsedSeriesResult.seriesList) { $0.genres?.first ?? "General" }
-        self.m3uEpisodes       = parsedSeriesResult.episodesMap
-        
-        self.heroMovie         = allMovies.first
-        self.trendingMovies    = trending
-        self.newReleases       = newR
-        self.topRatedMovies    = topR
-        self.recommendedMovies = recs
-        self.vodCategories     = vodCats
-        
-        self.heroSeries        = parsedSeriesResult.seriesList.first
-        self.trendingSeries    = tSeries
-        self.newReleaseSeries  = nSeries
-        self.topRatedSeries    = topSeries
-        self.seriesCategories  = seriesCats
+        self.series              = parsedSeriesResult.seriesList
+        self.categorizedSeries   = Dictionary(grouping: parsedSeriesResult.seriesList) { $0.genres?.first ?? "General" }
+        self.m3uEpisodes         = parsedSeriesResult.episodesMap
+        self.heroMovie           = allMovies.first
+        self.trendingMovies      = trending
+        self.newReleases         = newR
+        self.topRatedMovies      = topR
+        self.recommendedMovies   = recs
+        self.vodCategories       = vodCats
+        self.heroSeries          = parsedSeriesResult.seriesList.first
+        self.trendingSeries      = tSeries
+        self.newReleaseSeries    = nSeries
+        self.topRatedSeries      = topSeries
+        self.seriesCategories    = seriesCats
         
         var finalTabs: [IPTVTab] = [.home, .recent]
         if !self.liveChannels.isEmpty { finalTabs.append(.liveTV) }
         if !self.movies.isEmpty       { finalTabs.append(.movies) }
         if !self.series.isEmpty       { finalTabs.append(.series) }
         self.availableTabs = finalTabs
-        
         self.homeStatus = .success
         self.currentLoadedPlaylistUrl = defaultPlaylist.url
         self.importProgress = nil
