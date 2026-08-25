@@ -14,6 +14,7 @@ struct SettingsView: View {
     
     @State private var activePlaylist: Playlist?
     @State private var allowAdultContent: Bool = false
+    @AppStorage("preferred_video_quality") private var preferredVideoQuality: Double = 0
     
 
     
@@ -37,6 +38,8 @@ struct SettingsView: View {
                         if let playlist = activePlaylist, playlist.hasAdultContent {
                             adultContentSection(playlist: playlist)
                         }
+                        
+                        playbackSection
                         
                         appearanceSection
                         
@@ -150,6 +153,36 @@ struct SettingsView: View {
                             }
                         }
                     )).labelsHidden()
+                )
+            }
+        }
+    }
+    
+    private var playbackSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            sectionTitle("PLAYBACK")
+            
+            SettingsCardContainer {
+                SettingsRowUIComponent(
+                    icon: "4k.tv.fill",
+                    iconColor: .purple,
+                    title: "Default Video Quality",
+                    subtitle: "Choose your preferred streaming quality",
+                    trailing: Menu {
+                        Button("Auto") { preferredVideoQuality = 0 }
+                        Button("1080p") { preferredVideoQuality = 1080 }
+                        Button("720p") { preferredVideoQuality = 720 }
+                        Button("480p") { preferredVideoQuality = 480 }
+                        Button("360p") { preferredVideoQuality = 360 }
+                    } label: {
+                        HStack {
+                            Text(preferredVideoQuality == 0 ? "Auto" : "\(Int(preferredVideoQuality))p")
+                                .foregroundColor(.gray)
+                            Image(systemName: "chevron.up.chevron.down")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        }
+                    }
                 )
             }
         }
