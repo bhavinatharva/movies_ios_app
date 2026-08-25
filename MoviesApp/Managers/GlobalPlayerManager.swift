@@ -65,6 +65,10 @@ final class GlobalPlayerManager: ObservableObject {
         let timeScale = CMTimeScale(NSEC_PER_SEC)
         timeObserver = player.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.5, preferredTimescale: timeScale), queue: .main) { [weak self] time in
             guard let self = self else { return }
+            
+            // Skip UI updates if app is in background to prevent PiP lag and hangs
+            guard UIApplication.shared.applicationState == .active else { return }
+            
             if !self.isUserSeeking {
                 self.currentTime = time.seconds
                 
