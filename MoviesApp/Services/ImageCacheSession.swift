@@ -6,22 +6,20 @@
 
 import Foundation
 
-/// A shared URLSession configured with a persistent disk cache for channel logos and poster images.
-/// Using this instead of URLSession.shared gives AsyncImage a proper 50 MB disk cache,
-/// preventing repeated logo re-downloads on every scroll-off/scroll-back.
+/// Configures a 50 MB disk + 10 MB memory URLCache for channel logos and poster images.
+///
+/// SwiftUI's AsyncImage uses URLSession.shared internally, which respects URLCache.shared.
+/// By enlarging URLCache.shared on app start, all AsyncImage calls get persistent disk caching
+/// without needing to pass a custom URLSession, which avoids API availability concerns.
+///
+/// Call `ImageCacheSession.configure()` once from the app's init or AppDelegate.
 enum ImageCacheSession {
-    static let shared: URLSession = {
+    static func configure() {
         let cache = URLCache(
             memoryCapacity: 10 * 1024 * 1024,   // 10 MB in-memory
             diskCapacity:   50 * 1024 * 1024,   // 50 MB on-disk
             diskPath: "iptv_image_cache"
         )
-        let config = URLSessionConfiguration.default
-        config.urlCache = cache
-        config.requestCachePolicy = .returnCacheDataElseLoad
-        // Reasonable timeouts for logo fetches
-        config.timeoutIntervalForRequest  = 10
-        config.timeoutIntervalForResource = 30
-        return URLSession(configuration: config)
-    }()
+        URLCache.shared = cache
+    }
 }

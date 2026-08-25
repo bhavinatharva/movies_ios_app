@@ -185,7 +185,7 @@ struct LiveChannelCardView: View {
             ZStack {
                 Color.white.opacity(isSelected ? 0.2 : 0.05)
                 if let logoUrl = channel.logoUrl {
-                    AsyncImage(url: logoUrl, urlSession: ImageCacheSession.shared) { image in
+                    AsyncImage(url: logoUrl) { image in
                         image.resizable().scaledToFit().padding(8)
                     } placeholder: {
                         Image(systemName: "tv").foregroundColor(.white.opacity(isSelected ? 1.0 : 0.3))
