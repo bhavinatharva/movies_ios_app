@@ -219,17 +219,40 @@ struct AddPlaylistWizardView: View {
             getRequest.setValue("VLC/3.0.11 LibVLC/3.0.11", forHTTPHeaderField: "User-Agent")
             getRequest.timeoutInterval = 15
             
-            // Use bytes(for:) to only wait for the headers, preventing a full download of massive M3U files which causes timeouts.
-            let (asyncBytes, response) = try await URLSession.shared.bytes(for: getRequest)
-            if let httpResponse = response as? HTTPURLResponse {
-                if httpResponse.statusCode == 404 || httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
-                    errorMessage = "Access denied or URL invalid (Status: \(httpResponse.statusCode))."
+            if playlistType == 0 {
+                // Xtream Codes validation (tiny JSON payload)
+                let (data, response) = try await URLSession.shared.data(for: getRequest)
+                if let httpResponse = response as? HTTPURLResponse {
+                    if httpResponse.statusCode == 404 || httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
+                        errorMessage = "Access denied or URL invalid (Status: \(httpResponse.statusCode))."
+                        return
+                    }
+                    if let mimeType = httpResponse.mimeType, mimeType.contains("text/html") {
+                        errorMessage = "Server returned an HTML page instead of playlist data."
+                        return
+                    }
+                }
+                if let content = String(data: data, encoding: .utf8)?.lowercased(), content.contains("<html") {
+                    errorMessage = "Server returned an HTML page instead of playlist data."
                     return
                 }
+            } else {
+                // M3U validation (prevent downloading massive files)
+                let (asyncBytes, response) = try await URLSession.shared.bytes(for: getRequest)
+                if let httpResponse = response as? HTTPURLResponse {
+                    if httpResponse.statusCode == 404 || httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
+                        errorMessage = "Access denied or URL invalid (Status: \(httpResponse.statusCode))."
+                        return
+                    }
+                    if let mimeType = httpResponse.mimeType, mimeType.contains("text/html") {
+                        errorMessage = "Server returned an HTML page instead of playlist data."
+                        return
+                    }
+                }
                 
-                // Read just the first few bytes to check if it's an HTML error page
                 var initialData = Data()
                 var iterator = asyncBytes.makeAsyncIterator()
+                // Read up to 200 bytes, but gracefully handle end of stream
                 for _ in 0..<200 {
                     if let byte = try await iterator.next() {
                         initialData.append(byte)
@@ -259,9 +282,10 @@ struct AddPlaylistWizardView: View {
         let finalName = name.isEmpty ? "My Playlist" : name
         if Task.isCancelled { return }
         
-        playlistManager.addPlaylist(name: finalName, url: sanitizedStr)
+        let newPlaylist = playlistManager.addPlaylist(name: finalName, url: sanitizedStr)
+        playlistManager.setDefault(newPlaylist)
         
-        await IPTVDataManager.shared.refreshContent()
+        await IPTVDataManager.shared.refreshContent(clearFirst: true)
         
         if Task.isCancelled {
             // Cleanup on cancel if needed, though refreshContent might have run

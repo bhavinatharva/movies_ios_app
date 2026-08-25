@@ -101,7 +101,8 @@ class PlaylistManager {
         }
     }
     
-    func addPlaylist(name: String, url: String) {
+    @discardableResult
+    func addPlaylist(name: String, url: String) -> Playlist {
         var finalUrl = url
         
         // Intercept massive data URLs or raw playlist text to save them to a file instead of UserDefaults
@@ -140,6 +141,8 @@ class PlaylistManager {
             UserDefaults.standard.set(finalUrl, forKey: "active_playlist_url")
             UserDefaults.standard.set(true, forKey: "has_default_playlist")
         }
+        
+        return playlist
     }
     
     func setDefault(_ playlist: Playlist) {
