@@ -22,9 +22,10 @@ struct MainTabView: View {
         appearance.backgroundColor = UIColor.black.withAlphaComponent(0.15)
         
         // Active (Selected) styling
-        appearance.stackedLayoutAppearance.selected.iconColor = UIColor(Color.accentColor)
+        let safeAccentColor = UIColor(named: "AccentColor") ?? UIColor.systemBlue
+        appearance.stackedLayoutAppearance.selected.iconColor = safeAccentColor
         appearance.stackedLayoutAppearance.selected.titleTextAttributes = [
-            .foregroundColor: UIColor(Color.accentColor),
+            .foregroundColor: safeAccentColor,
             .font: UIFont.systemFont(ofSize: 10, weight: .bold)
         ]
         
@@ -49,7 +50,7 @@ struct MainTabView: View {
                 }
             } else {
                 TabView(selection: $selectedTab) {
-                    ForEach(IPTVTab.allCases) { tab in
+                    ForEach(dataManager.availableTabs) { tab in
                         tabViewContent(for: tab)
                             .tabItem {
                                 Label(tab.title, systemImage: tab.systemImage)

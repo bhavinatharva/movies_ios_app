@@ -23,27 +23,24 @@ class M3UParser {
                     var bytesRead: Int64 = 0
                     
                     if url.scheme?.lowercased() == "file" {
-                        let expectedLength: Int64 = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int64) ?? 0
+                        let content = try String(contentsOf: url, encoding: .utf8)
+                        let lines = content.components(separatedBy: .newlines)
+                        let expectedLength = lines.count
                         
-                        for try await line in url.lines {
+                        for (index, line) in lines.enumerated() {
                             if Task.isCancelled {
                                 continuation.finish(throwing: CancellationError())
                                 return
                             }
                             
                             let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
-                            bytesRead += Int64(line.utf8.count + 1)
                             linesSinceLastProgress += 1
                             if linesSinceLastProgress >= 50 {
                                 linesSinceLastProgress = 0
-                                if expectedLength > 0 {
-                                    let progress = min(1.0, Double(bytesRead) / Double(expectedLength))
-                                    if progress - lastReportedProgress >= 0.01 || progress >= 1.0 {
-                                        lastReportedProgress = progress
-                                        Task { @MainActor in onProgress?(progress) }
-                                    }
-                                } else {
-                                    Task { @MainActor in onProgress?(nil) }
+                                let progress = min(1.0, Double(index) / Double(expectedLength))
+                                if progress - lastReportedProgress >= 0.01 || progress >= 1.0 {
+                                    lastReportedProgress = progress
+                                    Task { @MainActor in onProgress?(progress) }
                                 }
                             }
                             
