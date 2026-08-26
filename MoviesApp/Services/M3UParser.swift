@@ -17,6 +17,63 @@ class M3UParser {
         return AsyncThrowingStream(IPTVChannel.self) { continuation in
             let task = Task(priority: .userInitiated) {
                 do {
+                    var linesSinceLastProgress = 0
+                    var lastReportedProgress: Double = -1
+                    var currentInfo: [String: String] = [:]
+                    var bytesRead: Int64 = 0
+                    
+                    if url.scheme?.lowercased() == "file" {
+                        let expectedLength: Int64 = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int64) ?? 0
+                        
+                        for try await line in url.lines {
+                            if Task.isCancelled {
+                                continuation.finish(throwing: CancellationError())
+                                return
+                            }
+                            
+                            let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
+                            bytesRead += Int64(line.utf8.count + 1)
+                            linesSinceLastProgress += 1
+                            if linesSinceLastProgress >= 50 {
+                                linesSinceLastProgress = 0
+                                if expectedLength > 0 {
+                                    let progress = min(1.0, Double(bytesRead) / Double(expectedLength))
+                                    if progress - lastReportedProgress >= 0.01 || progress >= 1.0 {
+                                        lastReportedProgress = progress
+                                        Task { @MainActor in onProgress?(progress) }
+                                    }
+                                } else {
+                                    Task { @MainActor in onProgress?(nil) }
+                                }
+                            }
+                            
+                            if trimmedLine.isEmpty { continue }
+                            
+                            if trimmedLine.hasPrefix("#EXTINF:") {
+                                currentInfo = parseExtInf(trimmedLine)
+                            } else if !trimmedLine.hasPrefix("#") {
+                                if let streamUrl = URL(string: trimmedLine) {
+                                    let name = currentInfo["name"] ?? currentInfo["tvg-name"] ?? "Unknown Channel"
+                                    let logo = currentInfo["logo"].flatMap { URL(string: $0) }
+                                    let category = currentInfo["group"]
+                                    let epg = currentInfo["epg-id"] ?? currentInfo["id"]
+                                    
+                                    let channel = IPTVChannel(
+                                        name: name,
+                                        streamUrl: streamUrl,
+                                        logoUrl: logo,
+                                        category: category,
+                                        epgId: epg
+                                    )
+                                    continuation.yield(channel)
+                                }
+                                currentInfo = [:]
+                            }
+                        }
+                        continuation.finish()
+                        return
+                    }
+                    
                     let session = await IPTVRequestManager.shared.getStreamingSession(for: .m3u)
                     let (bytes, response) = try await session.bytes(from: url)
                     
@@ -31,13 +88,6 @@ class M3UParser {
                     }
                     
                     let expectedLength = response.expectedContentLength
-                    var bytesRead: Int64 = 0
-                    
-                    // Progress throttling — update MainActor at most once per 50 lines or 1% delta
-                    var linesSinceLastProgress = 0
-                    var lastReportedProgress: Double = -1
-                    
-                    var currentInfo: [String: String] = [:]
                     
                     for try await line in bytes.lines {
                         if Task.isCancelled {
@@ -62,10 +112,6 @@ class M3UParser {
                                 Task { @MainActor in onProgress?(nil) }
                             }
                         }
-                        
-                        #if DEBUG
-                        print("📡 [M3UParser] Fetched Line: \(trimmedLine)")
-                        #endif
                         
                         if trimmedLine.isEmpty { continue }
                         
