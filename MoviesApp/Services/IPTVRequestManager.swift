@@ -17,7 +17,7 @@ enum IPTVEndpointType {
     
     var timeoutInterval: TimeInterval {
         switch self {
-        case .live: return 60
+        case .live: return 120
         case .vod, .series: return 120 // Heavy JSON payloads from large providers
         case .epg: return 120 // Massive XML/JSON files
         case .auth: return 30
@@ -45,6 +45,12 @@ actor IPTVRequestManager {
             config.urlCache = nil
             config.timeoutIntervalForRequest = type.timeoutInterval
             config.timeoutIntervalForResource = type.timeoutInterval * 2
+            
+            // Add a standard User-Agent. Many IPTV providers block CFNetwork (iOS default) and drop the connection, causing a timeout.
+            config.httpAdditionalHeaders = [
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15"
+            ]
+            
             sessions[type] = URLSession(configuration: config)
         }
     }
@@ -65,6 +71,7 @@ actor IPTVRequestManager {
             let session = sessions[type] ?? .shared
             var request = URLRequest(url: url)
             request.timeoutInterval = type.timeoutInterval
+            request.setValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15", forHTTPHeaderField: "User-Agent")
             return try await executeWithExponentialBackoff(request: request, session: session)
         }
         
