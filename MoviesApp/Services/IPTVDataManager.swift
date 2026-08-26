@@ -310,8 +310,20 @@ class IPTVDataManager {
                 
                 // 3. Fetch Live streams, VODs, and Series concurrently to immediately satisfy Home screen layout
                 async let liveTask = try? self.fetchWithRetry { try await self.iptvService.fetchXtreamChannels(creds: creds) }
-                async let vodTask = try? self.fetchWithRetry { try await self.iptvService.fetchVODStreams(creds: creds) }
-                async let seriesTask = try? self.fetchWithRetry { try await self.iptvService.fetchSeries(creds: creds) }
+                
+                async let vodTask: [XtreamVODStream]? = {
+                    if let cats = vodCats, !cats.isEmpty {
+                        return try? await self.fetchWithRetry { try await self.iptvService.fetchVODStreams(creds: creds) }
+                    }
+                    return nil
+                }()
+                
+                async let seriesTask: [XtreamSeries]? = {
+                    if let cats = seriesCats, !cats.isEmpty {
+                        return try? await self.fetchWithRetry { try await self.iptvService.fetchSeries(creds: creds) }
+                    }
+                    return nil
+                }()
                 
                 let (fetchedChannelsResult, fetchedVODsResult, fetchedSeriesResult) = await (liveTask, vodTask, seriesTask)
                 

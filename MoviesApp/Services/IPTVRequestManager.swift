@@ -17,11 +17,11 @@ enum IPTVEndpointType {
     
     var timeoutInterval: TimeInterval {
         switch self {
-        case .live: return 300 // Live streams can take time to generate
-        case .vod, .series: return 300 // Heavy JSON payloads
-        case .epg: return 300 // Massive XML/JSON files
-        case .auth: return 60 // Quick auth checks
-        case .m3u: return 300 // Full text file
+        case .live: return 30
+        case .vod, .series: return 45 // Heavy JSON payloads
+        case .epg: return 60 // Massive XML/JSON files
+        case .auth: return 15
+        case .m3u: return 120 // Full text file (can be huge)
         }
     }
 }
