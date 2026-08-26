@@ -23,7 +23,12 @@ class M3UParser {
                     var bytesRead: Int64 = 0
                     
                     if url.scheme?.lowercased() == "file" {
-                        let content = try String(contentsOf: url, encoding: .utf8)
+                        var content = ""
+                        do {
+                            content = try String(contentsOf: url, encoding: .utf8)
+                        } catch {
+                            content = try String(contentsOf: url, encoding: .isoLatin1)
+                        }
                         let lines = content.components(separatedBy: .newlines)
                         let expectedLength = lines.count
                         
@@ -72,7 +77,8 @@ class M3UParser {
                     }
                     
                     let session = await IPTVRequestManager.shared.getStreamingSession(for: .m3u)
-                    let (bytes, response) = try await session.bytes(from: url)
+                    let (localUrl, response) = try await session.download(from: url)
+                    defer { try? FileManager.default.removeItem(at: localUrl) }
                     
                     if let httpResponse = response as? HTTPURLResponse {
                         if !(200...299).contains(httpResponse.statusCode) {
@@ -84,9 +90,16 @@ class M3UParser {
                         return
                     }
                     
-                    let expectedLength = response.expectedContentLength
+                    var content = ""
+                    do {
+                        content = try String(contentsOf: localUrl, encoding: .utf8)
+                    } catch {
+                        content = try String(contentsOf: localUrl, encoding: .isoLatin1)
+                    }
+                    let lines = content.components(separatedBy: .newlines)
+                    let expectedLength = lines.count
                     
-                    for try await line in bytes.lines {
+                    for (index, line) in lines.enumerated() {
                         if Task.isCancelled {
                             continuation.finish(throwing: CancellationError())
                             return
@@ -94,19 +107,13 @@ class M3UParser {
                         
                         let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
                         
-                        // Roughly estimate bytes read
-                        bytesRead += Int64(line.utf8.count + 1)
                         linesSinceLastProgress += 1
                         if linesSinceLastProgress >= 50 {
                             linesSinceLastProgress = 0
-                            if expectedLength > 0 {
-                                let progress = min(1.0, Double(bytesRead) / Double(expectedLength))
-                                if progress - lastReportedProgress >= 0.01 || progress >= 1.0 {
-                                    lastReportedProgress = progress
-                                    Task { @MainActor in onProgress?(progress) }
-                                }
-                            } else {
-                                Task { @MainActor in onProgress?(nil) }
+                            let progress = min(1.0, Double(index) / Double(expectedLength))
+                            if progress - lastReportedProgress >= 0.01 || progress >= 1.0 {
+                                lastReportedProgress = progress
+                                Task { @MainActor in onProgress?(progress) }
                             }
                         }
                         
