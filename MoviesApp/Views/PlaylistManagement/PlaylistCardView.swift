@@ -56,32 +56,39 @@ struct PlaylistCardView: View {
                 .padding(.top, 2)
             }
             
+            
             Spacer()
+            
+            Menu {
+                Button {
+                    onActivate()
+                } label: {
+                    Label("Activate Playlist", systemImage: "play.circle")
+                }
+                
+                Button {
+                    onRefresh()
+                } label: {
+                    Label("Force Refresh Data", systemImage: "arrow.clockwise")
+                }
+                
+                Divider()
+                
+                Button(role: .destructive) {
+                    onDelete()
+                } label: {
+                    Label("Delete Playlist", systemImage: "trash")
+                }
+            } label: {
+                Image(systemName: "ellipsis.circle.fill")
+                    .font(.title2)
+                    .foregroundColor(.secondary)
+                    .padding(8)
+                    .contentShape(Rectangle())
+            }
         }
         .padding(16)
         .liquidGlass()
         .pressLiftEffect()
-        // Swipe Actions & Context Menus
-        .contextMenu {
-            Button {
-                onActivate()
-            } label: {
-                Label("Activate Playlist", systemImage: "play.circle")
-            }
-            
-            Button {
-                onRefresh()
-            } label: {
-                Label("Refresh EPG", systemImage: "arrow.clockwise")
-            }
-            
-            Divider()
-            
-            Button(role: .destructive) {
-                onDelete()
-            } label: {
-                Label("Delete Playlist", systemImage: "trash")
-            }
-        }
     }
 }

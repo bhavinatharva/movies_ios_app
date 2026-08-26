@@ -117,6 +117,19 @@ struct PlaylistHubView: View {
                 refreshPlaylists()
             }
         }
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: {
+                    let generator = UIImpactFeedbackGenerator(style: .medium)
+                    generator.impactOccurred()
+                    isShowingAddWizard = true
+                }) {
+                    Image(systemName: "plus")
+                        .font(.headline)
+                        .foregroundColor(.accentColor)
+                }
+            }
+        }
     }
     
     // MARK: - Subviews
