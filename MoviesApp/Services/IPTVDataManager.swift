@@ -343,7 +343,8 @@ class IPTVDataManager {
                 let fetchedVODs = fetchedVODsResult ?? []
                 let fetchedSeries = fetchedSeriesResult ?? []
                 
-                if fetchedChannels.isEmpty && fetchedVODs.isEmpty && fetchedSeries.isEmpty {
+                let hasValidCategories = !(liveCats ?? []).isEmpty || !(vodCats ?? []).isEmpty || !(seriesCats ?? []).isEmpty
+                if !hasValidCategories && fetchedChannels.isEmpty && fetchedVODs.isEmpty && fetchedSeries.isEmpty {
                     #if DEBUG
                     print("🌐 [IPTVDataManager] Xtream Codes JSON API failed or yielded empty results. Falling back to M3U Playlist parsing...")
                     #endif
