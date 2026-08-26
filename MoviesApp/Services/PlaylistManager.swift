@@ -103,6 +103,21 @@ class PlaylistManager {
     
     @discardableResult
     func addPlaylist(name: String, url: String) -> Playlist {
+        var playlists = fetchAllPlaylists()
+        
+        // Prevent duplicate playlists
+        if let existingIndex = playlists.firstIndex(where: { $0.url == url }) {
+            // Update name just in case they wanted to rename it, but don't duplicate
+            playlists[existingIndex].name = name
+            savePlaylists(playlists)
+            
+            if playlists[existingIndex].isDefault {
+                UserDefaults.standard.set(playlists[existingIndex].url, forKey: "active_playlist_url")
+                UserDefaults.standard.set(true, forKey: "has_default_playlist")
+            }
+            return playlists[existingIndex]
+        }
+        
         var finalUrl = url
         
         // Intercept massive data URLs or raw playlist text to save them to a file instead of UserDefaults
@@ -131,7 +146,6 @@ class PlaylistManager {
             }
         }
         
-        var playlists = fetchAllPlaylists()
         let isFirst = playlists.isEmpty
         let playlist = Playlist(name: name, url: finalUrl, isDefault: isFirst)
         playlists.append(playlist)
