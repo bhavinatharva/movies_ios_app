@@ -7,6 +7,7 @@ import SwiftUI
 import AVKit
 import AVFoundation
 import MediaPlayer
+import MobileVLCKit
 
 struct StreamingPlayerView: View {
     let initialUrl: URL
