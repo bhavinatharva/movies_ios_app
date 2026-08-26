@@ -54,30 +54,10 @@ struct LiveTVView: View {
                 .navigationTitle("Live TV")
             } content: {
                 // Content: Channels List
-                ScrollView {
-                    if filteredChannels.isEmpty {
-                        if !searchQuery.isEmpty {
-                            ContentUnavailableView.search(text: searchQuery)
-                                .padding(.top, 40)
-                        } else {
-                            ContentUnavailableView("No Channels", systemImage: "tv.slash")
-                                .padding(.top, 40)
-                        }
-                    } else {
-                        LazyVStack(spacing: 8) {
-                            ForEach(filteredChannels) { channel in
-                                Button(action: {
-                                    selectedChannelForDetail = channel
-                                }) {
-                                    LiveChannelCardView(channel: channel, isSelected: selectedChannelForDetail?.id == channel.id)
-                                }
-                                .buttonStyle(PressScaleButtonStyle())
-                                .padding(.horizontal, 16)
-                            }
-                        }
-                        .padding(.vertical, 8)
-                    }
-                }
+                LiveChannelListView(
+                    filteredChannels: filteredChannels,
+                    selectedChannelForDetail: $selectedChannelForDetail
+                )
                 .background(Color.appBackground.ignoresSafeArea())
                 .navigationTitle(selectedCategory ?? "All Channels")
                 .navigationBarTitleDisplayMode(.inline)
@@ -154,6 +134,40 @@ struct LiveTVView: View {
                 Label("No Playlist Loaded", systemImage: "tv.slash")
             } description: {
                 Text("Go to the Settings tab to add your IPTV M3U Playlist URL and start watching.")
+            }
+        }
+    }
+}
+
+// MARK: - Extracted Channel List View to prevent parent re-evaluations
+struct LiveChannelListView: View {
+    let filteredChannels: [IPTVChannel]
+    @Binding var selectedChannelForDetail: IPTVChannel?
+    
+    // We only need the search query environment value if we wanted to show it in the unavailable view
+    @Environment(\.isSearching) private var isSearching
+    
+    var body: some View {
+        ScrollView {
+            if filteredChannels.isEmpty {
+                ContentUnavailableView("No Channels Found", systemImage: "tv.slash")
+                    .padding(.top, 40)
+            } else {
+                LazyVStack(spacing: 8) {
+                    ForEach(filteredChannels) { channel in
+                        Button(action: {
+                            selectedChannelForDetail = channel
+                        }) {
+                            LiveChannelCardView(
+                                channel: channel,
+                                isSelected: selectedChannelForDetail?.id == channel.id
+                            )
+                        }
+                        .buttonStyle(PressScaleButtonStyle())
+                        .padding(.horizontal, 16)
+                    }
+                }
+                .padding(.vertical, 8)
             }
         }
     }

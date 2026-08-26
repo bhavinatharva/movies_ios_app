@@ -147,6 +147,11 @@ struct PremiumPlayerRepresentable: UIViewRepresentable {
         if triggerPip {
             DispatchQueue.main.async {
                 print("[PiP DEBUG] Trigger PiP explicitly invoked via Binding")
+                // Ensure pipController is initialized (may be nil if view was recreated)
+                if uiView.pipController == nil {
+                    print("[PiP DEBUG] pipController was nil, re-initializing before toggle")
+                    uiView.setupPip()
+                }
                 uiView.togglePip()
                 self.triggerPip = false
             }

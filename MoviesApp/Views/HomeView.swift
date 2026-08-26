@@ -341,35 +341,49 @@ struct HomeView: View {
                 }
                 
                 // 12. Genres / Categories
-                ForEach(viewModel.categorizedChannels.keys.sorted(), id: \.self) { category in
+                ForEach(Array(viewModel.categorizedChannels.keys.sorted().prefix(15)), id: \.self) { category in
                     let catLower = category.lowercased()
                     if catLower != "sports" && catLower != "sport" { // Avoid duplicate sports sections
-                        if let channels = viewModel.categorizedChannels[category] {
-                            UnifiedMediaListView(
-                                header: category,
-                                items: channels.map { $0.toUnified },
-                                onSelect: { item in
-                                    UserDataManager.shared.addToHistory(item)
-                                    if let url = item.streamUrl {
-                                        GlobalPlayerManager.shared.play(
-                                            url: url,
-                                            title: item.title,
-                                            artwork: item.posterPath,
-                                            isLive: item.mediaType == .liveTV,
-                                            streamId: item.id
-                                        )
-                                    } else {
-                                        selectedPlayableItem = item
-                                    }
-                                }
-                            )
-                        }
+                        HomeCategoryRowView(category: category, viewModel: viewModel, selectedPlayableItem: $selectedPlayableItem)
                     }
                 }
             }
             .padding(.bottom, 30) // Extra padding to clear custom tab bar
         }
         .ignoresSafeArea(edges: .top)
+    }
+}
+
+// MARK: - Lazy Loading Home Category Row View
+struct HomeCategoryRowView: View {
+    let category: String
+    var viewModel: HomeViewModel
+    @Binding var selectedPlayableItem: UnifiedMediaItem?
+    
+    var body: some View {
+        Group {
+            if let channels = viewModel.categorizedChannels[category], !channels.isEmpty {
+                UnifiedMediaListView(
+                    header: category,
+                    // Limit to 20 items and map only when this view is rendered
+                    items: channels.prefix(20).map { $0.toUnified },
+                    onSelect: { item in
+                        UserDataManager.shared.addToHistory(item)
+                        if let url = item.streamUrl {
+                            GlobalPlayerManager.shared.play(
+                                url: url,
+                                title: item.title,
+                                artwork: item.posterPath,
+                                isLive: item.mediaType == .liveTV,
+                                streamId: item.id
+                            )
+                        } else {
+                            selectedPlayableItem = item
+                        }
+                    }
+                )
+            }
+        }
     }
 }
 
