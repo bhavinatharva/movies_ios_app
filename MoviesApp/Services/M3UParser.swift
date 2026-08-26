@@ -49,7 +49,7 @@ class M3UParser {
                             if trimmedLine.hasPrefix("#EXTINF:") {
                                 currentInfo = parseExtInf(trimmedLine)
                             } else if !trimmedLine.hasPrefix("#") {
-                                if let streamUrl = URL(string: trimmedLine) {
+                                if let streamUrl = URL(string: trimmedLine) ?? URL(string: trimmedLine.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "") {
                                     let name = currentInfo["name"] ?? currentInfo["tvg-name"] ?? "Unknown Channel"
                                     let logo = currentInfo["logo"].flatMap { URL(string: $0) }
                                     let category = currentInfo["group"]
@@ -115,7 +115,7 @@ class M3UParser {
                         if trimmedLine.hasPrefix("#EXTINF:") {
                             currentInfo = parseExtInf(trimmedLine)
                         } else if !trimmedLine.hasPrefix("#") {
-                            if let streamUrl = URL(string: trimmedLine) {
+                            if let streamUrl = URL(string: trimmedLine) ?? URL(string: trimmedLine.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "") {
                                 let name = currentInfo["name"] ?? currentInfo["tvg-name"] ?? "Unknown Channel"
                                 let logo = currentInfo["logo"].flatMap { URL(string: $0) }
                                 let category = currentInfo["group"]
@@ -160,7 +160,7 @@ class M3UParser {
             if trimmedLine.hasPrefix("#EXTINF:") {
                 currentInfo = parseExtInf(trimmedLine)
             } else if !trimmedLine.hasPrefix("#") {
-                if let url = URL(string: trimmedLine) {
+                if let url = URL(string: trimmedLine) ?? URL(string: trimmedLine.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "") {
                     let name = currentInfo["name"] ?? currentInfo["tvg-name"] ?? "Unknown Channel"
                     let logo = currentInfo["logo"].flatMap { URL(string: $0) }
                     let category = currentInfo["group"]

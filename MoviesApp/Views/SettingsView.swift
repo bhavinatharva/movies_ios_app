@@ -290,12 +290,12 @@ struct SettingsView: View {
     
     private var aboutSection: some View {
         VStack(spacing: 4) {
-            Text("App Version 1.0 (Build 26)")
-                .font(.caption)
-                .foregroundColor(.gray)
             Text("© 2026 IPTV. All rights reserved.")
                 .font(.caption2)
                 .foregroundColor(.gray.opacity(0.7))
+            Text("V 1.0")
+                .font(.caption)
+                .foregroundColor(.gray)
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 24)
