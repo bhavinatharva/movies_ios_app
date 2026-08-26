@@ -15,6 +15,7 @@ struct YoutubePlayer: UIViewRepresentable {
     func makeUIView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()
         configuration.allowsInlineMediaPlayback = true
+        configuration.allowsPictureInPictureMediaPlayback = true
         configuration.mediaTypesRequiringUserActionForPlayback = []
         
         let webView = WKWebView(frame: .zero, configuration: configuration)
