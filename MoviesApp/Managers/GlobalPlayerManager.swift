@@ -8,12 +8,19 @@
 import SwiftUI
 import Combine
 import AVFoundation
+import MobileVLCKit
 
 @MainActor
-final class GlobalPlayerManager: ObservableObject {
+final class GlobalPlayerManager: NSObject, ObservableObject, VLCMediaPlayerDelegate {
     static let shared = GlobalPlayerManager()
     
+    // AVPlayer
     @Published var player: AVPlayer = AVPlayer()
+    
+    // VLC Player
+    @Published var vlcPlayer = VLCMediaPlayer()
+    @Published var isUsingVLC: Bool = false
+    
     @Published var isPlaying: Bool = false
     @Published var isMinimized: Bool = false
     
@@ -47,9 +54,11 @@ final class GlobalPlayerManager: ObservableObject {
     private var itemObservation: AnyCancellable?
     private var statusObservation: AnyCancellable?
     
-    private init() {
+    private override init() {
+        super.init()
         setupAudioSession()
         setupObservers()
+        vlcPlayer.delegate = self
     }
     
     private func setupAudioSession() {
@@ -155,12 +164,16 @@ final class GlobalPlayerManager: ObservableObject {
                                 }
                             }
                         } else {
-                            self.playbackError = error.localizedDescription
-                            self.isPlaying = false
+                            print("GlobalPlayerManager: AVPlayer failed, falling back to VLCMediaPlayer")
+                            self.isUsingVLC = true
+                            self.playbackError = nil
+                            self.vlcPlayer.media = VLCMedia(url: url)
+                            self.vlcPlayer.play()
                         }
                     }
                 }
                 
+                self.isUsingVLC = false
                 self.player.automaticallyWaitsToMinimizeStalling = true
                 self.player.replaceCurrentItem(with: item)
                 self.player.play()
@@ -169,10 +182,14 @@ final class GlobalPlayerManager: ObservableObject {
     }
     
     func stop() {
-        player.pause()
-        itemObservation?.cancel()
-        itemObservation = nil
-        player.replaceCurrentItem(with: nil)
+        if isUsingVLC {
+            vlcPlayer.stop()
+        } else {
+            player.pause()
+            itemObservation?.cancel()
+            itemObservation = nil
+            player.replaceCurrentItem(with: nil)
+        }
         self.isPlaying = false
         self.isMinimized = false
         self.playbackError = nil
@@ -181,13 +198,60 @@ final class GlobalPlayerManager: ObservableObject {
         self.currentTitle = nil
         self.currentArtwork = nil
         self.currentUrl = nil
+        self.isUsingVLC = false
     }
     
     func togglePlayPause() {
-        if player.timeControlStatus == .playing || player.timeControlStatus == .waitingToPlayAtSpecifiedRate {
-            player.pause()
+        if isUsingVLC {
+            if vlcPlayer.isPlaying {
+                vlcPlayer.pause()
+                isPlaying = false
+            } else {
+                vlcPlayer.play()
+                isPlaying = true
+            }
         } else {
-            player.play()
+            if player.timeControlStatus == .playing || player.timeControlStatus == .waitingToPlayAtSpecifiedRate {
+                player.pause()
+                isPlaying = false
+            } else {
+                player.play()
+                isPlaying = true
+            }
+        }
+    }
+    
+    func mediaPlayerStateChanged(_ aNotification: Notification!) {
+        guard isUsingVLC else { return }
+        
+        // Use DispatchQueue.main.async to ensure we're updating on the main thread
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.isPlaying = self.vlcPlayer.isPlaying
+            
+            switch self.vlcPlayer.state {
+            case .error:
+                self.playbackError = "VLC Playback Failed"
+                self.isPlaying = false
+            case .ended, .stopped:
+                self.isPlaying = false
+            default:
+                break
+            }
+        }
+    }
+    
+    func mediaPlayerTimeChanged(_ aNotification: Notification!) {
+        guard isUsingVLC else { return }
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            if !self.isUserSeeking {
+                self.currentTime = Double(self.vlcPlayer.time.intValue) / 1000.0
+                let totalLength = Double(self.vlcPlayer.media?.length.intValue ?? 0) / 1000.0
+                if totalLength > 0 {
+                    self.duration = totalLength
+                }
+            }
         }
     }
     

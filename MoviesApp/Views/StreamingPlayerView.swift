@@ -95,8 +95,13 @@ struct StreamingPlayerView: View {
     var body: some View {
         ZStack {
             // 1. Core Native Player
-            PremiumPlayerRepresentable(player: playerManager.player, isAspectFill: isAspectFill, triggerPip: $triggerPip)
-                .ignoresSafeArea()
+            if playerManager.isUsingVLC {
+                VLCPlayerRepresentable(player: playerManager.vlcPlayer, isAspectFill: isAspectFill)
+                    .ignoresSafeArea()
+            } else {
+                PremiumPlayerRepresentable(player: playerManager.player, isAspectFill: isAspectFill, triggerPip: $triggerPip)
+                    .ignoresSafeArea()
+            }
             
             // 2. Invisible Gesture Zones
             if !isLocked {
@@ -113,7 +118,11 @@ struct StreamingPlayerView: View {
                     },
                     onSeekEnd: {
                         playerManager.isUserSeeking = false
-                        playerManager.player.seek(to: CMTime(seconds: sliderValue, preferredTimescale: 1))
+                        if playerManager.isUsingVLC {
+                            playerManager.vlcPlayer.time = VLCTime(int: Int32(sliderValue * 1000))
+                        } else {
+                            playerManager.player.seek(to: CMTime(seconds: sliderValue, preferredTimescale: 1))
+                        }
                         resetTimer()
                     }
                 )
@@ -371,7 +380,11 @@ struct StreamingPlayerView: View {
                     Slider(value: $sliderValue, in: 0...max(1, playerManager.duration), onEditingChanged: { editing in
                         playerManager.isUserSeeking = editing
                         if !editing {
-                            playerManager.player.seek(to: CMTime(seconds: sliderValue, preferredTimescale: 1))
+                            if playerManager.isUsingVLC {
+                                playerManager.vlcPlayer.time = VLCTime(int: Int32(sliderValue * 1000))
+                            } else {
+                                playerManager.player.seek(to: CMTime(seconds: sliderValue, preferredTimescale: 1))
+                            }
                             resetTimer()
                         }
                     })
@@ -795,7 +808,11 @@ struct StreamingPlayerView: View {
         let generator = UIImpactFeedbackGenerator(style: .light)
         generator.impactOccurred()
         let newTime = max(0, min(playerManager.duration, playerManager.currentTime + seconds))
-        playerManager.player.seek(to: CMTime(seconds: newTime, preferredTimescale: 1))
+        if playerManager.isUsingVLC {
+            playerManager.vlcPlayer.time = VLCTime(int: Int32(newTime * 1000))
+        } else {
+            playerManager.player.seek(to: CMTime(seconds: newTime, preferredTimescale: 1))
+        }
         resetTimer()
     }
     
