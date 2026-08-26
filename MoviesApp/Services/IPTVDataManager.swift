@@ -304,8 +304,26 @@ class IPTVDataManager {
                 async let vodCatsTask = try? self.iptvService.fetchVODCategories(creds: creds)
                 async let seriesCatsTask = try? self.iptvService.fetchSeriesCategories(creds: creds)
                 
-                let (liveCats, vodCats, seriesCats) = await (liveCatsTask, vodCatsTask, seriesCatsTask)
+                // Helper to smoothly animate progress
+                func simulateProgress(from start: Double, to end: Double, duration: TimeInterval) -> Task<Void, Never> {
+                    Task {
+                        let steps = 50
+                        let stepDuration = duration / Double(steps)
+                        let stepAmount = (end - start) / Double(steps)
+                        var current = start
+                        for _ in 0..<steps {
+                            if Task.isCancelled { break }
+                            current += stepAmount
+                            let progress = current
+                            await MainActor.run { self.importProgress = progress }
+                            try? await Task.sleep(nanoseconds: UInt64(stepDuration * 1_000_000_000))
+                        }
+                    }
+                }
                 
+                let catProgressTask = simulateProgress(from: 0.0, to: 0.15, duration: 1.0)
+                let (liveCats, vodCats, seriesCats) = await (liveCatsTask, vodCatsTask, seriesCatsTask)
+                catProgressTask.cancel()
                 await MainActor.run { self.importProgress = 0.15 }
                 
                 // 3. Fetch Live streams, VODs, and Series concurrently to immediately satisfy Home screen layout
@@ -325,8 +343,9 @@ class IPTVDataManager {
                     return nil
                 }()
                 
+                let fetchProgressTask = simulateProgress(from: 0.15, to: 0.60, duration: 3.0)
                 let (fetchedChannelsResult, fetchedVODsResult, fetchedSeriesResult) = await (liveTask, vodTask, seriesTask)
-                
+                fetchProgressTask.cancel()
                 await MainActor.run { self.importProgress = 0.60 }
                 
                 let fetchedChannels = fetchedChannelsResult ?? []
@@ -341,13 +360,14 @@ class IPTVDataManager {
                     return
                 }
                 
+                let mapProgressTask = simulateProgress(from: 0.60, to: 0.90, duration: 1.5)
                 // Process metadata mapping in background to prevent stutter
                 let (unifiedVODs, unifiedSeries) = await Task.detached(priority: .userInitiated) {
                     let v = fetchedVODs.map { UnifiedMediaItem(from: $0, creds: creds) }
                     let s = fetchedSeries.map { UnifiedMediaItem(from: $0) }
                     return (v, s)
                 }.value
-                
+                mapProgressTask.cancel()
                 await MainActor.run { self.importProgress = 0.90 }
                 
                 // 1. Adult Content Detection
