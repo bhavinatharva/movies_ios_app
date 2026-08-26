@@ -145,8 +145,14 @@ class IPTVDataManager {
     
     func refreshContent(clearFirst: Bool = false) async {
         if let activeTask = activeRefreshTask {
-            _ = await activeTask.result
-            return
+            if clearFirst {
+                activeTask.cancel()
+                _ = await activeTask.result
+                activeRefreshTask = nil
+            } else {
+                _ = await activeTask.result
+                return
+            }
         }
         
         let task = Task {
@@ -154,7 +160,11 @@ class IPTVDataManager {
         }
         activeRefreshTask = task
         _ = await task.result
-        activeRefreshTask = nil
+        
+        // Only set to nil if the active task is still THIS task.
+        if activeRefreshTask == task {
+            activeRefreshTask = nil
+        }
     }
     
     func handleAdultConsent(consented: Bool) {
@@ -425,6 +435,10 @@ class IPTVDataManager {
             case .unknown:
                 throw NSError(domain: "IPTVDataManager", code: -2, userInfo: [NSLocalizedDescriptionKey: "Unknown source type"])
             }
+        } catch is CancellationError {
+            #if DEBUG
+            print("🌐 [IPTVDataManager] Refresh cancelled.")
+            #endif
         } catch {
             await MainActor.run {
                 self.homeStatus = .error(underlyingError: error)
