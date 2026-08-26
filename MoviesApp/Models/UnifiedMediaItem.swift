@@ -35,9 +35,6 @@ struct UnifiedMediaItem: Identifiable, Hashable, Codable {
     var genres: [String]?
     var streamUrl: URL? // For IPTV HLS streams
     var epgId: String? // For EPG matching
-    var adult: Bool?
-    
-    // Detailed Metadata
     var cast: String?
     var director: String?
     var country: String?
@@ -58,7 +55,6 @@ struct UnifiedMediaItem: Identifiable, Hashable, Codable {
          genres: [String]? = nil,
          streamUrl: URL? = nil,
          epgId: String? = nil,
-         adult: Bool? = false,
          cast: String? = nil,
          director: String? = nil,
          country: String? = nil,
@@ -77,7 +73,6 @@ struct UnifiedMediaItem: Identifiable, Hashable, Codable {
         self.genres = genres
         self.streamUrl = streamUrl
         self.epgId = epgId
-        self.adult = adult
         self.cast = cast
         self.director = director
         self.country = country
@@ -126,7 +121,6 @@ struct UnifiedMediaItem: Identifiable, Hashable, Codable {
         self.genres = nil
         self.streamUrl = nil
         self.epgId = nil
-        self.adult = trending.adult
         self.addedDate = nil
     }
 
@@ -182,7 +176,6 @@ struct UnifiedMediaItem: Identifiable, Hashable, Codable {
         self.genres = channel.category != nil ? [channel.category!] : nil
         self.streamUrl = channel.streamUrl
         self.epgId = channel.epgId
-        self.adult = false
         self.addedDate = nil
     }
 
@@ -221,7 +214,6 @@ struct UnifiedMediaItem: Identifiable, Hashable, Codable {
         self.genres = nil
         self.streamUrl = URL(string: "\(creds.serverUrl)/series/\(creds.username)/\(creds.password)/\(episode.id).\(episode.containerExtension)")
         self.epgId = nil
-        self.adult = false
         self.addedDate = UnifiedMediaItem.parseAddedDate(episode.info?.releaseDate) // Using releaseDate as fallback if available
     }
 }
@@ -233,35 +225,3 @@ extension TrendingModel {
     }
 }
 
-func isAdultString(_ text: String) -> Bool {
-    let lower = text.lowercased()
-    let adultKeywords = [
-        "18+", "xxx", "adult", "redlight", "porno", "erot", "nsfw",
-        "pink", "hentai", "onlyfans", "brazzers", "playboy", "penthouse",
-        "hustler", "mature", "uncensored", "sex"
-    ]
-    return adultKeywords.contains(where: { lower.contains($0) })
-}
-
-extension UnifiedMediaItem {
-    var isAdult: Bool {
-        if adult == true { return true }
-        if isAdultString(title) { return true }
-        if let genres = genres {
-            for genre in genres {
-                if isAdultString(genre) {
-                    return true
-                }
-            }
-        }
-        return false
-    }
-}
-
-extension IPTVChannel {
-    var isAdult: Bool {
-        if isAdultString(name) { return true }
-        if let cat = category, isAdultString(cat) { return true }
-        return false
-    }
-}

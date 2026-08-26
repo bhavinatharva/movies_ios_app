@@ -164,15 +164,6 @@ struct UnifiedMediaDetailView: View {
         VStack(alignment: .leading, spacing: 20) {
             // Details Row (Rating, Year, Duration, Country)
             HStack(spacing: 12) {
-                if viewModel.item.isAdult {
-                    Text("18+")
-                        .font(.caption2)
-                        .fontWeight(.bold)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 4)
-                        .background(Color.red)
-                        .cornerRadius(4)
-                }
                 
                 if let releaseDate = viewModel.item.releaseDate, !releaseDate.isEmpty {
                     Text(releaseDate.prefix(4)) // Just show year for cleaner look

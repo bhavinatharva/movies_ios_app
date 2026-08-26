@@ -13,7 +13,6 @@ struct SettingsView: View {
     @Environment(\.colorScheme) private var colorScheme
     
     @State private var activePlaylist: Playlist?
-    @State private var allowAdultContent: Bool = false
     @AppStorage("preferred_video_quality") private var preferredVideoQuality: Double = 0
     
 
@@ -35,10 +34,6 @@ struct SettingsView: View {
                         
                         playlistSection
                         
-                        if let playlist = activePlaylist, playlist.hasAdultContent {
-                            adultContentSection(playlist: playlist)
-                        }
-                        
                         playbackSection
                         
                         appearanceSection
@@ -55,7 +50,6 @@ struct SettingsView: View {
             .navigationBarTitleDisplayMode(.large)
             .onAppear {
                 activePlaylist = PlaylistManager.shared.fetchDefaultPlaylist()
-                allowAdultContent = activePlaylist?.userConsentedAdult ?? false
             }
         }
     }
@@ -132,31 +126,6 @@ struct SettingsView: View {
     }
     
 
-    
-    private func adultContentSection(playlist: Playlist) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            sectionTitle("CONTENT RESTRICTIONS")
-            
-            SettingsCardContainer {
-                SettingsRowUIComponent(
-                    icon: "exclamationmark.shield.fill",
-                    iconColor: .red,
-                    title: "Allow 18+ Content",
-                    subtitle: "Enable access to 18+ contents",
-                    trailing: Toggle("", isOn: Binding(
-                        get: { self.allowAdultContent },
-                        set: { newValue in
-                            self.allowAdultContent = newValue
-                            PlaylistManager.shared.updateAdultConsent(for: playlist.id, consented: newValue)
-                            Task {
-                                await IPTVDataManager.shared.refreshContent(clearFirst: true)
-                            }
-                        }
-                    )).labelsHidden()
-                )
-            }
-        }
-    }
     
     private var playbackSection: some View {
         VStack(alignment: .leading, spacing: 12) {

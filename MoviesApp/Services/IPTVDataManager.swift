@@ -51,9 +51,7 @@ class IPTVDataManager {
     var currentLoadedPlaylistUrl: String? = nil
     
     var importProgress: Double? = nil
-    var showAdultConsentPrompt: Bool = false
-    var pendingAdultConsentPlaylist: Playlist? = nil
-    
+
     // Classified data arrays
     var liveChannels: [IPTVChannel] = []
     var movies: [UnifiedMediaItem] = []
@@ -175,20 +173,7 @@ class IPTVDataManager {
         }
     }
     
-    func handleAdultConsent(consented: Bool) {
-        guard let playlist = pendingAdultConsentPlaylist else { return }
-        playlistManager.updateAdultConsent(for: playlist.id, consented: consented)
-        
-        self.showAdultConsentPrompt = false
-        self.pendingAdultConsentPlaylist = nil
-        
-        if consented {
-            Task {
-                await refreshContent(clearFirst: true)
-            }
-        }
-    }
-    
+
     private func performRefreshContent(clearFirst: Bool) async {
         let currentDefaultPlaylist = playlistManager.fetchDefaultPlaylist()
         
@@ -370,28 +355,9 @@ class IPTVDataManager {
                 mapProgressTask.cancel()
                 await MainActor.run { self.importProgress = 0.90 }
                 
-                // 1. Adult Content Detection
-                let hasAdult = AdultContentDetector.hasAdultContent(channels: fetchedChannels, media: unifiedVODs + unifiedSeries)
-                if hasAdult && !defaultPlaylist.hasAdultContent {
-                    self.playlistManager.markAdultContentDetected(for: defaultPlaylist.id)
-                }
-                
-                // 2. Fetch updated consent
-                let updatedPlaylist = self.playlistManager.fetchAllPlaylists().first { $0.id == defaultPlaylist.id } ?? defaultPlaylist
-                let consented = updatedPlaylist.userConsentedAdult
-                
-                // 3. Prompt if needed
-                if hasAdult && consented == nil {
-                    await MainActor.run {
-                        self.pendingAdultConsentPlaylist = updatedPlaylist
-                        self.showAdultConsentPrompt = true
-                    }
-                }
-                
-                // 4. Filter
-                let finalChannels = AdultContentDetector.filterAdultChannels(fetchedChannels, consented: consented)
-                let finalVODs = AdultContentDetector.filterAdultMedia(unifiedVODs, consented: consented)
-                let finalSeries = AdultContentDetector.filterAdultMedia(unifiedSeries, consented: consented)
+                let finalChannels = fetchedChannels
+                let finalVODs = unifiedVODs
+                let finalSeries = unifiedSeries
                 
                 let finalCategorizedSeries = Dictionary(grouping: finalSeries) { $0.genres?.first ?? "General" }
                 
@@ -504,10 +470,7 @@ class IPTVDataManager {
         var batchBuffer: [IPTVChannel] = []
         batchBuffer.reserveCapacity(batchSize)
         
-        // Adult consent resolved once before any parsing
         let updatedPlaylist = self.playlistManager.fetchAllPlaylists().first { $0.id == defaultPlaylist.id } ?? defaultPlaylist
-        let consentResolved: Bool? = updatedPlaylist.userConsentedAdult
-        var adultPromptShown = false
         
         // --- Streaming parse ---
         let stream = try await fetchWithRetry {
@@ -527,8 +490,7 @@ class IPTVDataManager {
                     batch, defaultPlaylist: defaultPlaylist, updatedPlaylist: updatedPlaylist,
                     allLive: &allLive, allMovies: &allMovies, allSeries: &allSeries,
                     allUncategorized: &allUncategorized,
-                    firstBatchDelivered: &firstBatchDelivered,
-                    consentResolved: consentResolved, adultPromptShown: &adultPromptShown
+                    firstBatchDelivered: &firstBatchDelivered
                 )
             }
         }
@@ -539,8 +501,7 @@ class IPTVDataManager {
                 batchBuffer, defaultPlaylist: defaultPlaylist, updatedPlaylist: updatedPlaylist,
                 allLive: &allLive, allMovies: &allMovies, allSeries: &allSeries,
                 allUncategorized: &allUncategorized,
-                firstBatchDelivered: &firstBatchDelivered,
-                consentResolved: consentResolved, adultPromptShown: &adultPromptShown
+                firstBatchDelivered: &firstBatchDelivered
             )
         }
         
@@ -551,11 +512,10 @@ class IPTVDataManager {
         let snapLive    = allLive
         let snapMovies  = allMovies
         let snapSeries  = allSeries
-        let snapConsent = consentResolved
         
         let (parsedSeriesResult, finalCatChannels, finalCatMovies) = await Task.detached(priority: .userInitiated) {
             let parsed = Self.parseM3USeries(snapSeries)
-            let finalSeries = AdultContentDetector.filterAdultMedia(parsed.seriesList, consented: snapConsent)
+            let finalSeries = parsed.seriesList
             let finalSeriesIds = Set(finalSeries.map { $0.id })
             let finalEpisodesMap = parsed.episodesMap.filter { finalSeriesIds.contains($0.key) }
             let catChannels = Dictionary(grouping: snapLive)   { $0.category ?? "General" }
@@ -612,7 +572,7 @@ class IPTVDataManager {
         self.loadEPGInBackground()
     }
     
-    private func processBatch(_ batch: [IPTVChannel], defaultPlaylist: Playlist, updatedPlaylist: Playlist, allLive: inout [IPTVChannel], allMovies: inout [UnifiedMediaItem], allSeries: inout [IPTVChannel], allUncategorized: inout [UnifiedMediaItem], firstBatchDelivered: inout Bool, consentResolved: Bool?, adultPromptShown: inout Bool) async throws {
+    private func processBatch(_ batch: [IPTVChannel], defaultPlaylist: Playlist, updatedPlaylist: Playlist, allLive: inout [IPTVChannel], allMovies: inout [UnifiedMediaItem], allSeries: inout [IPTVChannel], allUncategorized: inout [UnifiedMediaItem], firstBatchDelivered: inout Bool) async throws {
         let (batchLive, batchMovies, batchSeriesRaw, batchUncategorized) = await Task.detached(priority: .userInitiated) {
             var live: [IPTVChannel] = []
             var movies: [UnifiedMediaItem] = []
@@ -629,26 +589,9 @@ class IPTVDataManager {
             return (live, movies, seriesRaw, uncategorized)
         }.value
         
-        if !adultPromptShown {
-            let hasAdult = AdultContentDetector.hasAdultContent(
-                channels: batchLive,
-                media: batchMovies + batchUncategorized
-            )
-            if hasAdult && !defaultPlaylist.hasAdultContent {
-                self.playlistManager.markAdultContentDetected(for: defaultPlaylist.id)
-            }
-            if hasAdult && consentResolved == nil {
-                await MainActor.run {
-                    self.pendingAdultConsentPlaylist = updatedPlaylist
-                    self.showAdultConsentPrompt = true
-                }
-                adultPromptShown = true
-            }
-        }
-        
-        let filteredLive = AdultContentDetector.filterAdultChannels(batchLive, consented: consentResolved)
-        let filteredMovies = AdultContentDetector.filterAdultMedia(batchMovies, consented: consentResolved)
-        let filteredUncategorized = AdultContentDetector.filterAdultMedia(batchUncategorized, consented: consentResolved)
+        let filteredLive = batchLive
+        let filteredMovies = batchMovies
+        let filteredUncategorized = batchUncategorized
         
         allLive.append(contentsOf: filteredLive)
         allMovies.append(contentsOf: filteredMovies)

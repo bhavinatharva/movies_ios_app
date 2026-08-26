@@ -165,13 +165,6 @@ struct HomeView: View {
                         .foregroundColor(.white)
                 }
                 
-                if PlaylistManager.shared.fetchDefaultPlaylist()?.userConsentedAdult == true {
-                    NavigationLink(destination: AdultView()) {
-                        Text("Adult(18+)")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(.red)
-                    }
-                }
             }
         }
         .padding(.horizontal, 20)

@@ -80,17 +80,6 @@ struct MainTabView: View {
                 )
             }
         }
-        .background(
-            EmptyView()
-                .sheet(isPresented: $dataManager.showAdultConsentPrompt) {
-                    AdultConsentModal(dataManager: dataManager)
-                        .presentationDetents([.height(340)])
-                        .presentationDragIndicator(.hidden)
-                        .presentationCornerRadius(24)
-                        .presentationBackground(.thinMaterial)
-                        .interactiveDismissDisabled()
-                }
-        )
     }
     @ViewBuilder
     private func tabViewContent(for tab: IPTVTab) -> some View {

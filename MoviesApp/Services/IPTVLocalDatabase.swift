@@ -118,12 +118,7 @@ class IPTVLocalDatabase {
         medEpgId.attributeType = .stringAttributeType
         medEpgId.isOptional = true
         
-        let medAdult = NSAttributeDescription()
-        medAdult.name = "adult"
-        medAdult.attributeType = .booleanAttributeType
-        medAdult.isOptional = true
-        
-        mediaEntity.properties = [medId, medTitle, medOverview, medPoster, medBackdrop, medType, medSource, medReleaseDate, medVote, medRuntime, medGenres, medStreamUrl, medEpgId, medAdult]
+        mediaEntity.properties = [medId, medTitle, medOverview, medPoster, medBackdrop, medType, medSource, medReleaseDate, medVote, medRuntime, medGenres, medStreamUrl, medEpgId]
         
         // 3. FavoritesEntity
         let favoritesEntity = NSEntityDescription()
@@ -322,7 +317,7 @@ class IPTVLocalDatabase {
                 }
                 obj.setValue(item.streamUrl?.absoluteString, forKey: "streamUrl")
                 obj.setValue(item.epgId, forKey: "epgId")
-                obj.setValue(item.adult ?? false, forKey: "adult")
+
                 
                 if (index + 1) % 500 == 0 {
                     try? context.save()
@@ -360,8 +355,7 @@ class IPTVLocalDatabase {
                     runtime: (obj.value(forKey: "runtime") as? Int64).map { Int($0) },
                     genres: genres,
                     streamUrl: (obj.value(forKey: "streamUrl") as? String).flatMap { URL(string: $0) },
-                    epgId: obj.value(forKey: "epgId") as? String,
-                    adult: obj.value(forKey: "adult") as? Bool
+                    epgId: obj.value(forKey: "epgId") as? String
                 )
             }
         } catch {
