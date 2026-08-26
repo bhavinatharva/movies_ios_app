@@ -7,6 +7,7 @@ struct PlaylistHubView: View {
     @State private var playlists: [Playlist] = []
     @State private var isShowingAddWizard = false
     @State private var isActivating = false
+    @State private var isRefreshing = false
     @State private var searchText = ""
     
     var filteredPlaylists: [Playlist] {
@@ -127,6 +128,24 @@ struct PlaylistHubView: View {
                     Image(systemName: "plus")
                         .font(.headline)
                         .foregroundColor(.accentColor)
+                }
+            }
+        }
+        .overlay {
+            if isActivating || isRefreshing {
+                ZStack {
+                    Color.black.opacity(0.6).ignoresSafeArea()
+                    VStack(spacing: 20) {
+                        ProgressView()
+                            .scaleEffect(1.5)
+                            .tint(.white)
+                        Text(isActivating ? "Activating Playlist..." : "Refreshing Content...")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                    }
+                    .padding(30)
+                    .background(Color.gray.opacity(0.2).blur(radius: 10))
+                    .cornerRadius(20)
                 }
             }
         }
@@ -253,8 +272,10 @@ struct PlaylistHubView: View {
     }
     
     private func refreshCurrentContent() {
+        isRefreshing = true
         Task {
             await IPTVDataManager.shared.refreshContent(clearFirst: true)
+            isRefreshing = false
         }
     }
 }

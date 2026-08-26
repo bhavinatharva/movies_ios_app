@@ -144,6 +144,14 @@ class IPTVDataManager {
     }
     
     func refreshContent(clearFirst: Bool = false) async {
+        if clearFirst {
+            await MainActor.run {
+                if self.homeStatus != .loading {
+                    self.homeStatus = .loading
+                }
+            }
+        }
+        
         if let activeTask = activeRefreshTask {
             if clearFirst {
                 activeTask.cancel()
