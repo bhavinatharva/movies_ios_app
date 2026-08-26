@@ -44,40 +44,15 @@ struct HomeView: View {
                         switch viewModel.homeStatus {
                         case .notstarted, .loading:
                             if viewModel.liveChannels.isEmpty {
-                                ScrollView {
-                                    VStack(spacing: 24) {
-                                        // Skeleton Hero Header
-                                        Rectangle()
-                                            .fill(Color.gray.opacity(0.15))
-                                            .frame(height: 450)
-                                            .shimmer()
-                                        
-                                        // Skeleton Rails
-                                        ForEach(0..<3, id: \.self) { _ in
-                                            VStack(alignment: .leading, spacing: 12) {
-                                                Rectangle()
-                                                    .fill(Color.gray.opacity(0.15))
-                                                    .frame(width: 140, height: 20)
-                                                    .padding(.horizontal, 16)
-                                                    .shimmer()
-                                                
-                                                ScrollView(.horizontal, showsIndicators: false) {
-                                                    HStack(spacing: 16) {
-                                                        ForEach(0..<4, id: \.self) { _ in
-                                                            RoundedRectangle(cornerRadius: 12)
-                                                                .fill(Color.gray.opacity(0.1))
-                                                                .frame(width: 140, height: 210)
-                                                                .shimmer()
-                                                        }
-                                                    }
-                                                    .padding(.horizontal, 16)
-                                                }
-                                            }
-                                        }
-                                    }
-                                    .padding(.bottom, 40)
+                                VStack {
+                                    Spacer()
+                                    ProgressView("Loading...")
+                                        .controlSize(.large)
+                                        .tint(.accentColor)
+                                        .foregroundColor(.secondary)
+                                    Spacer()
                                 }
-                                .ignoresSafeArea(edges: .top)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
                                 
                                 headerView
                             } else {
