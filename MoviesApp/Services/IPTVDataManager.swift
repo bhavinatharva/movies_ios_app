@@ -51,7 +51,10 @@ class IPTVDataManager {
     var currentLoadedPlaylistUrl: String? = nil
     
     var importProgress: Double? = nil
-
+    
+    // Live TV Lazy Loading
+    var isFetchingLiveChannels: Bool = false
+    var hasFetchedLiveChannels: Bool = false
     // Classified data arrays
     var liveChannels: [IPTVChannel] = []
     var movies: [UnifiedMediaItem] = []
@@ -213,6 +216,8 @@ class IPTVDataManager {
                 self.topRatedSeries = []
                 self.m3uEpisodes = [:]
                 self.currentLoadedPlaylistUrl = nil
+                self.isFetchingLiveChannels = false
+                self.hasFetchedLiveChannels = false
             }
         
         guard let defaultPlaylist = playlistManager.fetchDefaultPlaylist() else {
@@ -240,6 +245,8 @@ class IPTVDataManager {
                 self.availableTabs = [.home, .recent]
                 self.homeStatus = .notstarted
                 self.currentLoadedPlaylistUrl = nil
+                self.isFetchingLiveChannels = false
+                self.hasFetchedLiveChannels = false
             }
             return
         }
@@ -311,9 +318,8 @@ class IPTVDataManager {
                 catProgressTask.cancel()
                 await MainActor.run { self.importProgress = 0.15 }
                 
-                // 3. Fetch Live streams, VODs, and Series concurrently to immediately satisfy Home screen layout
-                async let liveTask = try? self.fetchWithRetry { try await self.iptvService.fetchXtreamChannels(creds: creds) }
-                
+                // 3. Fetch VODs, and Series concurrently to immediately satisfy Home screen layout
+                // (Live TV is lazy-loaded later)
                 async let vodTask: [XtreamVODStream]? = {
                     if let cats = vodCats, !cats.isEmpty {
                         return try? await self.fetchWithRetry { try await self.iptvService.fetchVODStreams(creds: creds) }
@@ -329,11 +335,11 @@ class IPTVDataManager {
                 }()
                 
                 let fetchProgressTask = simulateProgress(from: 0.15, to: 0.60, duration: 3.0)
-                let (fetchedChannelsResult, fetchedVODsResult, fetchedSeriesResult) = await (liveTask, vodTask, seriesTask)
+                let (fetchedVODsResult, fetchedSeriesResult) = await (vodTask, seriesTask)
                 fetchProgressTask.cancel()
                 await MainActor.run { self.importProgress = 0.60 }
                 
-                let fetchedChannels = fetchedChannelsResult ?? []
+                let fetchedChannels: [IPTVChannel] = []
                 let fetchedVODs = fetchedVODsResult ?? []
                 let fetchedSeries = fetchedSeriesResult ?? []
                 
@@ -421,6 +427,7 @@ class IPTVDataManager {
                     
                     // 4. Dynamically generate tabs based on Xtream API configuration
                     var tabs: [IPTVTab] = [.home, .recent]
+                    // If live categories exist, show the tab so they can lazy-load it later
                     if !(liveCats ?? []).isEmpty || !finalChannels.isEmpty { 
                         tabs.append(.liveTV)
                     }
@@ -448,6 +455,52 @@ class IPTVDataManager {
         } catch {
             await MainActor.run {
                 self.homeStatus = .error(underlyingError: error)
+            }
+        }
+    }
+    
+    // MARK: - Lazy Load Live Channels
+    
+    func fetchLiveChannelsIfNeeded() async {
+        guard !hasFetchedLiveChannels, !isFetchingLiveChannels else { return }
+        
+        guard let defaultPlaylist = playlistManager.fetchDefaultPlaylist() else { return }
+        
+        // We only lazy load Xtream Codes because M3U parses everything at once anyway
+        let validation = IPTVValidator.validateIPTVSource(input: defaultPlaylist.url)
+        guard validation.type == .xtreamCodes else { return }
+        guard let url = URL(string: validation.sanitizedUrl ?? "") else { return }
+        
+        await MainActor.run {
+            self.isFetchingLiveChannels = true
+        }
+        
+        do {
+            let queryParams = url.queryParameters
+            let username = queryParams["username"] ?? ""
+            let password = queryParams["password"] ?? ""
+            let serverUrl = "\(url.scheme ?? "http")://\(url.host ?? "")\(url.port != nil ? ":\(url.port!)" : "")"
+            let creds = XtreamCredentials(serverUrl: serverUrl, username: username, password: password)
+            
+            let fetchedChannels = try await fetchWithRetry { try await self.iptvService.fetchXtreamChannels(creds: creds) }
+            
+            // Background categorization
+            let catChannels = await Task.detached(priority: .userInitiated) {
+                Dictionary(grouping: fetchedChannels) { $0.category ?? "General" }
+            }.value
+            
+            await MainActor.run {
+                self.liveChannels = fetchedChannels
+                self.categorizedChannels = catChannels
+                self.hasFetchedLiveChannels = true
+                self.isFetchingLiveChannels = false
+            }
+        } catch {
+            await MainActor.run {
+                self.isFetchingLiveChannels = false
+                #if DEBUG
+                print("🌐 [IPTVDataManager] Lazy loading Live TV failed: \(error.localizedDescription)")
+                #endif
             }
         }
     }

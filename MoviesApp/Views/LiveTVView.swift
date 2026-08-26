@@ -33,7 +33,7 @@ struct LiveTVView: View {
     var body: some View {
         if !hasDefaultPlaylist {
             emptyPlaylistView
-        } else if dataManager.homeStatus == .loading || dataManager.homeStatus == .notstarted {
+        } else if dataManager.homeStatus == .loading || dataManager.homeStatus == .notstarted || dataManager.isFetchingLiveChannels {
             loadingSkeletonView
         } else if case .error(let error) = dataManager.homeStatus {
             ZStack {
@@ -80,7 +80,8 @@ struct LiveTVView: View {
                     }
                 }
             }
-            .onAppear {
+            .task {
+                await dataManager.fetchLiveChannelsIfNeeded()
                 if selectedChannelForDetail == nil {
                     selectedChannelForDetail = dataManager.liveChannels.first
                 }
