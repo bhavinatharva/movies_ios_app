@@ -46,7 +46,12 @@ class IPTVLocalDatabase {
         chEpgId.attributeType = .stringAttributeType
         chEpgId.isOptional = true
         
-        channelEntity.properties = [chName, chStreamUrl, chLogoUrl, chCategory, chEpgId]
+        let chPlaylistId = NSAttributeDescription()
+        chPlaylistId.name = "playlistId"
+        chPlaylistId.attributeType = .stringAttributeType
+        chPlaylistId.isOptional = false
+        
+        channelEntity.properties = [chName, chStreamUrl, chLogoUrl, chCategory, chEpgId, chPlaylistId]
         
         // 2. MediaEntity (UnifiedMediaItem for Movies/Series VOD)
         let mediaEntity = NSEntityDescription()
@@ -118,7 +123,39 @@ class IPTVLocalDatabase {
         medEpgId.attributeType = .stringAttributeType
         medEpgId.isOptional = true
         
-        mediaEntity.properties = [medId, medTitle, medOverview, medPoster, medBackdrop, medType, medSource, medReleaseDate, medVote, medRuntime, medGenres, medStreamUrl, medEpgId]
+        let medPlaylistId = NSAttributeDescription()
+        medPlaylistId.name = "playlistId"
+        medPlaylistId.attributeType = .stringAttributeType
+        medPlaylistId.isOptional = false
+        
+        mediaEntity.properties = [medId, medTitle, medOverview, medPoster, medBackdrop, medType, medSource, medReleaseDate, medVote, medRuntime, medGenres, medStreamUrl, medEpgId, medPlaylistId]
+        
+        // 2.5 CategoryEntity (For Live, VOD, Series Categories)
+        let categoryEntity = NSEntityDescription()
+        categoryEntity.name = "CategoryEntity"
+        categoryEntity.managedObjectClassName = NSStringFromClass(NSManagedObject.self)
+        
+        let catId = NSAttributeDescription()
+        catId.name = "id"
+        catId.attributeType = .stringAttributeType
+        catId.isOptional = false
+        
+        let catName = NSAttributeDescription()
+        catName.name = "name"
+        catName.attributeType = .stringAttributeType
+        catName.isOptional = false
+        
+        let catType = NSAttributeDescription() // "live", "vod", or "series"
+        catType.name = "type"
+        catType.attributeType = .stringAttributeType
+        catType.isOptional = false
+        
+        let catPlaylistId = NSAttributeDescription()
+        catPlaylistId.name = "playlistId"
+        catPlaylistId.attributeType = .stringAttributeType
+        catPlaylistId.isOptional = false
+        
+        categoryEntity.properties = [catId, catName, catType, catPlaylistId]
         
         // 3. FavoritesEntity
         let favoritesEntity = NSEntityDescription()
@@ -186,7 +223,7 @@ class IPTVLocalDatabase {
         
         historyEntity.properties = [histId, histTimestamp]
         
-        model.entities = [channelEntity, mediaEntity, favoritesEntity, progressEntity, historyEntity]
+        model.entities = [channelEntity, mediaEntity, categoryEntity, favoritesEntity, progressEntity, historyEntity]
         
         container = NSPersistentContainer(name: "IPTVLocalData", managedObjectModel: model)
         container.loadPersistentStores { description, error in
@@ -208,17 +245,29 @@ class IPTVLocalDatabase {
     
     // MARK: - Data Management
     
+    func wipeCacheIfNeeded() {
+        let defaults = UserDefaults.standard
+        if !defaults.bool(forKey: "IPTVLocalDatabaseV2Migrated") {
+            clearAllData()
+            defaults.set(true, forKey: "IPTVLocalDatabaseV2Migrated")
+            defaults.synchronize()
+        }
+    }
+    
     func clearAllData() {
         let context = newBackgroundContext()
         context.performAndWait {
             let chReq = NSFetchRequest<NSFetchRequestResult>(entityName: "ChannelEntity")
             let medReq = NSFetchRequest<NSFetchRequestResult>(entityName: "MediaEntity")
+            let catReq = NSFetchRequest<NSFetchRequestResult>(entityName: "CategoryEntity")
             
             let chDel = NSBatchDeleteRequest(fetchRequest: chReq)
             let medDel = NSBatchDeleteRequest(fetchRequest: medReq)
+            let catDel = NSBatchDeleteRequest(fetchRequest: catReq)
             
             chDel.resultType = .resultTypeObjectIDs
             medDel.resultType = .resultTypeObjectIDs
+            catDel.resultType = .resultTypeObjectIDs
             
             if let result1 = try? context.execute(chDel) as? NSBatchDeleteResult,
                let objectIDs1 = result1.result as? [NSManagedObjectID] {
@@ -230,21 +279,29 @@ class IPTVLocalDatabase {
                 NSManagedObjectContext.mergeChanges(fromRemoteContextSave: [NSDeletedObjectsKey: objectIDs2], into: [self.viewContext])
             }
             
+            if let result3 = try? context.execute(catDel) as? NSBatchDeleteResult,
+               let objectIDs3 = result3.result as? [NSManagedObjectID] {
+                NSManagedObjectContext.mergeChanges(fromRemoteContextSave: [NSDeletedObjectsKey: objectIDs3], into: [self.viewContext])
+            }
+            
             try? context.save()
         }
     }
     
     // MARK: - Channel CRUD
     
-    func saveChannels(_ channels: [IPTVChannel], completion: @escaping () -> Void) {
+    func saveChannels(_ channels: [IPTVChannel], playlistId: String, replace: Bool = true, completion: @escaping () -> Void) {
         let context = newBackgroundContext()
         context.perform {
-            let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "ChannelEntity")
-            let deleteReq = NSBatchDeleteRequest(fetchRequest: fetchRequest)
-            deleteReq.resultType = .resultTypeObjectIDs
-            if let result = try? context.execute(deleteReq) as? NSBatchDeleteResult,
-               let objectIDs = result.result as? [NSManagedObjectID] {
-                NSManagedObjectContext.mergeChanges(fromRemoteContextSave: [NSDeletedObjectsKey: objectIDs], into: [self.viewContext])
+            if replace {
+                let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "ChannelEntity")
+                fetchRequest.predicate = NSPredicate(format: "playlistId == %@", playlistId)
+                let deleteReq = NSBatchDeleteRequest(fetchRequest: fetchRequest)
+                deleteReq.resultType = .resultTypeObjectIDs
+                if let result = try? context.execute(deleteReq) as? NSBatchDeleteResult,
+                   let objectIDs = result.result as? [NSManagedObjectID] {
+                    NSManagedObjectContext.mergeChanges(fromRemoteContextSave: [NSDeletedObjectsKey: objectIDs], into: [self.viewContext])
+                }
             }
             
             for (index, ch) in channels.enumerated() {
@@ -254,6 +311,7 @@ class IPTVLocalDatabase {
                 obj.setValue(ch.logoUrl?.absoluteString, forKey: "logoUrl")
                 obj.setValue(ch.category, forKey: "category")
                 obj.setValue(ch.epgId, forKey: "epgId")
+                obj.setValue(playlistId, forKey: "playlistId")
                 
                 if (index + 1) % 500 == 0 {
                     try? context.save()
@@ -267,9 +325,10 @@ class IPTVLocalDatabase {
         }
     }
     
-    func fetchChannels() -> [IPTVChannel] {
+    func fetchChannels(playlistId: String) -> [IPTVChannel] {
         let context = viewContext
         let fetchRequest = NSFetchRequest<NSManagedObject>(entityName: "ChannelEntity")
+        fetchRequest.predicate = NSPredicate(format: "playlistId == %@", playlistId)
         
         do {
             let results = try context.fetch(fetchRequest)
@@ -287,15 +346,18 @@ class IPTVLocalDatabase {
         }
     }
     
-    func saveMediaItems(_ items: [UnifiedMediaItem], completion: @escaping () -> Void) {
+    func saveMediaItems(_ items: [UnifiedMediaItem], playlistId: String, replaceType: MediaType?, completion: @escaping () -> Void) {
         let context = newBackgroundContext()
         context.perform {
-            let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "MediaEntity")
-            let deleteReq = NSBatchDeleteRequest(fetchRequest: fetchRequest)
-            deleteReq.resultType = .resultTypeObjectIDs
-            if let result = try? context.execute(deleteReq) as? NSBatchDeleteResult,
-               let objectIDs = result.result as? [NSManagedObjectID] {
-                NSManagedObjectContext.mergeChanges(fromRemoteContextSave: [NSDeletedObjectsKey: objectIDs], into: [self.viewContext])
+            if let type = replaceType {
+                let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "MediaEntity")
+                fetchRequest.predicate = NSPredicate(format: "playlistId == %@ AND mediaType == %@", playlistId, type.rawValue)
+                let deleteReq = NSBatchDeleteRequest(fetchRequest: fetchRequest)
+                deleteReq.resultType = .resultTypeObjectIDs
+                if let result = try? context.execute(deleteReq) as? NSBatchDeleteResult,
+                   let objectIDs = result.result as? [NSManagedObjectID] {
+                    NSManagedObjectContext.mergeChanges(fromRemoteContextSave: [NSDeletedObjectsKey: objectIDs], into: [self.viewContext])
+                }
             }
             
             for (index, item) in items.enumerated() {
@@ -317,7 +379,7 @@ class IPTVLocalDatabase {
                 }
                 obj.setValue(item.streamUrl?.absoluteString, forKey: "streamUrl")
                 obj.setValue(item.epgId, forKey: "epgId")
-
+                obj.setValue(playlistId, forKey: "playlistId")
                 
                 if (index + 1) % 500 == 0 {
                     try? context.save()
@@ -331,10 +393,10 @@ class IPTVLocalDatabase {
         }
     }
     
-    func fetchMediaItems(type: MediaType) -> [UnifiedMediaItem] {
+    func fetchMediaItems(type: MediaType, playlistId: String) -> [UnifiedMediaItem] {
         let context = viewContext
         let fetchRequest = NSFetchRequest<NSManagedObject>(entityName: "MediaEntity")
-        fetchRequest.predicate = NSPredicate(format: "mediaType == %@", type.rawValue)
+        fetchRequest.predicate = NSPredicate(format: "playlistId == %@ AND mediaType == %@", playlistId, type.rawValue)
         
         do {
             let results = try context.fetch(fetchRequest)
@@ -356,6 +418,57 @@ class IPTVLocalDatabase {
                     genres: genres,
                     streamUrl: (obj.value(forKey: "streamUrl") as? String).flatMap { URL(string: $0) },
                     epgId: obj.value(forKey: "epgId") as? String
+                )
+            }
+        } catch {
+            return []
+        }
+    }
+    
+    // MARK: - Category CRUD
+    
+    func saveCategories(_ categories: [XtreamCategory], type: String, playlistId: String, completion: @escaping () -> Void) {
+        let context = newBackgroundContext()
+        context.perform {
+            let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "CategoryEntity")
+            fetchRequest.predicate = NSPredicate(format: "playlistId == %@ AND type == %@", playlistId, type)
+            let deleteReq = NSBatchDeleteRequest(fetchRequest: fetchRequest)
+            deleteReq.resultType = .resultTypeObjectIDs
+            if let result = try? context.execute(deleteReq) as? NSBatchDeleteResult,
+               let objectIDs = result.result as? [NSManagedObjectID] {
+                NSManagedObjectContext.mergeChanges(fromRemoteContextSave: [NSDeletedObjectsKey: objectIDs], into: [self.viewContext])
+            }
+            
+            for (index, cat) in categories.enumerated() {
+                let obj = NSEntityDescription.insertNewObject(forEntityName: "CategoryEntity", into: context)
+                obj.setValue(cat.id, forKey: "id")
+                obj.setValue(cat.name, forKey: "name")
+                obj.setValue(type, forKey: "type")
+                obj.setValue(playlistId, forKey: "playlistId")
+                
+                if (index + 1) % 500 == 0 {
+                    try? context.save()
+                    context.reset()
+                }
+            }
+            
+            try? context.save()
+            context.reset()
+            completion()
+        }
+    }
+    
+    func fetchCategories(type: String, playlistId: String) -> [XtreamCategory] {
+        let context = viewContext
+        let fetchRequest = NSFetchRequest<NSManagedObject>(entityName: "CategoryEntity")
+        fetchRequest.predicate = NSPredicate(format: "playlistId == %@ AND type == %@", playlistId, type)
+        
+        do {
+            let results = try context.fetch(fetchRequest)
+            return results.map { obj in
+                XtreamCategory(
+                    id: obj.value(forKey: "id") as? String ?? "",
+                    name: obj.value(forKey: "name") as? String ?? ""
                 )
             }
         } catch {

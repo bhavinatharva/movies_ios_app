@@ -123,21 +123,16 @@ struct AddPlaylistWizardView: View {
                                 }
                             } else {
                                 // Loading State
-                                if let progress = IPTVDataManager.shared.importProgress {
-                                    WaterWaveProgressView(progress: progress, waveHeight: 0.05, waveFrequency: 1.5, waveSpeed: 2.0, color: .accentColor)
-                                        .frame(width: 150, height: 150)
-                                } else {
-                                    ProgressView()
-                                        .scaleEffect(1.5)
-                                        .tint(.accentColor)
-                                }
-                                Text("Processing Playlist...")
+                                ProgressView()
+                                    .scaleEffect(1.5)
+                                    .tint(.accentColor)
+                                
+                                Text("Validating Source...")
                                     .font(.headline)
                                     .foregroundColor(.white)
                                 
                                 Button("Cancel") {
                                     importTask?.cancel()
-                                    IPTVDataManager.shared.cancelImport()
                                     isLoading = false
                                 }
                                 .buttonStyle(.bordered)
@@ -167,12 +162,6 @@ struct AddPlaylistWizardView: View {
         guard !isLoading || errorMessage != nil else { return } // Prevent duplicates, allow retry
         isLoading = true
         errorMessage = nil
-        IPTVDataManager.shared.importProgress = 0.0
-        
-        defer {
-            // Always reset importProgress when the wizard exits (success, failure, or cancel).
-            IPTVDataManager.shared.importProgress = nil
-        }
         
         var targetUrl = urlString // We'll just pass the URL or build Xtream URL if needed
         if playlistType == 0 {
@@ -285,12 +274,13 @@ struct AddPlaylistWizardView: View {
         let newPlaylist = playlistManager.addPlaylist(name: finalName, url: sanitizedStr)
         playlistManager.setDefault(newPlaylist)
         
-        await IPTVDataManager.shared.refreshContent(clearFirst: true)
+        // Dispatch background sync
+        IPTVSyncManager.shared.startSync(playlist: newPlaylist)
         
-        if Task.isCancelled {
-            // Cleanup on cancel if needed, though refreshContent might have run
-            return
-        }
+        // Pre-load empty cache to reset UI state
+        await IPTVDataManager.shared.loadFromCache(playlist: newPlaylist)
+        
+        if Task.isCancelled { return }
         
         // Success
         isLoading = false

@@ -70,8 +70,9 @@ class UserDataManager {
         
         // Fallback: If not present in memory, load from CoreData media items cache directly
         if mappedHistory.count < historyIds.count {
-            let coreMovies = IPTVLocalDatabase.shared.fetchMediaItems(type: .movie)
-            let coreSeries = IPTVLocalDatabase.shared.fetchMediaItems(type: .tvSeries)
+            let playlistId = PlaylistManager.shared.fetchDefaultPlaylist()?.id ?? ""
+            let coreMovies = IPTVLocalDatabase.shared.fetchMediaItems(type: .movie, playlistId: playlistId)
+            let coreSeries = IPTVLocalDatabase.shared.fetchMediaItems(type: .tvSeries, playlistId: playlistId)
             
             for id in historyIds {
                 if !mappedHistory.contains(where: { $0.id == id }) {
@@ -124,7 +125,8 @@ class UserDataManager {
         IPTVLocalDatabase.shared.saveHistoryItem(id: item.id)
         
         // Batch and persistently cache metadata in the database for instant offline startup
-        IPTVLocalDatabase.shared.saveMediaItems([item]) {}
+        let playlistId = PlaylistManager.shared.fetchDefaultPlaylist()?.id ?? ""
+        IPTVLocalDatabase.shared.saveMediaItems([item], playlistId: playlistId, replaceType: nil) {}
     }
     
     func removeFromHistory(id: String) {

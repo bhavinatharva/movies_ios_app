@@ -17,17 +17,18 @@ class EPGViewModel: ObservableObject {
         self.isLoading = true
         self.errorMessage = nil
         
-        let allChannels = IPTVLocalDatabase.shared.fetchChannels()
-        let liveChannels = allChannels.filter { $0.mediaType == .liveTV }
-        
-        self.channels = liveChannels
-        
-        // Get Credentials
-        guard let activeUrl = UserDefaults.standard.string(forKey: "active_playlist_url") else {
+        guard let playlist = PlaylistManager.shared.fetchDefaultPlaylist() else {
             self.errorMessage = "No active playlist found."
             self.isLoading = false
             return
         }
+        
+        let allChannels = IPTVLocalDatabase.shared.fetchChannels(playlistId: playlist.id)
+        let liveChannels = allChannels.filter { $0.mediaType == .liveTV }
+        
+        self.channels = liveChannels
+        
+        let activeUrl = playlist.url
         
         let validation = IPTVURLValidator.validateIPTVSource(input: activeUrl)
         if let creds = validation.credentials {
