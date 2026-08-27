@@ -33,7 +33,7 @@ struct LiveTVView: View {
     var body: some View {
         if !hasDefaultPlaylist {
             emptyPlaylistView
-        } else if dataManager.homeStatus == .loading || dataManager.homeStatus == .notstarted || dataManager.isFetchingLiveChannels {
+        } else if dataManager.homeStatus == .loading || dataManager.homeStatus == .notstarted {
             loadingSkeletonView
         } else if case .error(let error) = dataManager.homeStatus {
             ZStack {
