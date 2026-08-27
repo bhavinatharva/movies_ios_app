@@ -47,7 +47,7 @@ class UnifiedMediaDetailViewModel {
         self.error = nil
         
         do {
-            let response = try await IPTVService.shared.fetchVODInfo(creds: creds, vodId: vodId)
+            let response = try await XtreamProvider.shared.fetchVODInfo(creds: creds, vodId: vodId)
             if let info = response.info {
                 let detailItem = UnifiedMediaItem(from: info)
                 

@@ -29,10 +29,10 @@ class EPGViewModel: ObservableObject {
             return
         }
         
-        let validation = IPTVValidator.validateIPTVSource(input: activeUrl)
+        let validation = IPTVURLValidator.validateIPTVSource(input: activeUrl)
         if let creds = validation.credentials {
             do {
-                let epgData = try await IPTVService.shared.fetchEPG(creds: creds)
+                let epgData = try await XtreamProvider.shared.fetchEPG(creds: creds)
                 let parsedPrograms = try await EPGService.shared.parseXMLTV(data: epgData)
                 
                 // Group by channel id

@@ -15,7 +15,7 @@ struct SeriesDetailView: View {
     @State private var errorMessage: String?
     @State private var selectedEpisode: XtreamEpisode?
     
-    private let iptvService = IPTVService.shared
+    private let iptvService = XtreamProvider.shared
     private let authManager = AuthManager.shared
     
     private var isM3USeries: Bool {

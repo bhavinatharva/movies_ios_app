@@ -201,7 +201,7 @@ struct AddPlaylistWizardView: View {
             }
         }
         
-        let validationResult = IPTVValidator.validateIPTVSource(input: targetUrl)
+        let validationResult = IPTVURLValidator.validateIPTVSource(input: targetUrl)
         
         guard validationResult.isValid, let sanitizedStr = validationResult.sanitizedUrl else {
             errorMessage = validationResult.errorMessage ?? "Invalid IPTV source. Please enter a valid URL."

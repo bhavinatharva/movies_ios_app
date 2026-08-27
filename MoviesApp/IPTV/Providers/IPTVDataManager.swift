@@ -88,7 +88,7 @@ class IPTVDataManager {
     // Series ID -> [SeasonNumberString: [XtreamEpisode]]
     var m3uEpisodes: [String: [String: [XtreamEpisode]]] = [:]
     
-    private let iptvService = IPTVService.shared
+    private let iptvService = XtreamProvider.shared
     private let playlistManager = PlaylistManager.shared
     
     private var activeRefreshTask: Task<Void, Never>? = nil
@@ -259,7 +259,7 @@ class IPTVDataManager {
         }
         
         let urlString = defaultPlaylist.url
-        let validation = IPTVValidator.validateIPTVSource(input: urlString)
+        let validation = IPTVURLValidator.validateIPTVSource(input: urlString)
         
         guard validation.isValid,
               let sanitizedStr = validation.sanitizedUrl,
@@ -470,7 +470,7 @@ class IPTVDataManager {
         guard let defaultPlaylist = playlistManager.fetchDefaultPlaylist() else { return }
         
         // We only lazy load Xtream Codes because M3U parses everything at once anyway
-        let validation = IPTVValidator.validateIPTVSource(input: defaultPlaylist.url)
+        let validation = IPTVURLValidator.validateIPTVSource(input: defaultPlaylist.url)
         guard validation.type == .xtreamCodes else { return }
         guard let url = URL(string: validation.sanitizedUrl ?? "") else { return }
         

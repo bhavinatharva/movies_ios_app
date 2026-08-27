@@ -226,7 +226,7 @@ struct AddPlaylistSheet: View {
         isLoading = true
         errorMessage = nil
         
-        let validationResult = IPTVValidator.validateIPTVSource(input: urlString)
+        let validationResult = IPTVURLValidator.validateIPTVSource(input: urlString)
         
         guard validationResult.isValid,
               let sanitizedStr = validationResult.sanitizedUrl else {

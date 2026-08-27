@@ -7,8 +7,8 @@
 
 import Foundation
 
-class IPTVService {
-    static let shared = IPTVService()
+class XtreamProvider {
+    static let shared = XtreamProvider()
     
     private init() {}
     
