@@ -348,7 +348,9 @@ class IPTVDataManager {
                     #if DEBUG
                     print("🌐 [IPTVDataManager] Xtream Codes JSON API failed or yielded empty results. Falling back to M3U Playlist parsing...")
                     #endif
-                    try await processAsM3U(url: url, defaultPlaylist: defaultPlaylist)
+                    let m3uFallbackStr = "\(creds.serverUrl)/get.php?username=\(creds.username)&password=\(creds.password)&type=m3u_plus&output=ts"
+                    let fallbackUrl = URL(string: m3uFallbackStr) ?? url
+                    try await processAsM3U(url: fallbackUrl, defaultPlaylist: defaultPlaylist)
                     return
                 }
                 
