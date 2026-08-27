@@ -280,7 +280,7 @@ class IPTVDataManager {
         
         do {
             switch validation.type {
-            case .m3uPlaylist, .directHLS, .directDASH:
+            case .m3uPlaylist, .directHLS, .directDASH, .directFile:
                 try await processAsM3U(url: url, defaultPlaylist: defaultPlaylist)
                 
             case .xtreamCodes:

@@ -154,7 +154,7 @@ struct AddPlaylistWizardView: View {
     // MARK: - Logic
     
     private func autoParseURL(_ newValue: String) {
-        let validation = IPTVValidator.validateIPTVSource(input: newValue)
+        let validation = IPTVURLValidator.validateIPTVSource(input: newValue)
         if validation.type == .xtreamCodes, let credentials = validation.credentials {
             self.playlistType = 0
             self.urlString = credentials.serverUrl
