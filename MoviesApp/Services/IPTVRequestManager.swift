@@ -66,6 +66,10 @@ actor IPTVRequestManager {
             return try await existingTask.value
         }
         
+        #if DEBUG
+        print("🌐 [IPTVRequestManager] Requesting: \(url.absoluteString) | Type: \(type)")
+        #endif
+        
         // 3. Create a new network task with retry logic
         let task = Task<Data, Error> {
             let session = sessions[type] ?? .shared
@@ -95,6 +99,11 @@ actor IPTVRequestManager {
         while attempts < maxRetries {
             do {
                 let (data, response) = try await session.data(for: request)
+                #if DEBUG
+                if let httpResponse = response as? HTTPURLResponse {
+                    print("🌐 [IPTVRequestManager] Response: \(httpResponse.statusCode) from \(request.url?.absoluteString ?? "unknown") | Bytes: \(data.count)")
+                }
+                #endif
                 if let httpResponse = response as? HTTPURLResponse {
                     if (400...499).contains(httpResponse.statusCode) {
                         // Do not retry client errors like 404 Not Found or 401 Unauthorized

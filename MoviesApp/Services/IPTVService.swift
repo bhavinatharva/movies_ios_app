@@ -15,7 +15,17 @@ class IPTVService {
     // Background decoder helper
     private func decodeInBackground<T: Decodable>(_ type: T.Type, from data: Data) async throws -> T {
         return try await Task.detached(priority: .userInitiated) {
-            return try JSONDecoder().decode(T.self, from: data)
+            do {
+                return try JSONDecoder().decode(T.self, from: data)
+            } catch {
+                #if DEBUG
+                print("🚨 [IPTVService] Object Decoding Error for \(T.self): \(error)")
+                if let str = String(data: data, encoding: .utf8) {
+                    print("🚨 [IPTVService] Failed Payload Snippet: \(str.prefix(1000))")
+                }
+                #endif
+                throw error
+            }
         }.value
     }
     
@@ -37,8 +47,18 @@ class IPTVService {
     
     private func safeDecodeArrayInBackground<T: Decodable>(_ type: T.Type, from data: Data) async throws -> [T] {
         return try await Task.detached(priority: .userInitiated) {
-            let safeArray = try JSONDecoder().decode([Safe<T>].self, from: data)
-            return safeArray.compactMap { $0.value }
+            do {
+                let safeArray = try JSONDecoder().decode([Safe<T>].self, from: data)
+                return safeArray.compactMap { $0.value }
+            } catch {
+                #if DEBUG
+                print("🚨 [IPTVService] Array Decoding Error for \(T.self): \(error)")
+                if let str = String(data: data, encoding: .utf8) {
+                    print("🚨 [IPTVService] Failed Payload Snippet: \(str.prefix(1000))")
+                }
+                #endif
+                throw error
+            }
         }.value
     }
     
