@@ -132,15 +132,24 @@ final class GlobalPlayerManager: NSObject, ObservableObject, VLCMediaPlayerDeleg
         let options: [String: Any] = ["AVURLAssetHTTPHeaderFieldsKey": ["User-Agent": "VLC/3.0.11 LibVLC/3.0.11"]]
         
         Task.detached {
-            let asset = AVURLAsset(url: url, options: options)
-            let item = AVPlayerItem(asset: asset)
-            
             let streamIdentifier = await self.streamId ?? ""
             let marker = await self.introService.fetchIntroMarker(for: streamIdentifier)
+            let streamType = await IPTVContentDetector.detectStreamType(from: url)
             
             await MainActor.run {
                 self.currentIntroMarker = marker
                 self.showSkipIntro = false
+                
+                if !streamType.isNativelySupported {
+                    print("GlobalPlayerManager: Stream type \(streamType) is not natively supported. Using VLCMediaPlayer directly.")
+                    self.isUsingVLC = true
+                    self.vlcPlayer.media = VLCMedia(url: url)
+                    self.vlcPlayer.play()
+                    return
+                }
+                
+                let asset = AVURLAsset(url: url, options: options)
+                let item = AVPlayerItem(asset: asset)
                 
                 if self.isLive {
                     item.preferredForwardBufferDuration = 1.0
