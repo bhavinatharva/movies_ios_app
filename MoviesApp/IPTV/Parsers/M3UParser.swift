@@ -7,7 +7,7 @@
 
 import Foundation
 
-class M3UParser {
+class M3UParser: IPTVPlaylistParser {
     // Compiled once; reused for every #EXTINF: line — avoids 5000+ compilations per import.
     private static let extinfRegex: NSRegularExpression? = try? NSRegularExpression(
         pattern: "([a-zA-Z0-9\\-]+)=[\"']([^\"']*)[\"']",
