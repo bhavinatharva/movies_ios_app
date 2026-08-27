@@ -81,7 +81,6 @@ struct LiveTVView: View {
                 }
             }
             .task {
-                await dataManager.fetchLiveChannelsIfNeeded()
                 if selectedChannelForDetail == nil {
                     selectedChannelForDetail = dataManager.liveChannels.first
                 }
