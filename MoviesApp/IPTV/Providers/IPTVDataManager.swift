@@ -103,45 +103,55 @@ class IPTVDataManager {
     }
     
     func loadFromCache(playlist: Playlist) async {
-        await MainActor.run {
-            self.homeStatus = .loading
-        }
+        self.homeStatus = .loading
         
-        let live = IPTVLocalDatabase.shared.fetchChannels(playlistId: playlist.id)
-        let movies = IPTVLocalDatabase.shared.fetchMediaItems(type: .movie, playlistId: playlist.id)
-        let series = IPTVLocalDatabase.shared.fetchMediaItems(type: .tvSeries, playlistId: playlist.id)
-        
-        let lCats = IPTVLocalDatabase.shared.fetchCategories(type: "live", playlistId: playlist.id)
-        let vCats = IPTVLocalDatabase.shared.fetchCategories(type: "vod", playlistId: playlist.id)
-        let sCats = IPTVLocalDatabase.shared.fetchCategories(type: "series", playlistId: playlist.id)
-        
-        let liveCategoryMap = Dictionary(uniqueKeysWithValues: lCats.map { ($0.id, $0.name) })
-        let catLive = Dictionary(grouping: live) { channel in
-            if let catId = channel.category {
-                return liveCategoryMap[catId] ?? catId
+        let (
+            live, movies, series,
+            lCats, vCats, sCats,
+            catLive, catMovies, catSeries,
+            trending, newR, topR, recs, hero,
+            tSeries, nSeries, topSeries, rSeries, hSeries
+        ) = await Task.detached(priority: .userInitiated) {
+            
+            let bgLive = IPTVLocalDatabase.shared.fetchChannels(playlistId: playlist.id)
+            let bgMovies = IPTVLocalDatabase.shared.fetchMediaItems(type: .movie, playlistId: playlist.id)
+            let bgSeries = IPTVLocalDatabase.shared.fetchMediaItems(type: .tvSeries, playlistId: playlist.id)
+            
+            let bgLCats = IPTVLocalDatabase.shared.fetchCategories(type: "live", playlistId: playlist.id)
+            let bgVCats = IPTVLocalDatabase.shared.fetchCategories(type: "vod", playlistId: playlist.id)
+            let bgSCats = IPTVLocalDatabase.shared.fetchCategories(type: "series", playlistId: playlist.id)
+            
+            let liveCategoryMap = Dictionary(bgLCats.map { ($0.id, $0.name) }, uniquingKeysWith: { first, _ in first })
+            let bgCatLive = Dictionary(grouping: bgLive) { channel in
+                if let catId = channel.category { return liveCategoryMap[catId] ?? catId }
+                return "General"
             }
-            return "General"
-        }
-        let catMovies = Dictionary(grouping: movies) { $0.genres?.first ?? "General" }
-        let catSeries = Dictionary(grouping: series) { $0.genres?.first ?? "General" }
-        
-        let (trending, newR, topR, recs, hero, tSeries, nSeries, topSeries, rSeries, hSeries) = await Task.detached(priority: .userInitiated) {
-            var itemsForTrending = movies
+            let bgCatMovies = Dictionary(grouping: bgMovies) { $0.genres?.first ?? "General" }
+            let bgCatSeries = Dictionary(grouping: bgSeries) { $0.genres?.first ?? "General" }
+            
+            var itemsForTrending = bgMovies
             let trendingList = IPTVDataManager.pickRandom(&itemsForTrending, limit: 15)
-            let newReleasesList = Array(movies.prefix(15))
-            var itemsForTop = movies
+            let newReleasesList = Array(bgMovies.prefix(15))
+            var itemsForTop = bgMovies
             let topRatedList = IPTVDataManager.pickRandom(&itemsForTop, limit: 15)
-            let recommendedList = UserDataManager.shared.generateRecommendations(from: movies)
+            let recommendedList = UserDataManager.shared.generateRecommendations(from: bgMovies)
             
-            var itemsForTrendingSeries = series
+            var itemsForTrendingSeries = bgSeries
             let tSeriesList = IPTVDataManager.pickRandom(&itemsForTrendingSeries, limit: 15)
-            let nSeriesList = Array(series.prefix(15))
-            var itemsForTopSeries = series
+            let nSeriesList = Array(bgSeries.prefix(15))
+            var itemsForTopSeries = bgSeries
             let topSeriesList = IPTVDataManager.pickRandom(&itemsForTopSeries, limit: 15)
-            let rSeriesList = UserDataManager.shared.generateRecommendations(from: series)
+            let rSeriesList = UserDataManager.shared.generateRecommendations(from: bgSeries)
             
-            return (trendingList, newReleasesList, topRatedList, recommendedList, movies.first, tSeriesList, nSeriesList, topSeriesList, rSeriesList, series.first)
+            return (
+                bgLive, bgMovies, bgSeries,
+                bgLCats, bgVCats, bgSCats,
+                bgCatLive, bgCatMovies, bgCatSeries,
+                trendingList, newReleasesList, topRatedList, recommendedList, bgMovies.first,
+                tSeriesList, nSeriesList, topSeriesList, rSeriesList, bgSeries.first
+            )
         }.value
+
         
         await MainActor.run {
             self.liveChannels = live
