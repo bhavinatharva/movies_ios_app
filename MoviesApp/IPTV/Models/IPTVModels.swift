@@ -349,6 +349,23 @@ struct XtreamEpisode: Codable {
         case containerExtension = "container_extension"
         case info
     }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        id = try container.decode(String.self, forKey: .id)
+        title = try container.decode(String.self, forKey: .title)
+        containerExtension = try container.decode(String.self, forKey: .containerExtension)
+        info = try container.decodeIfPresent(XtreamEpisodeInfo.self, forKey: .info)
+        
+        if let epI = try? container.decode(Int.self, forKey: .episodeNum) {
+            episodeNum = epI
+        } else if let epS = try? container.decode(String.self, forKey: .episodeNum) {
+            episodeNum = Int(epS)
+        } else {
+            episodeNum = nil
+        }
+    }
 }
 
 struct XtreamEpisodeInfo: Codable {
