@@ -353,7 +353,14 @@ struct XtreamEpisode: Codable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         
-        id = try container.decode(String.self, forKey: .id)
+        if let idI = try? container.decode(Int.self, forKey: .id) {
+            id = String(idI)
+        } else if let idS = try? container.decode(String.self, forKey: .id) {
+            id = idS
+        } else {
+            id = ""
+        }
+        
         title = try container.decode(String.self, forKey: .title)
         containerExtension = try container.decode(String.self, forKey: .containerExtension)
         info = try container.decodeIfPresent(XtreamEpisodeInfo.self, forKey: .info)
