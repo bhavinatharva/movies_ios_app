@@ -1,12 +1,6 @@
-//
-//  LiveTVComponents.swift
-
-//
-
 import SwiftUI
 import AVKit
 
-// MARK: - Live TV Hero Header View (Auto-playing banner)
 struct LiveTVHeroHeaderView: View {
     let channel: IPTVChannel
     let onSelect: () -> Void

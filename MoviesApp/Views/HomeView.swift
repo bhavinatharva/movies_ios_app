@@ -76,11 +76,7 @@ struct HomeView: View {
                 }
             }
             .navigationBarHidden(true)
-            .task(id: activePlaylistUrl) {
-                if hasDefaultPlaylist {
-                    await viewModel.refreshContent()
-                }
-            }
+            // Removed auto-refresh on activePlaylistUrl task as per requirements
             .onAppear {
                 viewModel.updateFavorites()
             }

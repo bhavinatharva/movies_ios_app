@@ -87,12 +87,7 @@ class IPTVDataManager {
     
     private init() {
         IPTVLocalDatabase.shared.wipeCacheIfNeeded()
-        
-        Task {
-            if let defaultPlaylist = playlistManager.fetchDefaultPlaylist() {
-                await loadFromCache(playlist: defaultPlaylist)
-            }
-        }
+        // Removed auto-load on init as per requirements; it will only load when added, refreshed, or changed.
     }
     
     func cancelImport() {
