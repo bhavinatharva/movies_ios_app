@@ -111,10 +111,17 @@ class IPTVDataManager {
         let movies = IPTVLocalDatabase.shared.fetchMediaItems(type: .movie, playlistId: playlist.id)
         let series = IPTVLocalDatabase.shared.fetchMediaItems(type: .tvSeries, playlistId: playlist.id)
         
+        let lCats = IPTVLocalDatabase.shared.fetchCategories(type: "live", playlistId: playlist.id)
         let vCats = IPTVLocalDatabase.shared.fetchCategories(type: "vod", playlistId: playlist.id)
         let sCats = IPTVLocalDatabase.shared.fetchCategories(type: "series", playlistId: playlist.id)
         
-        let catLive = Dictionary(grouping: live) { $0.category ?? "General" }
+        let liveCategoryMap = Dictionary(uniqueKeysWithValues: lCats.map { ($0.id, $0.name) })
+        let catLive = Dictionary(grouping: live) { channel in
+            if let catId = channel.category {
+                return liveCategoryMap[catId] ?? catId
+            }
+            return "General"
+        }
         let catMovies = Dictionary(grouping: movies) { $0.genres?.first ?? "General" }
         let catSeries = Dictionary(grouping: series) { $0.genres?.first ?? "General" }
         
