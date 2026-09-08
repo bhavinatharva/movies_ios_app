@@ -293,9 +293,13 @@ struct LiveChannelGridCardView: View {
                 VStack {
                     HStack {
                         Spacer()
-                        Circle()
-                            .fill(Color.red)
-                            .frame(width: 6, height: 6)
+                        Text("LIVE")
+                            .font(.system(size: 9, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(Color.red)
+                            .cornerRadius(4)
                             .padding(8)
                     }
                     Spacer()
