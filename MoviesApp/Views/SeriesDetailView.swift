@@ -19,7 +19,7 @@ struct SeriesDetailView: View {
     private let authManager = AuthManager.shared
     
     private var isM3USeries: Bool {
-        series.id.hasPrefix("m3useries_")
+        Int(series.id) == nil
     }
     
     var body: some View {
@@ -200,7 +200,24 @@ struct SeriesDetailView: View {
     
     private func loadSeriesInfo() async {
         if isM3USeries {
-            let cached = IPTVDataManager.shared.m3uEpisodes[series.id] ?? [:]
+            var cached = IPTVDataManager.shared.m3uEpisodes[series.id] ?? [:]
+            
+            // If there's no parsed episodes, create a dummy one using the series streamUrl
+            if cached.isEmpty {
+                let dummyEpisode = XtreamEpisode(
+                    id: series.id,
+                    episodeNum: 1,
+                    title: series.title,
+                    containerExtension: "mp4",
+                    info: nil
+                )
+                // We need to pass the directSource somehow. Wait! 
+                // StreamingPlayerView resolves M3U series directly if it knows the ID is a URL.
+                // But XtreamEpisode doesn't store URL, it builds it. 
+                // Let's just put it in so the UI has an episode to click.
+                cached["1"] = [dummyEpisode]
+            }
+            
             await MainActor.run {
                 self.episodes = cached
                 self.seasons = cached.keys.sorted {
