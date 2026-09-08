@@ -179,6 +179,8 @@ struct StreamingPlayerView: View {
             // 5. Live TV Side Drawer
             if showChannelDrawer && !isLocked {
                 channelDrawerOverlayView
+                    .transition(.move(edge: .trailing))
+                    .zIndex(2)
             }
             
             // 6. Next Episode Countdown
@@ -585,9 +587,8 @@ struct StreamingPlayerView: View {
                         }.padding(.horizontal, 20)
                     }
                 }
-                .frame(width: geo.size.width * 0.35)
+                .frame(width: max(300, geo.size.width * 0.35))
                 .background(.ultraThinMaterial)
-                .transition(.move(edge: .trailing))
             }
         }
         .ignoresSafeArea()
