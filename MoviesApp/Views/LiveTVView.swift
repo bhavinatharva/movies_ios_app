@@ -20,13 +20,12 @@ struct LiveTVView: View {
     }
     
     var filteredChannels: [IPTVChannel] {
-        let cat = selectedCategory
         let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
-        var result = cat == nil ? dataManager.liveChannels : (dataManager.categorizedChannels[cat!] ?? [])
         if !query.isEmpty {
-            result = result.filter { $0.name.localizedCaseInsensitiveContains(query) }
+            return dataManager.liveChannels.filter { $0.name.localizedCaseInsensitiveContains(query) }
         }
-        return result
+        let cat = selectedCategory
+        return cat == nil ? Array(dataManager.liveChannels.prefix(50)) : (dataManager.categorizedChannels[cat!] ?? [])
     }
     
     var body: some View {
@@ -63,6 +62,16 @@ struct LiveTVView: View {
                         selectedCategory = category
                     }
                 )
+            }
+            .onAppear {
+                if selectedCategory == nil {
+                    selectedCategory = categories.first
+                }
+            }
+            .onChange(of: dataManager.homeStatus) { _, status in
+                if status == .success && selectedCategory == nil {
+                    selectedCategory = categories.first
+                }
             }
         }
     }
