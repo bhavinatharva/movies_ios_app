@@ -4,11 +4,10 @@ import AVFoundation
 
 struct GestureController: View {
     let streamType: MediaType
-    let onDoubleTapLeft: () -> Void
-    let onDoubleTapRight: () -> Void
+    let onDoubleTap: () -> Void
     let onSingleTap: () -> Void
-    let onSwipeUp: () -> Void
-    let onSwipeDown: () -> Void
+    let onSwipeLeft: () -> Void
+    let onSwipeRight: () -> Void
     var onSeekDrag: ((CGFloat) -> Void)? = nil
     var onSeekEnd: (() -> Void)? = nil
     
@@ -16,71 +15,67 @@ struct GestureController: View {
     @State private var startVolume: Float = 0
     @State private var volumeSlider: UISlider? = nil
     
+    // Zapping threshold
+    private let zapThreshold: CGFloat = 80
+    
     var body: some View {
         GeometryReader { geo in
-            HStack(spacing: 0) {
-                // Left Zone (Brightness)
-                Color.clear
-                    .contentShape(Rectangle())
-                    .onTapGesture(count: 2, perform: onDoubleTapLeft)
-                    .onTapGesture(perform: onSingleTap)
-                    .gesture(
-                        DragGesture(minimumDistance: 20)
-                            .onChanged { value in
-                                if abs(value.translation.height) > abs(value.translation.width) {
+            Color.clear
+                .contentShape(Rectangle())
+                .onTapGesture(count: 2, perform: {
+                    onDoubleTap()
+                })
+                .onTapGesture(perform: onSingleTap)
+                .gesture(
+                    DragGesture(minimumDistance: 10)
+                        .onChanged { value in
+                            let isVertical = abs(value.translation.height) > abs(value.translation.width)
+                            let isLeftEdge = value.startLocation.x < geo.size.width * 0.3
+                            let isRightEdge = value.startLocation.x > geo.size.width * 0.7
+                            
+                            if isVertical {
+                                if isLeftEdge {
+                                    // Brightness
                                     let delta = -value.translation.height / geo.size.height
                                     UIScreen.main.brightness = max(0, min(1, startBrightness + delta))
-                                } else if streamType != .liveTV {
-                                    onSeekDrag?(value.translation.width)
-                                }
-                            }
-                            .onEnded { value in
-                                startBrightness = UIScreen.main.brightness
-                                if abs(value.translation.width) > abs(value.translation.height) && streamType != .liveTV {
-                                    onSeekEnd?()
-                                } else if streamType == .liveTV && value.translation.height < -50 {
-                                    onSwipeUp()
-                                } else if streamType == .liveTV && value.translation.height > 50 {
-                                    onSwipeDown()
-                                }
-                            }
-                    )
-                
-                // Right Zone (Volume)
-                Color.clear
-                    .contentShape(Rectangle())
-                    .onTapGesture(count: 2, perform: onDoubleTapRight)
-                    .onTapGesture(perform: onSingleTap)
-                    .gesture(
-                        DragGesture(minimumDistance: 20)
-                            .onChanged { value in
-                                if abs(value.translation.height) > abs(value.translation.width) {
+                                } else if isRightEdge {
+                                    // Volume
                                     let delta = Float(-value.translation.height / geo.size.height)
                                     if let slider = volumeSlider {
                                         slider.value = max(0, min(1, startVolume + delta))
                                     }
-                                } else if streamType != .liveTV {
+                                }
+                            } else {
+                                // Horizontal
+                                if streamType != .liveTV {
                                     onSeekDrag?(value.translation.width)
                                 }
                             }
-                            .onEnded { value in
-                                startVolume = volumeSlider?.value ?? AVAudioSession.sharedInstance().outputVolume
-                                if abs(value.translation.width) > abs(value.translation.height) && streamType != .liveTV {
+                        }
+                        .onEnded { value in
+                            startBrightness = UIScreen.main.brightness
+                            startVolume = volumeSlider?.value ?? AVAudioSession.sharedInstance().outputVolume
+                            
+                            let isVertical = abs(value.translation.height) > abs(value.translation.width)
+                            if !isVertical {
+                                if streamType == .liveTV {
+                                    if value.translation.width < -zapThreshold {
+                                        onSwipeLeft()
+                                    } else if value.translation.width > zapThreshold {
+                                        onSwipeRight()
+                                    }
+                                } else {
                                     onSeekEnd?()
-                                } else if streamType == .liveTV && value.translation.height < -50 {
-                                    onSwipeUp()
-                                } else if streamType == .liveTV && value.translation.height > 50 {
-                                    onSwipeDown()
                                 }
                             }
-                    )
-            }
-            .onAppear {
-                startBrightness = UIScreen.main.brightness
-                setupVolumeView()
-            }
+                        }
+                )
         }
         .ignoresSafeArea()
+        .onAppear {
+            startBrightness = UIScreen.main.brightness
+            setupVolumeView()
+        }
     }
     
     private func setupVolumeView() {

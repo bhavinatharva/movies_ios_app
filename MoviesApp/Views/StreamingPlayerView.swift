@@ -108,11 +108,13 @@ struct StreamingPlayerView: View {
             if !isLocked {
                 GestureController(
                     streamType: streamType,
-                    onDoubleTapLeft: { skip(by: -10); showSkipIndicator(isForward: false) },
-                    onDoubleTapRight: { skip(by: 10); showSkipIndicator(isForward: true) },
+                    onDoubleTap: { 
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) { isAspectFill.toggle() }
+                        triggerToast(isAspectFill ? "Zoom to Fill" : "Aspect Fit")
+                    },
                     onSingleTap: { toggleControls() },
-                    onSwipeUp: { zapChannel(forward: true) },
-                    onSwipeDown: { zapChannel(forward: false) },
+                    onSwipeLeft: { zapChannel(forward: true) },
+                    onSwipeRight: { zapChannel(forward: false) },
                     onSeekDrag: { delta in
                         if !playerManager.isUserSeeking { playerManager.isUserSeeking = true }
                         sliderValue = max(0, min(playerManager.duration, playerManager.currentTime + Double(delta / 20.0)))
@@ -237,16 +239,22 @@ struct StreamingPlayerView: View {
     
     private var topOverlayView: some View {
         HStack(spacing: 16) {
-            Button(action: {
-                playerManager.stop()
-                dismiss()
-            }) {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundColor(.white)
-                    .frame(width: 44, height: 44)
-                    .background(Color.white.opacity(0.15))
-                    .clipShape(Circle())
+            // Channel Logo Placeholder
+            if streamType == .liveTV {
+                ZStack {
+                    Color.white.opacity(0.2)
+                    if let logoUrlStr = logoUrl, let url = URL(string: logoUrlStr) {
+                        AsyncImage(url: url) { image in
+                            image.resizable().scaledToFit().padding(4)
+                        } placeholder: {
+                            Image(systemName: "tv").foregroundColor(.white.opacity(0.8))
+                        }
+                    } else {
+                        Image(systemName: "tv").foregroundColor(.white.opacity(0.8))
+                    }
+                }
+                .frame(width: 32, height: 32)
+                .cornerRadius(6)
             }
             
             VStack(alignment: .leading, spacing: 4) {
@@ -254,7 +262,7 @@ struct StreamingPlayerView: View {
                     if streamType == .liveTV {
                         HStack(spacing: 5) {
                             Circle()
-                                .fill(Color.red)
+                                .fill(Color.white)
                                 .frame(width: 6, height: 6)
                                 .scaleEffect(isLiveGlow ? 1.3 : 0.8)
                                 .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: isLiveGlow)
@@ -265,7 +273,7 @@ struct StreamingPlayerView: View {
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
                         .background(Color.red)
-                        .cornerRadius(6)
+                        .clipShape(Capsule())
                         .onAppear { isLiveGlow = true }
                     }
                     
@@ -284,52 +292,63 @@ struct StreamingPlayerView: View {
             }
             Spacer()
             
-            // AirPlay Button
-            AirPlayView()
-                .frame(width: 44, height: 44)
-                .background(Color.white.opacity(0.15))
-                .clipShape(Circle())
-            
-            // PiP Button
-            Button(action: { triggerPip = true }) {
-                Image(systemName: "pip.enter")
-                    .font(.system(size: 18))
-                    .foregroundColor(.white)
-                    .frame(width: 44, height: 44)
-                    .background(Color.white.opacity(0.15))
-                    .clipShape(Circle())
-            }
-            
-            // Lock Button
-            Button(action: {
-                let gen = UIImpactFeedbackGenerator(style: .medium)
-                gen.impactOccurred()
-                withAnimation(.spring()) {
-                    isLocked = true
-                    showControls = false
-                }
-            }) {
-                Image(systemName: "lock.open.fill")
-                    .font(.system(size: 18))
-                    .foregroundColor(.white)
-                    .frame(width: 44, height: 44)
-                    .background(Color.white.opacity(0.15))
-                    .clipShape(Circle())
-            }
-            
-            if streamType == .liveTV {
-                Button(action: {
-                    withAnimation(.spring()) {
-                        showChannelDrawer.toggle()
-                        if showChannelDrawer { showControls = false }
+            // Audio / Subtitle / Quality
+            HStack(spacing: 16) {
+                Button(action: { 
+                    Task {
+                        await fetchMediaOptions()
+                        showAudioActionSheet = true
                     }
                 }) {
-                    Image(systemName: "list.bullet")
+                    Image(systemName: "waveform")
                         .font(.system(size: 18))
                         .foregroundColor(.white)
                         .frame(width: 44, height: 44)
                         .background(Color.white.opacity(0.15))
-                        .clipShape(Circle())
+                        .cornerRadius(12)
+                }
+                
+                Button(action: { 
+                    Task {
+                        await fetchMediaOptions()
+                        showSubtitleActionSheet = true
+                    }
+                }) {
+                    Image(systemName: "captions.bubble")
+                        .font(.system(size: 18))
+                        .foregroundColor(.white)
+                        .frame(width: 44, height: 44)
+                        .background(Color.white.opacity(0.15))
+                        .cornerRadius(12)
+                }
+                
+                if streamType == .liveTV {
+                    Button(action: {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                            showChannelDrawer.toggle()
+                            if showChannelDrawer { showControls = false }
+                        }
+                    }) {
+                        Image(systemName: "list.bullet")
+                            .font(.system(size: 18))
+                            .foregroundColor(.white)
+                            .frame(width: 44, height: 44)
+                            .background(Color.white.opacity(0.15))
+                            .cornerRadius(12)
+                    }
+                }
+                
+                // Close Button
+                Button(action: {
+                    playerManager.stop()
+                    dismiss()
+                }) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(width: 44, height: 44)
+                        .background(Color.white.opacity(0.15))
+                        .cornerRadius(12)
                 }
             }
         }
@@ -371,13 +390,31 @@ struct StreamingPlayerView: View {
     }
     
     private var bottomControlsView: some View {
-        VStack(spacing: 24) {
-            if streamType != .liveTV {
-                HStack(spacing: 16) {
-                    Text(formatTime(playerManager.currentTime))
-                        .font(.system(size: 13, weight: .bold, design: .monospaced))
-                        .foregroundColor(.white.opacity(0.8))
-                    
+        VStack(spacing: 16) {
+            if streamType == .liveTV {
+                let epg = getMockEPG(for: currentTitle)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(epg.currentShow)
+                        .font(.headline)
+                        .foregroundColor(.white)
+                    Text("Up Next: \(epg.nextShow)")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 40)
+            }
+            
+            HStack(spacing: 16) {
+                Text(formatTime(playerManager.currentTime))
+                    .font(.system(size: 13, weight: .bold, design: .monospaced))
+                    .foregroundColor(.white.opacity(0.8))
+                
+                if streamType == .liveTV {
+                    let epg = getMockEPG(for: currentTitle)
+                    ProgressView(value: epg.progress, total: 1.0)
+                        .progressViewStyle(LinearProgressViewStyle(tint: Color.red))
+                } else {
                     Slider(value: $sliderValue, in: 0...max(1, playerManager.duration), onEditingChanged: { editing in
                         playerManager.isUserSeeking = editing
                         if !editing {
@@ -390,13 +427,13 @@ struct StreamingPlayerView: View {
                         }
                     })
                     .tint(Color.accentColor)
-                    
-                    Text(formatTime(playerManager.duration))
-                        .font(.system(size: 13, weight: .bold, design: .monospaced))
-                        .foregroundColor(.white.opacity(0.8))
                 }
-                .padding(.horizontal, 40)
+                
+                Text(formatTime(playerManager.duration))
+                    .font(.system(size: 13, weight: .bold, design: .monospaced))
+                    .foregroundColor(.white.opacity(0.8))
             }
+            .padding(.horizontal, 40)
             
             HStack(spacing: 20) {
                 Button(action: {
@@ -409,123 +446,43 @@ struct StreamingPlayerView: View {
                         .foregroundColor(.white)
                         .frame(width: 44, height: 44)
                         .background(Color.white.opacity(0.15))
-                        .clipShape(Circle())
+                        .cornerRadius(12)
                 }
                 
-                Button(action: {
-                    withAnimation(.spring()) { isAspectFill.toggle() }
-                    triggerToast(isAspectFill ? "Zoom to Fill" : "Aspect Fit")
-                }) {
-                    Image(systemName: isAspectFill ? "arrow.up.left.and.arrow.down.right" : "arrow.down.right.and.arrow.up.left")
+                // AirPlay Button
+                AirPlayView()
+                    .frame(width: 44, height: 44)
+                    .background(Color.white.opacity(0.15))
+                    .cornerRadius(12)
+                
+                // PiP Button
+                Button(action: { triggerPip = true }) {
+                    Image(systemName: "pip.enter")
                         .font(.system(size: 18))
                         .foregroundColor(.white)
                         .frame(width: 44, height: 44)
                         .background(Color.white.opacity(0.15))
-                        .clipShape(Circle())
+                        .cornerRadius(12)
                 }
+                
+                // Lock Button
+                Button(action: {
+                    let gen = UIImpactFeedbackGenerator(style: .medium)
+                    gen.impactOccurred()
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                        isLocked = true
+                        showControls = false
+                    }
+                }) {
+                    Image(systemName: "lock.open.fill")
+                        .font(.system(size: 18))
+                        .foregroundColor(.white)
+                        .frame(width: 44, height: 44)
+                        .background(Color.white.opacity(0.15))
+                        .cornerRadius(12)
+                }
+                
                 Spacer()
-                
-                Button(action: { 
-                    Task {
-                        await fetchMediaOptions()
-                        showAudioActionSheet = true
-                    }
-                }) {
-                    Image(systemName: "waveform")
-                        .font(.system(size: 18))
-                        .foregroundColor(.white)
-                        .frame(width: 44, height: 44)
-                        .background(Color.white.opacity(0.15))
-                        .clipShape(Circle())
-                }
-                .confirmationDialog("Select Audio Track", isPresented: $showAudioActionSheet, titleVisibility: .visible) {
-                    ForEach(0..<availableAudio.count, id: \.self) { index in
-                        let option = availableAudio[index]
-                        Button(option.displayName) {
-                            if let group = audioGroup {
-                                playerManager.player.currentItem?.select(option, in: group)
-                            }
-                            triggerToast("Audio: \(option.displayName)")
-                        }
-                    }
-                    Button("Cancel", role: .cancel) {}
-                }
-                
-                Button(action: { 
-                    Task {
-                        await fetchMediaOptions()
-                        showSubtitleActionSheet = true
-                    }
-                }) {
-                    Image(systemName: "captions.bubble")
-                        .font(.system(size: 18))
-                        .foregroundColor(.white)
-                        .frame(width: 44, height: 44)
-                        .background(Color.white.opacity(0.15))
-                        .clipShape(Circle())
-                }
-                .confirmationDialog("Select Subtitles", isPresented: $showSubtitleActionSheet, titleVisibility: .visible) {
-                    ForEach(0..<availableSubtitles.count, id: \.self) { index in
-                        let option = availableSubtitles[index]
-                        Button(option.displayName) {
-                            if let group = subtitleGroup {
-                                playerManager.player.currentItem?.select(option, in: group)
-                            }
-                            triggerToast("Subtitles: \(option.displayName)")
-                        }
-                    }
-                    Button("Turn Off Subtitles", role: .destructive) {
-                        if let group = subtitleGroup {
-                            playerManager.player.currentItem?.select(nil, in: group)
-                        }
-                        triggerToast("Subtitles: Off")
-                    }
-                    Button("Cancel", role: .cancel) {}
-                }
-                
-                // Video Quality Button
-                if !availableQualities.isEmpty {
-                    Button(action: { 
-                        Task {
-                            await fetchMediaOptions()
-                            showQualityActionSheet = true
-                        }
-                    }) {
-                        Image(systemName: "4k.tv.fill")
-                            .font(.system(size: 18))
-                            .foregroundColor(currentQuality == 0 ? .white : .accentColor)
-                            .frame(width: 44, height: 44)
-                            .background(Color.white.opacity(0.15))
-                            .clipShape(Circle())
-                    }
-                    .confirmationDialog("Video Quality", isPresented: $showQualityActionSheet, titleVisibility: .visible) {
-                        Button("Auto\(currentQuality == 0 ? " ✓" : "")") {
-                            setQuality(0)
-                        }
-                        
-                        ForEach(availableQualities, id: \.self) { quality in
-                            Button("\(Int(quality))p\(currentQuality == quality ? " ✓" : "")") {
-                                setQuality(quality)
-                            }
-                        }
-                        Button("Cancel", role: .cancel) {}
-                    }
-                }
-                
-                Button(action: {
-                    if let vlcUrl = URL(string: "vlc://\(currentUrl.absoluteString)"), UIApplication.shared.canOpenURL(vlcUrl) {
-                        UIApplication.shared.open(vlcUrl)
-                    } else {
-                        triggerToast("VLC is not installed")
-                    }
-                }) {
-                    Image(systemName: "v.circle.fill")
-                        .font(.system(size: 18))
-                        .foregroundColor(.orange)
-                        .frame(width: 44, height: 44)
-                        .background(Color.white.opacity(0.15))
-                        .clipShape(Circle())
-                }
                 
                 if let onPlayNext = onPlayNext {
                     Button(action: {
@@ -536,7 +493,7 @@ struct StreamingPlayerView: View {
                             .foregroundColor(.white)
                             .frame(width: 44, height: 44)
                             .background(Color.white.opacity(0.15))
-                            .clipShape(Circle())
+                            .cornerRadius(12)
                     }
                 }
             }
@@ -556,46 +513,84 @@ struct StreamingPlayerView: View {
     }
     
     private var channelDrawerOverlayView: some View {
-        HStack(spacing: 0) {
-            Spacer()
-            VStack(alignment: .leading, spacing: 0) {
-                HStack {
-                    Text("Live Channels")
-                        .font(.system(size: 18, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
-                    Spacer()
-                    Button(action: { withAnimation { showChannelDrawer = false } }) {
-                        Image(systemName: "xmark.circle.fill").foregroundColor(.white.opacity(0.5)).font(.title2)
+        GeometryReader { geo in
+            HStack(spacing: 0) {
+                Color.black.opacity(0.01)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) { showChannelDrawer = false }
                     }
-                }.padding(20)
                 
-                ScrollView {
-                    LazyVStack(spacing: 12) {
-                        ForEach(IPTVDataManager.shared.liveChannels.prefix(30)) { channel in
-                            Button(action: {
-                                withAnimation { showChannelDrawer = false; swapChannel(to: channel) }
-                            }) {
-                                HStack(spacing: 12) {
-                                    Image(systemName: "tv").frame(width: 40, height: 40).foregroundColor(.white)
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(channel.name).font(.system(size: 14, weight: .bold)).foregroundColor(.white).lineLimit(1)
-                                        Text(channel.category ?? "Live TV").font(.system(size: 11)).foregroundColor(.white.opacity(0.5))
-                                    }
-                                    Spacer()
-                                }
-                                .padding(12)
-                                .background(channel.name == currentTitle ? Color.white.opacity(0.15) : Color.clear)
-                                .cornerRadius(12)
-                            }
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack {
+                        Text("Live Channels")
+                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                        Spacer()
+                    }.padding(20)
+                    
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            Text("All")
+                                .font(.system(size: 13, weight: .bold))
+                                .padding(.horizontal, 16).padding(.vertical, 8)
+                                .background(Color.white).foregroundColor(.black).cornerRadius(12)
+                            Text("Favorites")
+                                .font(.system(size: 13, weight: .bold))
+                                .padding(.horizontal, 16).padding(.vertical, 8)
+                                .background(Color.white.opacity(0.1)).foregroundColor(.white).cornerRadius(12)
+                            Text("Sports")
+                                .font(.system(size: 13, weight: .bold))
+                                .padding(.horizontal, 16).padding(.vertical, 8)
+                                .background(Color.white.opacity(0.1)).foregroundColor(.white).cornerRadius(12)
                         }
-                    }.padding(.horizontal, 20)
+                        .padding(.horizontal, 20)
+                    }
+                    .padding(.bottom, 16)
+                    
+                    ScrollView {
+                        LazyVStack(spacing: 12) {
+                            ForEach(IPTVDataManager.shared.liveChannels.prefix(30)) { channel in
+                                let epg = getMockEPG(for: channel.name)
+                                Button(action: {
+                                    swapChannel(to: channel)
+                                }) {
+                                    HStack(spacing: 12) {
+                                        ZStack {
+                                            Color.white.opacity(0.1)
+                                            if let logoUrl = channel.logoUrl {
+                                                AsyncImage(url: logoUrl) { image in
+                                                    image.resizable().scaledToFit().padding(4)
+                                                } placeholder: {
+                                                    Image(systemName: "tv").foregroundColor(.white)
+                                                }
+                                            } else {
+                                                Image(systemName: "tv").foregroundColor(.white)
+                                            }
+                                        }
+                                        .frame(width: 40, height: 40)
+                                        .cornerRadius(6)
+                                        
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(channel.name).font(.system(size: 14, weight: .bold)).foregroundColor(.white).lineLimit(1)
+                                            Text(epg.currentShow).font(.system(size: 11)).foregroundColor(.white.opacity(0.5)).lineLimit(1)
+                                        }
+                                        Spacer()
+                                    }
+                                    .padding(12)
+                                    .background(channel.name == currentTitle ? Color.white.opacity(0.15) : Color.clear)
+                                    .cornerRadius(12)
+                                }
+                            }
+                        }.padding(.horizontal, 20)
+                    }
                 }
+                .frame(width: geo.size.width * 0.35)
+                .background(.ultraThinMaterial)
+                .transition(.move(edge: .trailing))
             }
-            .frame(width: 300)
-            .background(Color.black.opacity(0.8))
-            .ignoresSafeArea()
-            .transition(.move(edge: .trailing))
         }
+        .ignoresSafeArea()
     }
     
     private var nextEpisodeOverlayView: some View {
@@ -792,9 +787,9 @@ struct StreamingPlayerView: View {
     private func resetTimer() {
         hideControlsTask?.cancel()
         hideControlsTask = Task {
-            try? await Task.sleep(for: .seconds(5))
+            try? await Task.sleep(for: .seconds(3))
             guard !Task.isCancelled else { return }
-            withAnimation(.easeInOut(duration: 0.35)) { showControls = false }
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) { showControls = false }
         }
     }
     
