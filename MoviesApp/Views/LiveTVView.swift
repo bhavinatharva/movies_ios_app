@@ -10,20 +10,19 @@ struct LiveTVView: View {
     @AppStorage("active_playlist_url") private var activePlaylistUrl = ""
     @Bindable private var dataManager = IPTVDataManager.shared
     
-    // Split View State
-    @State private var selectedCategory: String? = "All"
-    @State private var selectedChannelForDetail: IPTVChannel?
-    @State private var columnVisibility: NavigationSplitViewVisibility = .all
+    @State private var selectedCategory: String? = nil
+    @State private var selectedChannel: IPTVChannel?
+    @State private var showingCategoryFilter = false
     @State private var searchQuery: String = ""
     
     var categories: [String] {
-        ["All"] + dataManager.categorizedChannels.keys.sorted()
+        dataManager.categorizedChannels.keys.sorted()
     }
     
     var filteredChannels: [IPTVChannel] {
-        let cat = selectedCategory ?? "All"
+        let cat = selectedCategory
         let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
-        var result = cat == "All" ? dataManager.liveChannels : (dataManager.categorizedChannels[cat] ?? [])
+        var result = cat == nil ? dataManager.liveChannels : (dataManager.categorizedChannels[cat!] ?? [])
         if !query.isEmpty {
             result = result.filter { $0.name.localizedCaseInsensitiveContains(query) }
         }
@@ -31,119 +30,146 @@ struct LiveTVView: View {
     }
     
     var body: some View {
-        if !hasDefaultPlaylist {
-            emptyPlaylistView
-        } else if dataManager.homeStatus == .loading || dataManager.homeStatus == .notstarted {
-            loadingSkeletonView
-        } else if case .error(let error) = dataManager.homeStatus {
+        NavigationStack {
             ZStack {
                 Color.appBackground.ignoresSafeArea()
-                ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(error.localizedDescription))
-            }
-        } else {
-            NavigationSplitView(columnVisibility: $columnVisibility) {
-                // Sidebar: Categories
-                List(selection: $selectedCategory) {
-                    ForEach(categories, id: \.self) { category in
-                        NavigationLink(value: category) {
-                            Text(category)
-                                .font(.headline)
-                        }
+                
+                VStack(spacing: 0) {
+                    if !hasDefaultPlaylist {
+                        emptyPlaylistView
+                    } else if dataManager.homeStatus == .loading || dataManager.homeStatus == .notstarted {
+                        loadingSkeletonView
+                    } else if case .error(let error) = dataManager.homeStatus {
+                        ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(error.localizedDescription))
+                    } else {
+                        contentView
                     }
                 }
-                .navigationTitle("Live TV")
-            } content: {
-                // Content: Channels List
-                LiveChannelListView(
-                    filteredChannels: filteredChannels,
-                    selectedChannelForDetail: $selectedChannelForDetail
+            }
+            .navigationTitle(selectedCategory ?? "Live TV")
+            .navigationBarTitleDisplayMode(.inline)
+            .searchable(text: $searchQuery, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search channels...")
+            .toolbar {
+                trailingToolbarItems
+            }
+            .navigationDestination(item: $selectedChannel) { channel in
+                LiveTVDetailView(channel: channel)
+            }
+            .sheet(isPresented: $showingCategoryFilter) {
+                LiveCategoryFilterSheet(
+                    categories: categories,
+                    selectedCategory: selectedCategory,
+                    onSelect: { category in
+                        selectedCategory = category
+                    }
                 )
-                .background(Color.appBackground.ignoresSafeArea())
-                .navigationTitle(selectedCategory ?? "All Channels")
-                .navigationBarTitleDisplayMode(.inline)
-                .searchable(text: $searchQuery, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search channels...")
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        NavigationLink(destination: SettingsView()) {
-                            Image(systemName: "gearshape.fill")
-                        }
-                    }
-                }
-            } detail: {
-                // Detail: Player + Info
-                if let channel = selectedChannelForDetail {
-                    LiveTVDetailView(channel: channel)
-                } else {
-                    ZStack {
-                        Color.appBackground.ignoresSafeArea()
-                        ContentUnavailableView("Select a Channel", systemImage: "tv", description: Text("Choose a channel from the list to start watching."))
-                    }
-                }
-            }
-            .task {
-                if selectedChannelForDetail == nil {
-                    selectedChannelForDetail = dataManager.liveChannels.first
-                }
             }
         }
     }
     
-    private var loadingSkeletonView: some View {
-        ZStack {
-            Color.appBackground.ignoresSafeArea()
-            VStack {
-                Spacer()
-                ProgressView("Loading...")
-                    .controlSize(.large)
-                    .tint(.accentColor)
-                    .foregroundColor(.secondary)
-                Spacer()
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
-    }
-    
-    private var emptyPlaylistView: some View {
-        ZStack {
-            Color.appBackground.ignoresSafeArea()
-            ContentUnavailableView {
-                Label("No Playlist Loaded", systemImage: "tv.slash")
-            } description: {
-                Text("Go to the Settings tab to add your IPTV M3U Playlist URL and start watching.")
-            }
-        }
-    }
-}
-
-// MARK: - Extracted Channel List View to prevent parent re-evaluations
-struct LiveChannelListView: View {
-    let filteredChannels: [IPTVChannel]
-    @Binding var selectedChannelForDetail: IPTVChannel?
-    
-    // We only need the search query environment value if we wanted to show it in the unavailable view
-    @Environment(\.isSearching) private var isSearching
-    
-    var body: some View {
+    @ViewBuilder
+    private var contentView: some View {
         ScrollView {
             if filteredChannels.isEmpty {
                 ContentUnavailableView("No Channels Found", systemImage: "tv.slash")
                     .padding(.top, 40)
             } else {
-                LazyVStack(spacing: 8) {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 110), spacing: 16)], spacing: 16) {
                     ForEach(filteredChannels) { channel in
-                        Button(action: {
-                            selectedChannelForDetail = channel
-                        }) {
-                            LiveChannelCardView(
-                                channel: channel,
-                                isSelected: selectedChannelForDetail?.id == channel.id
-                            )
-                        }
-                        .buttonStyle(PressScaleButtonStyle())
-                        .padding(.horizontal, 16)
+                        LiveChannelGridCardView(channel: channel)
+                            .onTapGesture {
+                                selectedChannel = channel
+                            }
                     }
                 }
-                .padding(.vertical, 8)
+                .padding(.horizontal, 16)
+                .padding(.top, 16)
+                .padding(.bottom, 30)
+            }
+        }
+    }
+    
+    @ToolbarContentBuilder
+    private var trailingToolbarItems: some ToolbarContent {
+        ToolbarItemGroup(placement: .navigationBarTrailing) {
+            NavigationLink(destination: SettingsView()) {
+                Image(systemName: "gearshape.fill")
+            }
+            Button {
+                showingCategoryFilter = true
+            } label: {
+                Image(systemName: "line.3.horizontal.decrease.circle")
+            }
+        }
+    }
+    
+    private var loadingSkeletonView: some View {
+        VStack {
+            Spacer()
+            ProgressView("Loading...")
+                .controlSize(.large)
+                .tint(.accentColor)
+                .foregroundColor(.secondary)
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    private var emptyPlaylistView: some View {
+        ContentUnavailableView {
+            Label("No Playlist Loaded", systemImage: "tv.slash")
+        } description: {
+            Text("Go to the Settings tab to add your IPTV M3U Playlist URL and start watching.")
+        }
+    }
+}
+
+// MARK: - Filter Sheet
+struct LiveCategoryFilterSheet: View {
+    let categories: [String]
+    let selectedCategory: String?
+    let onSelect: (String?) -> Void
+    @Environment(\.dismiss) var dismiss
+    
+    var body: some View {
+        NavigationStack {
+            List {
+                Button(action: {
+                    onSelect(nil)
+                    dismiss()
+                }) {
+                    HStack {
+                        Text("All Channels")
+                            .foregroundColor(.primary)
+                        Spacer()
+                        if selectedCategory == nil {
+                            Image(systemName: "checkmark").foregroundColor(.accentColor)
+                        }
+                    }
+                }
+                
+                ForEach(categories, id: \.self) { category in
+                    Button(action: {
+                        onSelect(category)
+                        dismiss()
+                    }) {
+                        HStack {
+                            Text(category)
+                                .foregroundColor(.primary)
+                            Spacer()
+                            if selectedCategory == category {
+                                Image(systemName: "checkmark").foregroundColor(.accentColor)
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Select Category")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Close") { dismiss() }
+                }
             }
         }
     }

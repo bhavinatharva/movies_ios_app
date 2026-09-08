@@ -248,18 +248,79 @@ func getMockEPG(for channelName: String) -> MockEPGInfo {
         "Up Next: Post-Match Analysis",
         "Up Next: Financial Headlines",
         "Up Next: Late Night Crime Thriller",
-        "Up Next: Making of the Blockbuster",
-        "Up Next: Global Weather Tracker",
-        "Up Next: Stock Market Summary",
-        "Up Next: Live Qualifiers Analysis",
-        "Up Next: Wonders of the Solar System",
-        "Up Next: Acoustic Sessions Special",
-        "Up Next: Late Night Satirical Review"
+        "Up Next: Action Classics",
+        "Up Next: Midday Talk Show",
+        "Up Next: Tech and Innovation",
+        "Up Next: F1 Qualifying",
+        "Up Next: Space Documentaries",
+        "Up Next: Top 40 Hits",
+        "Up Next: Standup Specials"
     ]
     
-    let current = currentShows[hash % currentShows.count]
-    let next = nextShows[(hash + 1) % nextShows.count]
-    let progress = Double((hash % 60) + 20) / 100.0
+    let currentShowIndex = hash % currentShows.count
+    let nextShowIndex = (hash + 1) % nextShows.count
     
-    return MockEPGInfo(currentShow: current, nextShow: next, progress: progress)
+    let simulatedProgress = Double((hash % 100)) / 100.0
+    
+    return MockEPGInfo(
+        currentShow: currentShows[currentShowIndex],
+        nextShow: nextShows[nextShowIndex],
+        progress: simulatedProgress
+    )
+}
+
+// MARK: - Grid Card View
+struct LiveChannelGridCardView: View {
+    let channel: IPTVChannel
+    @State private var epg = MockEPGInfo(currentShow: "Loading...", nextShow: "", progress: 0.0)
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            // Logo Background
+            ZStack {
+                Color.white.opacity(0.05)
+                if let logoUrl = channel.logoUrl {
+                    AsyncImage(url: logoUrl) { image in
+                        image.resizable().scaledToFit().padding(12)
+                    } placeholder: {
+                        Image(systemName: "tv").resizable().scaledToFit().padding(32).foregroundColor(.white.opacity(0.3))
+                    }
+                } else {
+                    Image(systemName: "tv").resizable().scaledToFit().padding(32).foregroundColor(.white.opacity(0.3))
+                }
+                
+                // Live Badge
+                VStack {
+                    HStack {
+                        Spacer()
+                        Circle()
+                            .fill(Color.red)
+                            .frame(width: 6, height: 6)
+                            .padding(8)
+                    }
+                    Spacer()
+                }
+            }
+            .aspectRatio(1.0, contentMode: .fill)
+            .cornerRadius(12)
+            
+            // Metadata
+            VStack(alignment: .leading, spacing: 4) {
+                Text(channel.name)
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                
+                Text(epg.currentShow)
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 4)
+        }
+        .onAppear {
+            epg = getMockEPG(for: channel.name)
+        }
+    }
 }
