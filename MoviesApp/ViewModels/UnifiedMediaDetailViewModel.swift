@@ -39,7 +39,8 @@ class UnifiedMediaDetailViewModel {
         }
         
         // Ensure we have credentials
-        guard let creds = AuthManager.shared.credentials, let vodId = Int(item.id) else {
+        guard let creds = PlaylistManager.shared.fetchDefaultPlaylist()?.getCredentials() ?? AuthManager.shared.credentials,
+              let vodId = Int(item.id) else {
             return
         }
         

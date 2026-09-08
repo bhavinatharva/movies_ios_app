@@ -20,6 +20,17 @@ struct Playlist: Identifiable, Codable {
         self.url = url
         self.isDefault = isDefault
     }
+    
+    func getCredentials() -> XtreamCredentials? {
+        guard let parsedUrl = URL(string: url) else { return nil }
+        let queryParams = parsedUrl.queryParameters
+        guard let username = queryParams["username"],
+              let password = queryParams["password"] else {
+            return nil
+        }
+        let serverUrl = "\(parsedUrl.scheme ?? "http")://\(parsedUrl.host ?? "")\(parsedUrl.port != nil ? ":\(parsedUrl.port!)" : "")"
+        return XtreamCredentials(serverUrl: serverUrl, username: username, password: password)
+    }
 }
 
 struct CachedChannel: Identifiable, Codable {

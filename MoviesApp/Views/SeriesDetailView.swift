@@ -231,7 +231,7 @@ struct SeriesDetailView: View {
             return
         }
         
-        guard let creds = authManager.credentials,
+        guard let creds = PlaylistManager.shared.fetchDefaultPlaylist()?.getCredentials() ?? authManager.credentials,
               let seriesId = Int(series.id) else {
             errorMessage = "Invalid credentials or Series ID"
             isLoading = false
@@ -278,7 +278,7 @@ struct SeriesDetailView: View {
         var resolvedUrl: URL? = nil
         if isM3USeries {
             resolvedUrl = URL(string: episode.id)
-        } else if let creds = authManager.credentials {
+        } else if let creds = PlaylistManager.shared.fetchDefaultPlaylist()?.getCredentials() ?? authManager.credentials {
             resolvedUrl = URL(string: "\(creds.serverUrl)/series/\(creds.username)/\(creds.password)/\(episode.id).\(episode.containerExtension)")
         }
         
