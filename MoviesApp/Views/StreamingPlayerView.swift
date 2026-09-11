@@ -20,6 +20,7 @@ struct StreamingPlayerView: View {
     var onPlayNext: (() -> Void)? = nil
     
     @Environment(\.dismiss) var dismiss
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
     
     // Dynamic Properties for Zapping
     @State private var currentUrl: URL
@@ -294,34 +295,36 @@ struct StreamingPlayerView: View {
             }
             Spacer()
             
-            // Audio / Subtitle / Quality
+            // Audio / Subtitle / Quality — hidden in portrait to keep UI clean
             HStack(spacing: 16) {
-                Button(action: { 
-                    Task {
-                        await fetchMediaOptions()
-                        showAudioActionSheet = true
+                if verticalSizeClass != .regular {
+                    Button(action: { 
+                        Task {
+                            await fetchMediaOptions()
+                            showAudioActionSheet = true
+                        }
+                    }) {
+                        Image(systemName: "waveform")
+                            .font(.system(size: 18))
+                            .foregroundColor(.white)
+                            .frame(width: 44, height: 44)
+                            .background(Color.white.opacity(0.15))
+                            .cornerRadius(12)
                     }
-                }) {
-                    Image(systemName: "waveform")
-                        .font(.system(size: 18))
-                        .foregroundColor(.white)
-                        .frame(width: 44, height: 44)
-                        .background(Color.white.opacity(0.15))
-                        .cornerRadius(12)
-                }
-                
-                Button(action: { 
-                    Task {
-                        await fetchMediaOptions()
-                        showSubtitleActionSheet = true
+                    
+                    Button(action: { 
+                        Task {
+                            await fetchMediaOptions()
+                            showSubtitleActionSheet = true
+                        }
+                    }) {
+                        Image(systemName: "captions.bubble")
+                            .font(.system(size: 18))
+                            .foregroundColor(.white)
+                            .frame(width: 44, height: 44)
+                            .background(Color.white.opacity(0.15))
+                            .cornerRadius(12)
                     }
-                }) {
-                    Image(systemName: "captions.bubble")
-                        .font(.system(size: 18))
-                        .foregroundColor(.white)
-                        .frame(width: 44, height: 44)
-                        .background(Color.white.opacity(0.15))
-                        .cornerRadius(12)
                 }
                 
                 if streamType == .liveTV {
@@ -451,20 +454,21 @@ struct StreamingPlayerView: View {
                         .cornerRadius(12)
                 }
                 
-                // AirPlay Button
-                AirPlayView()
-                    .frame(width: 44, height: 44)
-                    .background(Color.white.opacity(0.15))
-                    .cornerRadius(12)
-                
-                // PiP Button
-                Button(action: { triggerPip = true }) {
-                    Image(systemName: "pip.enter")
-                        .font(.system(size: 18))
-                        .foregroundColor(.white)
+                // AirPlay & PiP — landscape only
+                if verticalSizeClass != .regular {
+                    AirPlayView()
                         .frame(width: 44, height: 44)
                         .background(Color.white.opacity(0.15))
                         .cornerRadius(12)
+                    
+                    Button(action: { triggerPip = true }) {
+                        Image(systemName: "pip.enter")
+                            .font(.system(size: 18))
+                            .foregroundColor(.white)
+                            .frame(width: 44, height: 44)
+                            .background(Color.white.opacity(0.15))
+                            .cornerRadius(12)
+                    }
                 }
                 
                 // Lock Button
