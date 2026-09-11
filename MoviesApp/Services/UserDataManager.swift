@@ -234,3 +234,4 @@ class UserDataManager {
         UserDefaults.standard.set(lastWatchedEpisode, forKey: "last_watched_episode")
         UserDefaults.standard.set(lastWatchedSeason,  forKey: "last_watched_season")
     }
+}
