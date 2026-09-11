@@ -7,6 +7,8 @@ import SwiftUI
 
 struct RecentView: View {
     @Bindable private var userDataManager = UserDataManager.shared
+    @State private var showSettings = false
+    @State private var showSearch = false
     
     var body: some View {
         NavigationStack {
@@ -50,10 +52,14 @@ struct RecentView: View {
             .navigationTitle("Recent")
             .toolbar {
                 ToolbarItemGroup(placement: .navigationBarTrailing) {
-                    NavigationLink(destination: SearchView()) {
+                    Button {
+                        showSearch = true
+                    } label: {
                         Image(systemName: "magnifyingglass")
                     }
-                    NavigationLink(destination: SettingsView()) {
+                    Button {
+                        showSettings = true
+                    } label: {
                         Image(systemName: "gearshape.fill")
                     }
                     
@@ -67,6 +73,12 @@ struct RecentView: View {
                     }
                 }
             }
+        }
+        .sheet(isPresented: $showSettings) {
+            SettingsView()
+        }
+        .sheet(isPresented: $showSearch) {
+            SearchView()
         }
     }
 }

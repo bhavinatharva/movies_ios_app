@@ -14,6 +14,7 @@ struct LiveTVView: View {
     @State private var selectedChannel: IPTVChannel?
     @State private var showingCategoryFilter = false
     @State private var searchQuery: String = ""
+    @State private var showSettings = false
     
     var categories: [String] {
         dataManager.categorizedChannels.keys.sorted()
@@ -62,6 +63,9 @@ struct LiveTVView: View {
                         selectedCategory = category
                     }
                 )
+            }
+            .sheet(isPresented: $showSettings) {
+                SettingsView()
             }
             .onAppear {
                 if selectedCategory == nil {
@@ -126,7 +130,9 @@ struct LiveTVView: View {
     @ToolbarContentBuilder
     private var trailingToolbarItems: some ToolbarContent {
         ToolbarItemGroup(placement: .navigationBarTrailing) {
-            NavigationLink(destination: SettingsView()) {
+            Button {
+                showSettings = true
+            } label: {
                 Image(systemName: "gearshape.fill")
             }
             Button {

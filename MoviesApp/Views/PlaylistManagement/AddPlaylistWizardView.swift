@@ -212,17 +212,25 @@ struct AddPlaylistWizardView: View {
                 // Xtream Codes validation (tiny JSON payload)
                 let (data, response) = try await URLSession.shared.data(for: getRequest)
                 if let httpResponse = response as? HTTPURLResponse {
-                    if httpResponse.statusCode == 404 || httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
-                        errorMessage = "Access denied or URL invalid (Status: \(httpResponse.statusCode))."
+                    if httpResponse.statusCode == 404 {
+                        errorMessage = "Server not found at this address (404). Check the server URL and port number are correct."
+                        return
+                    }
+                    if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
+                        errorMessage = "Access denied (401/403). Your username or password is incorrect, or your IP has been blocked by the provider."
+                        return
+                    }
+                    if httpResponse.statusCode >= 500 {
+                        errorMessage = "Server error (\(httpResponse.statusCode)). The IPTV server is currently unavailable. Try again later."
                         return
                     }
                     if let mimeType = httpResponse.mimeType, mimeType.contains("text/html") {
-                        errorMessage = "Server returned an HTML page instead of playlist data."
+                        errorMessage = "Server returned an HTML page. Make sure the server URL and credentials are correct, or try using the M3U URL tab instead."
                         return
                     }
                 }
                 if let content = String(data: data, encoding: .utf8)?.lowercased(), content.contains("<html") {
-                    errorMessage = "Server returned an HTML page instead of playlist data."
+                    errorMessage = "Server returned an HTML page. The URL may be pointing to a web page — check the server address and port, or try the M3U URL tab."
                     return
                 }
             } else {

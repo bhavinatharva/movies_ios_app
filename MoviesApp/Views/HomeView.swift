@@ -15,6 +15,8 @@ struct HomeView: View {
     @State private var selectedPlayableItem: UnifiedMediaItem?
     @State private var selectedMovieForDetail: UnifiedMediaItem?
     @State private var selectedCollectionForDetail: MovieCollection?
+    @State private var showSettings = false
+    @State private var showSearch = false
     
     var body: some View {
         NavigationStack(path: $detailNavigationPath) {
@@ -68,6 +70,12 @@ struct HomeView: View {
                 }
             }
             .navigationBarHidden(true)
+            .sheet(isPresented: $showSettings) {
+                SettingsView()
+            }
+            .sheet(isPresented: $showSearch) {
+                SearchView()
+            }
             .task(id: activePlaylistUrl) {
                 if hasDefaultPlaylist {
                     await viewModel.refreshContent()
@@ -145,13 +153,17 @@ struct HomeView: View {
             Spacer()
             
             HStack(spacing: 20) {
-                NavigationLink(destination: SearchView()) {
+                Button {
+                    showSearch = true
+                } label: {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 20, weight: .semibold))
                         .foregroundColor(.white)
                 }
                 
-                NavigationLink(destination: SettingsView()) {
+                Button {
+                    showSettings = true
+                } label: {
                     Image(systemName: "gearshape.fill")
                         .font(.system(size: 20, weight: .semibold))
                         .foregroundColor(.white)

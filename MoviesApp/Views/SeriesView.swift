@@ -10,6 +10,8 @@ struct SeriesView: View {
     @State private var selectedCategory: XtreamCategory?
     @State private var selectedDetailSeries: UnifiedMediaItem?
     @State private var showingCategoryFilter = false
+    @State private var showSettings = false
+    @State private var showSearch = false
     
     private let columns = [
         GridItem(.adaptive(minimum: 110), spacing: 16)
@@ -49,6 +51,12 @@ struct SeriesView: View {
                         selectedCategory = category
                     }
                 )
+            }
+            .sheet(isPresented: $showSettings) {
+                SettingsView()
+            }
+            .sheet(isPresented: $showSearch) {
+                SearchView()
             }
         }
     }
@@ -169,10 +177,14 @@ struct SeriesView: View {
     @ToolbarContentBuilder
     private var trailingToolbarItems: some ToolbarContent {
         ToolbarItemGroup(placement: .navigationBarTrailing) {
-            NavigationLink(destination: SearchView()) {
+            Button {
+                showSearch = true
+            } label: {
                 Image(systemName: "magnifyingglass")
             }
-            NavigationLink(destination: SettingsView()) {
+            Button {
+                showSettings = true
+            } label: {
                 Image(systemName: "gearshape.fill")
             }
             categoryMenu
