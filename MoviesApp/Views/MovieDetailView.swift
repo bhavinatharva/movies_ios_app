@@ -143,19 +143,7 @@ struct MovieDetailView: View {
             }
             .ignoresSafeArea(edges: .top)
             .fullScreenCover(item: $selectedVideo) { video in
-                ZStack(alignment: .topTrailing) {
-                    Color.black.ignoresSafeArea()
-                    if let key = video.key {
-                        YoutubePlayer(videoIds: [key], showControls: true)
-                            .aspectRatio(1.77, contentMode: .fit)
-                    }
-                    Button(action: { selectedVideo = nil }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.title)
-                            .foregroundColor(.white.opacity(0.7))
-                            .padding()
-                    }
-                }
+                VideoPlayerCoverView(video: video)
             }
             .fullScreenCover(item: $selectedPlayableItem) { _ in
                 ZStack(alignment: .topTrailing) {
@@ -220,6 +208,37 @@ struct MovieDetailView_Previews: PreviewProvider {
         NavigationStack {
             MovieDetailView(title: TrendingModel.previeTitles[0])
                 .modelContainer(for: TrendingModel.self, inMemory: true)
+        }
+    }
+}
+
+private struct VideoPlayerCoverView: View {
+    let video: VideoModel
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationView {
+            ZStack {
+                Color.black.ignoresSafeArea()
+                if let key = video.key {
+                    YoutubePlayer(videoIds: [key], showControls: true)
+                        .aspectRatio(1.77, contentMode: .fit)
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: { dismiss() }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "chevron.left")
+                            Text("Back")
+                        }
+                        .foregroundColor(.white)
+                    }
+                }
+            }
+            .toolbarBackground(Color.black, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
         }
     }
 }
