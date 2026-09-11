@@ -100,10 +100,18 @@ struct XtreamCategory: Codable, Identifiable {
 struct XtreamVODInfoResponse: Codable {
     let info: XtreamVODInfo?
     let movieData: XtreamVODMovieData?
-    
+
     enum CodingKeys: String, CodingKey {
         case info
         case movieData = "movie_data"
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        // The Xtream API returns "info": [] (empty array) instead of null/{}
+        // when no metadata is available. Attempt dict decode; fall back to nil.
+        info = try? container.decodeIfPresent(XtreamVODInfo.self, forKey: .info)
+        movieData = try? container.decodeIfPresent(XtreamVODMovieData.self, forKey: .movieData)
     }
 }
 

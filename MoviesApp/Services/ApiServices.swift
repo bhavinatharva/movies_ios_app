@@ -76,7 +76,7 @@ struct ApiServices {
         let mediaPath = mediaType == .tvSeries ? "tv" : "movie"
         // TV series uses aggregate_credits which includes character names across seasons
         let creditsPath = mediaType == .tvSeries ? "aggregate_credits" : "credits"
-        let urlString = "\(baseUrlString)3/\(mediaPath)/\(idInt)/\(creditsPath)"
+        let urlString = "\(baseUrlString)/3/\(mediaPath)/\(idInt)/\(creditsPath)"
 
         guard let url = URL(string: urlString) else { return [] }
 
