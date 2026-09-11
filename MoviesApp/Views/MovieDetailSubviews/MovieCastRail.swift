@@ -28,9 +28,9 @@ struct MovieCastRail: View {
                     .padding(.horizontal, 24)
                 
                 ScrollView(.horizontal, showsIndicators: false) {
-                    LazyHStack(spacing: 16) {
+                    LazyHStack(alignment: .top, spacing: 16) {
                         ForEach(combinedList) { person in
-                            VStack(spacing: 8) {
+                            VStack(alignment: .center, spacing: 8) {
                                 if let imageUrl = person.imageUrl {
                                     AsyncImage(url: imageUrl) { phase in
                                         switch phase {
@@ -54,19 +54,21 @@ struct MovieCastRail: View {
                                 } else {
                                     initialsCircle(for: person.name)
                                 }
-                                
+
                                 Text(person.name)
                                     .font(.caption)
                                     .fontWeight(.medium)
                                     .foregroundColor(.white)
-                                    .lineLimit(1)
-                                    .frame(width: 80)
-                                
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.center)
+                                    .frame(width: 80, height: 32, alignment: .top)
+
                                 Text(person.role)
                                     .font(.caption2)
                                     .foregroundColor(.white.opacity(0.6))
-                                    .lineLimit(1)
-                                    .frame(width: 80)
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.center)
+                                    .frame(width: 80, height: 28, alignment: .top)
                             }
                         }
                     }
