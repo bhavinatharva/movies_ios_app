@@ -79,21 +79,46 @@ struct LiveTVView: View {
     @ViewBuilder
     private var contentView: some View {
         ScrollView {
-            if filteredChannels.isEmpty {
-                ContentUnavailableView("No Channels Found", systemImage: "tv.slash")
-                    .padding(.top, 40)
-            } else {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 110), spacing: 16)], spacing: 16) {
-                    ForEach(filteredChannels) { channel in
-                        LiveChannelGridCardView(channel: channel)
-                            .onTapGesture {
-                                selectedChannel = channel
+            LazyVStack(spacing: 0) {
+                // Continue Watching (Live TV only)
+                let continueWatching = UserDataManager.shared.recentlyWatched.filter { $0.mediaType == .liveTV }
+                if !continueWatching.isEmpty {
+                    UnifiedMediaListView(
+                        header: "Continue Watching",
+                        items: continueWatching,
+                        onSelect: { item in
+                            UserDataManager.shared.addToHistory(item)
+                            if let url = item.streamUrl {
+                                GlobalPlayerManager.shared.play(
+                                    url: url,
+                                    title: item.title,
+                                    artwork: item.posterPath,
+                                    isLive: true,
+                                    streamId: item.id
+                                )
                             }
-                    }
+                        }
+                    )
+                    .padding(.top, 12)
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 16)
-                .padding(.bottom, 30)
+
+                // Channel grid
+                if filteredChannels.isEmpty {
+                    ContentUnavailableView("No Channels Found", systemImage: "tv.slash")
+                        .padding(.top, 40)
+                } else {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 110), spacing: 16)], spacing: 16) {
+                        ForEach(filteredChannels) { channel in
+                            LiveChannelGridCardView(channel: channel)
+                                .onTapGesture {
+                                    selectedChannel = channel
+                                }
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 16)
+                    .padding(.bottom, 30)
+                }
             }
         }
     }

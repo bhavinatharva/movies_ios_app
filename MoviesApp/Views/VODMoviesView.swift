@@ -101,8 +101,8 @@ struct VODMoviesView: View {
                     selectedMovie = hero
                 }
             }
-            // 2. Continue Watching
-            let continueWatching = UserDataManager.shared.recentlyWatched.filter { $0.mediaType != .tvSeries }
+            // 2. Continue Watching (Movies only)
+            let continueWatching = UserDataManager.shared.recentlyWatched.filter { $0.mediaType == .movie }
             if !continueWatching.isEmpty {
                 UnifiedMediaListView(
                     header: "Continue Watching",

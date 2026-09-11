@@ -273,14 +273,6 @@ struct HomeView: View {
                     )
                 }
                 
-                // 9. Series Continue Watching
-                if !viewModel.seriesContinueWatching.isEmpty {
-                    UnifiedMediaListView(
-                        header: "Series Continue Watching",
-                        items: viewModel.seriesContinueWatching,
-                        onSelect: handleMediaSelection
-                    )
-                }
                 
                 // 10. Favorites
                 if !viewModel.favorites.isEmpty {

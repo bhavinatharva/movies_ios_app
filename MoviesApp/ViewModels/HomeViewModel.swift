@@ -47,10 +47,12 @@ class HomeViewModel {
     }
     
     var continueWatching: [UnifiedMediaItem] {
-        UserDataManager.shared.recentlyWatched.filter { $0.mediaType != .tvSeries }
+        // Home tab shows all recently watched across all media types
+        UserDataManager.shared.recentlyWatched
     }
     
     var seriesContinueWatching: [UnifiedMediaItem] {
+        // Kept for any future use; HomeView now uses unified continueWatching
         UserDataManager.shared.recentlyWatched.filter { $0.mediaType == .tvSeries }
     }
     
