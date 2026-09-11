@@ -3,21 +3,27 @@ import SwiftUI
 struct MovieCastRail: View {
     let castString: String?
     let directorString: String?
-    
+
+    /// compact height = landscape on iPhone
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+
     private var combinedList: [CastMember] {
         var list: [CastMember] = []
-        
         if let director = directorString, !director.isEmpty {
             list.append(contentsOf: director.parseCastMembers(role: "Director"))
         }
-        
         if let cast = castString, !cast.isEmpty {
             list.append(contentsOf: cast.parseCastMembers(role: "Actor"))
         }
-        
         return list
     }
-    
+
+    /// In portrait show only the first 6 members; landscape shows all.
+    private var visibleList: [CastMember] {
+        let isPortrait = verticalSizeClass == .regular
+        return isPortrait ? Array(combinedList.prefix(6)) : combinedList
+    }
+
     var body: some View {
         if let _ = castString, !combinedList.isEmpty {
             VStack(alignment: .leading, spacing: 16) {
@@ -26,10 +32,10 @@ struct MovieCastRail: View {
                     .fontWeight(.bold)
                     .foregroundColor(.white)
                     .padding(.horizontal, 24)
-                
+
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(alignment: .top, spacing: 16) {
-                        ForEach(combinedList) { person in
+                        ForEach(visibleList) { person in
                             VStack(alignment: .center, spacing: 8) {
                                 if let imageUrl = person.imageUrl {
                                     AsyncImage(url: imageUrl) { phase in
