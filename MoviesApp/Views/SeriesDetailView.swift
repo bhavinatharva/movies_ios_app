@@ -7,6 +7,8 @@ import SwiftUI
 
 struct SeriesDetailView: View {
     let series: UnifiedMediaItem
+    /// Episode ID to resume from (set when opened via Continue Watching)
+    var resumeEpisodeId: String? = nil
 
     @State private var seasons: [String] = []
     @State private var selectedSeason: String = ""
@@ -18,6 +20,11 @@ struct SeriesDetailView: View {
 
     private let iptvService = XtreamProvider.shared
     private let authManager = AuthManager.shared
+    
+    /// Season key that contains the resume episode
+    private func seasonForEpisode(_ episodeId: String) -> String? {
+        episodes.first { $0.value.contains(where: { $0.id == episodeId }) }?.key
+    }
     
     private var isM3USeries: Bool {
         Int(series.id) == nil
@@ -140,11 +147,32 @@ struct SeriesDetailView: View {
                                                         .lineLimit(2)
                                                         .multilineTextAlignment(.leading)
                                                 }
+
+                                                // Resume badge
+                                                if episode.id == resumeEpisodeId {
+                                                    Label("Continue Watching", systemImage: "play.fill")
+                                                        .font(.caption2)
+                                                        .fontWeight(.semibold)
+                                                        .foregroundColor(.orange)
+                                                }
                                             }
                                             
                                             Spacer()
+
+                                            if episode.id == resumeEpisodeId {
+                                                Image(systemName: "arrow.counterclockwise.circle.fill")
+                                                    .foregroundColor(.orange)
+                                                    .font(.title3)
+                                            }
                                         }
                                         .padding(.horizontal)
+                                        .padding(.vertical, 4)
+                                        .background(
+                                            episode.id == resumeEpisodeId
+                                                ? Color.orange.opacity(0.12)
+                                                : Color.clear
+                                        )
+                                        .cornerRadius(8)
                                     }
                                 }
                             }
@@ -308,7 +336,13 @@ struct SeriesDetailView: View {
                     let s2 = Int($1) ?? 0
                     return s1 < s2
                 }
-                self.selectedSeason = self.seasons.first ?? ""
+                // Pre-select the season of the resume episode if available
+                if let resumeId = resumeEpisodeId,
+                   let resumeSeason = self.seasonForEpisode(resumeId) {
+                    self.selectedSeason = resumeSeason
+                } else {
+                    self.selectedSeason = self.seasons.first ?? ""
+                }
                 self.isLoading = false
             }
             // Fetch TMDB cast: prefer tmdb_id from series info response, fall back to series item
@@ -341,14 +375,22 @@ struct SeriesDetailView: View {
     
     private func playEpisode(_ episode: XtreamEpisode) {
         let nextInfo = getNextEpisodeInfo(for: episode)
-        
+
         var resolvedUrl: URL? = nil
         if isM3USeries {
             resolvedUrl = URL(string: episode.id)
         } else if let creds = PlaylistManager.shared.fetchDefaultPlaylist()?.getCredentials() ?? authManager.credentials {
             resolvedUrl = URL(string: "\(creds.serverUrl)/series/\(creds.username)/\(creds.password)/\(episode.id).\(episode.containerExtension)")
         }
-        
+
+        // Persist which episode & season was last watched for this series
+        UserDataManager.shared.saveLastWatchedEpisode(
+            seriesId: series.id,
+            episodeId: episode.id,
+            season: selectedSeason
+        )
+        UserDataManager.shared.addToHistory(series)
+
         if let streamUrl = resolvedUrl {
             GlobalPlayerManager.shared.play(
                 url: streamUrl,

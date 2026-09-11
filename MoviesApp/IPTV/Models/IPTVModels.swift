@@ -415,6 +415,12 @@ struct XtreamSeriesInfoResponse: Codable {
         case info, episodes
     }
 
+    /// Memberwise init used when the API returns a non-decodable response (e.g. `[]`).
+    init(info: XtreamSeriesInfo?, episodes: [String: [XtreamEpisode]]) {
+        self.info = info
+        self.episodes = episodes
+    }
+
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         info = try? container.decodeIfPresent(XtreamSeriesInfo.self, forKey: .info)

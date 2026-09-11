@@ -34,6 +34,10 @@ class UserDataManager {
     var favorites: Set<String> = []
     var recentlyWatched: [UnifiedMediaItem] = []
     var watchProgress: [String: Double] = [:] // streamId -> duration in seconds
+    /// seriesId -> last-watched episodeId
+    var lastWatchedEpisode: [String: String] = [:]
+    /// seriesId -> last-watched season key (e.g. "2")
+    var lastWatchedSeason: [String: String] = [:]
     var currentTheme: AppTheme = .system {
         didSet {
             UserDefaults.standard.set(currentTheme.rawValue, forKey: themeKey)
@@ -50,6 +54,10 @@ class UserDataManager {
         
         // 2. Load watchProgress from persistent local database (CoreData)
         self.watchProgress = IPTVLocalDatabase.shared.fetchProgress()
+
+        // Load last-watched episode/season from UserDefaults
+        self.lastWatchedEpisode = (UserDefaults.standard.dictionary(forKey: "last_watched_episode") as? [String: String]) ?? [:]
+        self.lastWatchedSeason  = (UserDefaults.standard.dictionary(forKey: "last_watched_season")  as? [String: String]) ?? [:]
         
         // 3. Load Watch History from persistent local database (CoreData)
         let historyIds = IPTVLocalDatabase.shared.fetchHistoryIds()
@@ -214,8 +222,15 @@ class UserDataManager {
         watchProgress[id] = seconds
         IPTVLocalDatabase.shared.saveProgress(id: id, type: "media", position: seconds, duration: seconds)
     }
-    
+
     func getProgress(id: String) -> Double {
         watchProgress[id] ?? 0.0
     }
-}
+
+    /// Persists the last episode & season the user watched for a given series.
+    func saveLastWatchedEpisode(seriesId: String, episodeId: String, season: String) {
+        lastWatchedEpisode[seriesId] = episodeId
+        lastWatchedSeason[seriesId]  = season
+        UserDefaults.standard.set(lastWatchedEpisode, forKey: "last_watched_episode")
+        UserDefaults.standard.set(lastWatchedSeason,  forKey: "last_watched_season")
+    }

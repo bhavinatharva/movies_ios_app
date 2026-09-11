@@ -14,6 +14,7 @@ struct HomeView: View {
     @State private var detailNavigationPath = NavigationPath()
     @State private var selectedPlayableItem: UnifiedMediaItem?
     @State private var selectedMovieForDetail: UnifiedMediaItem?
+    @State private var selectedSeriesForDetail: UnifiedMediaItem?
     @State private var selectedCollectionForDetail: MovieCollection?
     @State private var showSettings = false
     @State private var showSearch = false
@@ -91,6 +92,15 @@ struct HomeView: View {
                 EmptyView()
                     .fullScreenCover(item: $selectedMovieForDetail) { item in
                         UnifiedMediaDetailView(item: item)
+                    }
+            )
+            .background(
+                EmptyView()
+                    .fullScreenCover(item: $selectedSeriesForDetail) { item in
+                        SeriesDetailView(
+                            series: item,
+                            resumeEpisodeId: UserDataManager.shared.lastWatchedEpisode[item.id]
+                        )
                     }
             )
             .background(
@@ -184,7 +194,10 @@ struct HomeView: View {
     }
     
     private func handleMediaSelection(_ item: UnifiedMediaItem) {
-        if item.mediaType == .movie || item.mediaType == .tvSeries {
+        if item.mediaType == .tvSeries {
+            // Open SeriesDetailView with the last-watched episode pre-selected
+            selectedSeriesForDetail = item
+        } else if item.mediaType == .movie {
             selectedMovieForDetail = item
         } else {
             UserDataManager.shared.addToHistory(item)

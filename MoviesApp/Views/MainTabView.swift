@@ -49,31 +49,29 @@ struct MainTabView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             } else {
-                // Use explicit tabs (not ForEach) so SwiftUI maintains stable view
-                // identity even when dataManager.availableTabs mutates after data loads.
                 TabView(selection: $selectedTab) {
-                    NavigationStack { HomeView() }
+                    HomeView()
                         .tabItem { Label(IPTVTab.home.title, systemImage: IPTVTab.home.systemImage) }
                         .tag(IPTVTab.home)
 
-                    NavigationStack { RecentView() }
+                    RecentView()
                         .tabItem { Label(IPTVTab.recent.title, systemImage: IPTVTab.recent.systemImage) }
                         .tag(IPTVTab.recent)
 
                     if dataManager.availableTabs.contains(.liveTV) {
-                        NavigationStack { LiveTVView() }
+                        LiveTVView()
                             .tabItem { Label(IPTVTab.liveTV.title, systemImage: IPTVTab.liveTV.systemImage) }
                             .tag(IPTVTab.liveTV)
                     }
 
                     if dataManager.availableTabs.contains(.movies) {
-                        NavigationStack { VODMoviesView() }
+                        VODMoviesView()
                             .tabItem { Label(IPTVTab.movies.title, systemImage: IPTVTab.movies.systemImage) }
                             .tag(IPTVTab.movies)
                     }
 
                     if dataManager.availableTabs.contains(.series) {
-                        NavigationStack { SeriesView() }
+                        SeriesView()
                             .tabItem { Label(IPTVTab.series.title, systemImage: IPTVTab.series.systemImage) }
                             .tag(IPTVTab.series)
                     }
@@ -105,15 +103,15 @@ struct MainTabView: View {
     private func tabViewContent(for tab: IPTVTab) -> some View {
         switch tab {
         case .home:
-            NavigationStack { HomeView() }
+            HomeView()
         case .recent:
-            NavigationStack { RecentView() }
+            RecentView()
         case .liveTV:
-            NavigationStack { LiveTVView() }
+            LiveTVView()
         case .movies:
-            NavigationStack { VODMoviesView() }
+            VODMoviesView()
         case .series:
-            NavigationStack { SeriesView() }
+            SeriesView()
         }
     }
 }

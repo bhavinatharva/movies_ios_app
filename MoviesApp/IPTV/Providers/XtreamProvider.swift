@@ -180,6 +180,11 @@ class XtreamProvider {
         let urlString = "\(creds.serverUrl)/player_api.php?username=\(creds.username)&password=\(creds.password)&action=get_series_info&series_id=\(seriesId)"
         guard let url = URL(string: urlString) else { throw URLError(.badURL) }
         let data = try await IPTVRequestManager.shared.performFetch(url: url, type: .series)
+        // The Xtream API returns `[]` (empty array) instead of `{}` when a series
+        // has no metadata. Detect this early to avoid a top-level typeMismatch throw.
+        if let firstByte = data.first, firstByte == UInt8(ascii: "[") {
+            return XtreamSeriesInfoResponse(info: nil, episodes: [:])
+        }
         return try await decodeInBackground(XtreamSeriesInfoResponse.self, from: data)
     }
 }
