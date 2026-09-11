@@ -81,15 +81,15 @@ struct SeriesDetailView: View {
                                 HStack(spacing: 8) {
                                     Text("Season \(selectedSeason)")
                                         .font(.system(size: 16, weight: .bold))
-                                        .foregroundColor(.white)
+                                        .foregroundColor(.primary)
                                     
                                     Image(systemName: "chevron.down")
                                         .font(.system(size: 12, weight: .bold))
-                                        .foregroundColor(.white.opacity(0.8))
+                                        .foregroundColor(.secondary)
                                 }
                                 .padding(.horizontal, 16)
                                 .padding(.vertical, 8)
-                                .background(Color.white.opacity(0.12))
+                                .background(Color(UIColor.secondarySystemFill))
                                 .cornerRadius(6)
                             }
                             .padding(.horizontal)

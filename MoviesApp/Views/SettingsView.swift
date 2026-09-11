@@ -102,7 +102,7 @@ struct SettingsView: View {
                 .buttonStyle(PlainButtonStyle())
                 
                 if hasDefaultPlaylist {
-                    Divider().background(Color.white.opacity(0.1)).padding(.leading, 48)
+                    Divider().padding(.leading, 48)
                     
                     Button(action: {
                         Task {
@@ -220,7 +220,7 @@ struct SettingsView: View {
                     Text("Are you sure you want to permanently delete your playback and history records?")
                 }
                 
-                Divider().background(Color.white.opacity(0.1)).padding(.leading, 48)
+                Divider().padding(.leading, 48)
                 
                 Button(action: {
                     showFavoritesAlert = true
@@ -297,7 +297,7 @@ struct SettingsCardContainer<Content: View>: View {
         .cornerRadius(16)
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
+                .stroke(Color(UIColor.separator).opacity(0.4), lineWidth: 0.5)
         )
     }
 }

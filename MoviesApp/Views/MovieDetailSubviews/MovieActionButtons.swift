@@ -41,8 +41,8 @@ struct MovieActionButtons: View {
                 }
                 .frame(maxWidth: .infinity)
                 .frame(height: 50)
-                .background(Color.white.opacity(0.15))
-                .foregroundColor(.white)
+                .background(Color(UIColor.secondarySystemFill))
+                .foregroundColor(.primary)
                 .cornerRadius(12)
             }
             .buttonStyle(PressScaleButtonStyle())
@@ -56,8 +56,8 @@ struct MovieActionButtons: View {
                 Image(systemName: "plus")
                     .font(.system(size: 20, weight: .semibold))
                     .frame(width: 50, height: 50)
-                    .background(Color.white.opacity(0.15))
-                    .foregroundColor(.white)
+                    .background(Color(UIColor.secondarySystemFill))
+                    .foregroundColor(.primary)
                     .cornerRadius(12)
             }
             .buttonStyle(PressScaleButtonStyle())

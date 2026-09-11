@@ -16,7 +16,7 @@ struct MovieMetadataChips: View {
                     }
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
-                    .background(Color.white.opacity(0.1))
+                    .background(Color(UIColor.secondarySystemFill))
                     .cornerRadius(20)
                 }
                 
@@ -26,17 +26,17 @@ struct MovieMetadataChips: View {
                             .fontWeight(.medium)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
-                            .background(Color.white.opacity(0.05))
+                            .background(Color(UIColor.tertiarySystemFill))
                             .cornerRadius(20)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 20)
-                                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                                    .stroke(Color(UIColor.separator).opacity(0.4), lineWidth: 1)
                             )
                     }
                 }
             }
             .font(.caption)
-            .foregroundColor(.white)
+            .foregroundColor(.primary)
             .padding(.horizontal, 24)
         }
     }

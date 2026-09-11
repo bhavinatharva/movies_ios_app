@@ -424,13 +424,29 @@ struct IPTVHeroHeaderView: View {
 
 // MARK: - Home Skeleton / Shimmer Loading View
 private struct HomeShimmerView: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    /// Base fill for large skeleton blocks (hero, cards)
+    private var blockFill: Color {
+        colorScheme == .dark
+            ? Color.white.opacity(0.18)
+            : Color(UIColor.systemGray5)
+    }
+
+    /// Base fill for small skeleton lines (title, subtitle)
+    private var lineFill: Color {
+        colorScheme == .dark
+            ? Color.white.opacity(0.14)
+            : Color(UIColor.systemGray4)
+    }
+
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 24) {
 
                 // Hero banner placeholder
                 RoundedRectangle(cornerRadius: 0)
-                    .fill(Color.white.opacity(0.18))
+                    .fill(blockFill)
                     .frame(maxWidth: .infinity)
                     .frame(height: 480)
                     .shimmer()
@@ -454,7 +470,7 @@ private struct HomeShimmerView: View {
         VStack(alignment: .leading, spacing: 12) {
             // Section title bar
             RoundedRectangle(cornerRadius: 6)
-                .fill(Color.white.opacity(0.18))
+                .fill(lineFill)
                 .frame(width: 160, height: 18)
                 .shimmer()
                 .padding(.horizontal, 16)
@@ -465,11 +481,11 @@ private struct HomeShimmerView: View {
                     ForEach(0..<6, id: \.self) { _ in
                         VStack(alignment: .leading, spacing: 8) {
                             RoundedRectangle(cornerRadius: 10)
-                                .fill(Color.white.opacity(0.18))
+                                .fill(blockFill)
                                 .frame(width: 120, height: 170)
                                 .shimmer()
                             RoundedRectangle(cornerRadius: 4)
-                                .fill(Color.white.opacity(0.14))
+                                .fill(lineFill)
                                 .frame(width: 100, height: 12)
                                 .shimmer()
                         }

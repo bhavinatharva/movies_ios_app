@@ -92,6 +92,14 @@ extension View {
 // MARK: - Skeleton Shimmer Animation
 struct ShimmerModifier: ViewModifier {
     @State private var phase: CGFloat = 0
+    @Environment(\.colorScheme) private var colorScheme
+    
+    /// Highlight colour: bright white sweep in dark mode, soft gray sweep in light mode
+    private var highlightColor: Color {
+        colorScheme == .dark
+            ? .white.opacity(0.55)
+            : .black.opacity(0.12)
+    }
     
     func body(content: Content) -> some View {
         content
@@ -100,7 +108,7 @@ struct ShimmerModifier: ViewModifier {
                     LinearGradient(
                         stops: [
                             .init(color: .clear, location: phase - 0.3),
-                            .init(color: .white.opacity(0.55), location: phase),
+                            .init(color: highlightColor, location: phase),
                             .init(color: .clear, location: phase + 0.3)
                         ],
                         startPoint: .topLeading,

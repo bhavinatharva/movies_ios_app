@@ -26,10 +26,10 @@ struct LiveTVDetailView: View {
                         AsyncImage(url: logoUrl) { image in
                             image.resizable().scaledToFill()
                         } placeholder: {
-                            Color.black
+                            Color(UIColor.systemGray6)
                         }
                     } else {
-                        Color.black
+                        Color(UIColor.systemGray6)
                     }
                     
                     Color.black.opacity(0.4)
@@ -57,15 +57,15 @@ struct LiveTVDetailView: View {
                         // Header
                         HStack(alignment: .top, spacing: 16) {
                             ZStack {
-                                Color.white.opacity(0.05)
+                                Color(UIColor.secondarySystemFill)
                                 if let logoUrl = channel.logoUrl {
                                     AsyncImage(url: logoUrl) { image in
                                         image.resizable().scaledToFit().padding(8)
                                     } placeholder: {
-                                        RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.1)).shimmer()
+                                        RoundedRectangle(cornerRadius: 12).fill(Color(UIColor.systemGray5)).shimmer()
                                     }
                                 } else {
-                                    Image(systemName: "tv").font(.title).foregroundColor(.white.opacity(0.5))
+                                    Image(systemName: "tv").font(.title).foregroundColor(.secondary)
                                 }
                             }
                             .frame(width: 80, height: 80)
@@ -85,7 +85,7 @@ struct LiveTVDetailView: View {
                                 
                                 Text(channel.name)
                                     .font(.system(size: 24, weight: .bold, design: .rounded))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.primary)
                                     .lineLimit(2)
                             }
                             
@@ -96,9 +96,9 @@ struct LiveTVDetailView: View {
                             }) {
                                 Image(systemName: UserDataManager.shared.isFavorite(id: channel.toUnified.id) ? "star.fill" : "star")
                                     .font(.title2)
-                                    .foregroundColor(UserDataManager.shared.isFavorite(id: channel.toUnified.id) ? .yellow : .white)
+                                    .foregroundColor(UserDataManager.shared.isFavorite(id: channel.toUnified.id) ? .yellow : .primary)
                                     .frame(width: 44, height: 44)
-                                    .background(Color.white.opacity(0.1))
+                                    .background(Color(UIColor.secondarySystemFill))
                                     .clipShape(Circle())
                             }
                             .buttonStyle(PressScaleButtonStyle())
@@ -113,12 +113,12 @@ struct LiveTVDetailView: View {
                             
                             Text("Up Next: \(epg.nextShow)")
                                 .font(.subheadline)
-                                .foregroundColor(.white.opacity(0.6))
+                                .foregroundColor(.secondary)
                             
                             // Progress Bar
                             GeometryReader { geo in
                                 ZStack(alignment: .leading) {
-                                    Capsule().fill(Color.white.opacity(0.1))
+                                    Capsule().fill(Color(UIColor.systemFill))
                                     Capsule().fill(Color.red).frame(width: geo.size.width * epg.progress)
                                 }
                             }
@@ -126,13 +126,13 @@ struct LiveTVDetailView: View {
                             .padding(.top, 4)
                         }
                         
-                        Divider().background(Color.white.opacity(0.1))
+                        Divider()
                         
                         // Upcoming Schedule
                         VStack(alignment: .leading, spacing: 16) {
                             Text("Upcoming Schedule")
                                 .font(.headline)
-                                .foregroundColor(.white)
+                                .foregroundColor(.primary)
                             
                             VStack(spacing: 12) {
                                 scheduleRow(time: "10:00 PM", show: epg.nextShow)
@@ -160,12 +160,12 @@ struct LiveTVDetailView: View {
             
             Text(show)
                 .font(.subheadline)
-                .foregroundColor(.white)
+                .foregroundColor(.primary)
             
             Spacer()
         }
         .padding(16)
-        .background(Color.white.opacity(0.03))
+        .background(Color(UIColor.secondarySystemFill))
         .cornerRadius(12)
     }
 }

@@ -6,7 +6,7 @@ struct MovieTechnicalDetails: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Technical Details")
                 .font(.headline)
-                .foregroundColor(.white)
+                .foregroundColor(.primary)
             
             HStack(spacing: 32) {
                 techItem(title: "Audio", value: "English (Original)")
@@ -20,7 +20,7 @@ struct MovieTechnicalDetails: View {
         }
         .padding(24)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white.opacity(0.05))
+        .background(Color(UIColor.secondarySystemGroupedBackground))
         .cornerRadius(16)
         .padding(.horizontal, 24)
     }
@@ -30,11 +30,11 @@ struct MovieTechnicalDetails: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
                 .font(.caption)
-                .foregroundColor(.white.opacity(0.5))
+                .foregroundColor(.secondary)
             Text(value)
                 .font(.subheadline)
                 .fontWeight(.medium)
-                .foregroundColor(.white)
+                .foregroundColor(.primary)
         }
     }
 }
