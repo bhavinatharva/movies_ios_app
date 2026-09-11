@@ -11,16 +11,16 @@ struct MainTabView: View {
     @Bindable private var dataManager = IPTVDataManager.shared
     @EnvironmentObject var globalPlayerManager: GlobalPlayerManager
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
-    
+
     init() {
         // Configure native iOS TabBar appearance for a premium glass translucent effect
         let appearance = UITabBarAppearance()
         appearance.configureWithDefaultBackground()
-        
+
         // Apply translucency & blur configurations
         appearance.backgroundEffect = UIBlurEffect(style: .systemUltraThinMaterialDark)
         appearance.backgroundColor = UIColor.black.withAlphaComponent(0.15)
-        
+
         // Active (Selected) styling
         let safeAccentColor = UIColor(named: "AccentColor") ?? UIColor.systemBlue
         appearance.stackedLayoutAppearance.selected.iconColor = safeAccentColor
@@ -28,18 +28,18 @@ struct MainTabView: View {
             .foregroundColor: safeAccentColor,
             .font: UIFont.systemFont(ofSize: 10, weight: .bold)
         ]
-        
+
         // Inactive (Unselected) styling
         appearance.stackedLayoutAppearance.normal.iconColor = UIColor.lightGray
         appearance.stackedLayoutAppearance.normal.titleTextAttributes = [
             .foregroundColor: UIColor.lightGray,
             .font: UIFont.systemFont(ofSize: 10, weight: .medium)
         ]
-        
+
         UITabBar.appearance().standardAppearance = appearance
         UITabBar.appearance().scrollEdgeAppearance = appearance
     }
-    
+
     var body: some View {
         ZStack {
             if horizontalSizeClass == .regular {
@@ -49,18 +49,37 @@ struct MainTabView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             } else {
+                // Use explicit tabs (not ForEach) so SwiftUI maintains stable view
+                // identity even when dataManager.availableTabs mutates after data loads.
                 TabView(selection: $selectedTab) {
-                    ForEach(dataManager.availableTabs) { tab in
-                        tabViewContent(for: tab)
-                            .tabItem {
-                                Label(tab.title, systemImage: tab.systemImage)
-                            }
-                            .tag(tab)
+                    NavigationStack { HomeView() }
+                        .tabItem { Label(IPTVTab.home.title, systemImage: IPTVTab.home.systemImage) }
+                        .tag(IPTVTab.home)
+
+                    NavigationStack { RecentView() }
+                        .tabItem { Label(IPTVTab.recent.title, systemImage: IPTVTab.recent.systemImage) }
+                        .tag(IPTVTab.recent)
+
+                    if dataManager.availableTabs.contains(.liveTV) {
+                        NavigationStack { LiveTVView() }
+                            .tabItem { Label(IPTVTab.liveTV.title, systemImage: IPTVTab.liveTV.systemImage) }
+                            .tag(IPTVTab.liveTV)
+                    }
+
+                    if dataManager.availableTabs.contains(.movies) {
+                        NavigationStack { VODMoviesView() }
+                            .tabItem { Label(IPTVTab.movies.title, systemImage: IPTVTab.movies.systemImage) }
+                            .tag(IPTVTab.movies)
+                    }
+
+                    if dataManager.availableTabs.contains(.series) {
+                        NavigationStack { SeriesView() }
+                            .tabItem { Label(IPTVTab.series.title, systemImage: IPTVTab.series.systemImage) }
+                            .tag(IPTVTab.series)
                     }
                 }
                 .ignoresSafeArea(.keyboard, edges: .bottom)
             }
-            
         }
         .fullScreenCover(isPresented: Binding(
             get: { globalPlayerManager.currentTitle != nil },
@@ -81,19 +100,20 @@ struct MainTabView: View {
             }
         }
     }
+
     @ViewBuilder
     private func tabViewContent(for tab: IPTVTab) -> some View {
         switch tab {
         case .home:
-            HomeView()
+            NavigationStack { HomeView() }
         case .recent:
-            RecentView()
+            NavigationStack { RecentView() }
         case .liveTV:
-            LiveTVView()
+            NavigationStack { LiveTVView() }
         case .movies:
-            VODMoviesView()
+            NavigationStack { VODMoviesView() }
         case .series:
-            SeriesView()
+            NavigationStack { SeriesView() }
         }
     }
 }
