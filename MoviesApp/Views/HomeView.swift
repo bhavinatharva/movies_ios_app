@@ -430,7 +430,7 @@ private struct HomeShimmerView: View {
 
                 // Hero banner placeholder
                 RoundedRectangle(cornerRadius: 0)
-                    .fill(Color.white.opacity(0.08))
+                    .fill(Color.white.opacity(0.18))
                     .frame(maxWidth: .infinity)
                     .frame(height: 480)
                     .shimmer()
@@ -454,7 +454,7 @@ private struct HomeShimmerView: View {
         VStack(alignment: .leading, spacing: 12) {
             // Section title bar
             RoundedRectangle(cornerRadius: 6)
-                .fill(Color.white.opacity(0.08))
+                .fill(Color.white.opacity(0.18))
                 .frame(width: 160, height: 18)
                 .shimmer()
                 .padding(.horizontal, 16)
@@ -465,11 +465,11 @@ private struct HomeShimmerView: View {
                     ForEach(0..<6, id: \.self) { _ in
                         VStack(alignment: .leading, spacing: 8) {
                             RoundedRectangle(cornerRadius: 10)
-                                .fill(Color.white.opacity(0.08))
+                                .fill(Color.white.opacity(0.18))
                                 .frame(width: 120, height: 170)
                                 .shimmer()
                             RoundedRectangle(cornerRadius: 4)
-                                .fill(Color.white.opacity(0.06))
+                                .fill(Color.white.opacity(0.14))
                                 .frame(width: 100, height: 12)
                                 .shimmer()
                         }

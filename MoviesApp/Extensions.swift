@@ -99,9 +99,9 @@ struct ShimmerModifier: ViewModifier {
                 GeometryReader { geometry in
                     LinearGradient(
                         stops: [
-                            .init(color: .clear, location: phase - 0.25),
-                            .init(color: .white.opacity(0.15), location: phase),
-                            .init(color: .clear, location: phase + 0.25)
+                            .init(color: .clear, location: phase - 0.3),
+                            .init(color: .white.opacity(0.55), location: phase),
+                            .init(color: .clear, location: phase + 0.3)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
