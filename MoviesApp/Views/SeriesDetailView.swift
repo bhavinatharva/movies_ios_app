@@ -299,7 +299,9 @@ struct SeriesDetailView: View {
         do {
             let response = try await iptvService.fetchSeriesInfo(creds: creds, seriesId: seriesId)
             await MainActor.run {
-                self.episodes = response.episodes
+                self.episodes = response.episodes.mapValues {
+                    $0.sorted { ($0.episodeNum ?? 0) < ($1.episodeNum ?? 0) }
+                }
                 self.seasons = response.episodes.keys.sorted {
                     let s1 = Int($0) ?? 0
                     let s2 = Int($1) ?? 0
