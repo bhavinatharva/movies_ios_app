@@ -290,6 +290,8 @@ struct UnifiedMediaDetailView: View {
     
     private var castAndCrewSection: some View {
         VStack(alignment: .leading, spacing: 20) {
+
+            // Director row
             if let director = viewModel.item.director, !director.isEmpty {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Director")
@@ -301,66 +303,114 @@ struct UnifiedMediaDetailView: View {
                 }
                 .padding(.horizontal, 20)
             }
-            
-            if let castStr = viewModel.item.cast, !castStr.isEmpty {
+
+            // Cast section — prefer TMDB (has photos + character names) over IPTV string
+            let hasTMDBCast = !viewModel.tmdbCastMembers.isEmpty
+            let hasIPTVCast = !(viewModel.item.cast ?? "").isEmpty
+
+            if hasTMDBCast || hasIPTVCast || viewModel.isLoading {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Cast")
                         .font(.title3)
                         .fontWeight(.bold)
                         .padding(.horizontal, 20)
-                    
+
                     ScrollView(.horizontal, showsIndicators: false) {
                         LazyHStack(spacing: 16) {
-                            let actors = castStr.parseCastMembers(role: "Actor")
-                            ForEach(actors) { actor in
-                                VStack(spacing: 8) {
-                                    AsyncImage(url: actor.imageUrl) { phase in
-                                        switch phase {
-                                        case .empty:
-                                            Circle()
-                                                .fill(Color.white.opacity(0.1))
-                                                .frame(width: 70, height: 70)
-                                                .shimmer()
-                                        case .success(let image):
-                                            image
-                                                .resizable()
-                                                .scaledToFill()
-                                                .frame(width: 70, height: 70)
-                                                .clipShape(Circle())
-                                        case .failure:
-                                            Circle()
-                                                .fill(Color.white.opacity(0.1))
-                                                .frame(width: 70, height: 70)
-                                                .overlay(
-                                                    Image(systemName: "person.fill")
-                                                        .foregroundColor(.white.opacity(0.5))
-                                                        .font(.title)
-                                                )
-                                        @unknown default:
-                                            Circle()
-                                                .fill(Color.white.opacity(0.1))
-                                                .frame(width: 70, height: 70)
-                                                .overlay(
-                                                    Image(systemName: "person.fill")
-                                                        .foregroundColor(.white.opacity(0.5))
-                                                        .font(.title)
-                                                )
-                                        }
+
+                            // ── TMDB cast (rich: photo + character name) ──
+                            if hasTMDBCast {
+                                ForEach(viewModel.tmdbCastMembers) { member in
+                                    castCard(
+                                        imageURL: member.profileImageURL,
+                                        name: member.name,
+                                        subtitle: member.character.isEmpty ? nil : member.character
+                                    )
+                                }
+
+                            // ── Loading skeleton while TMDB fetch is in flight ──
+                            } else if viewModel.isLoading {
+                                ForEach(0..<8, id: \.self) { _ in
+                                    VStack(spacing: 8) {
+                                        Circle()
+                                            .fill(Color(UIColor.secondarySystemFill))
+                                            .frame(width: 80, height: 80)
+                                            .shimmer()
+                                        RoundedRectangle(cornerRadius: 4)
+                                            .fill(Color(UIColor.secondarySystemFill))
+                                            .frame(width: 72, height: 12)
+                                            .shimmer()
+                                        RoundedRectangle(cornerRadius: 4)
+                                            .fill(Color(UIColor.tertiarySystemFill))
+                                            .frame(width: 56, height: 10)
+                                            .shimmer()
                                     }
-                                    
-                                    Text(actor.name)
-                                        .font(.caption)
-                                        .fontWeight(.medium)
-                                        .foregroundColor(.white)
-                                        .lineLimit(2)
-                                        .multilineTextAlignment(.center)
-                                        .frame(width: 80)
+                                }
+
+                            // ── IPTV string fallback (name only, no photo) ──
+                            } else if hasIPTVCast, let castStr = viewModel.item.cast {
+                                ForEach(castStr.parseCastMembers(role: "Actor")) { actor in
+                                    castCard(
+                                        imageURL: actor.imageUrl,
+                                        name: actor.name,
+                                        subtitle: nil
+                                    )
                                 }
                             }
                         }
                         .padding(.horizontal, 20)
+                        .padding(.vertical, 4)
                     }
                 }
+            }
+        }
+    }
+
+    /// Reusable card used by both TMDB and IPTV cast rows.
+    @ViewBuilder
+    private func castCard(imageURL: URL?, name: String, subtitle: String?) -> some View {
+        VStack(spacing: 6) {
+            AsyncImage(url: imageURL) { phase in
+                switch phase {
+                case .empty:
+                    Circle()
+                        .fill(Color(UIColor.secondarySystemFill))
+                        .frame(width: 80, height: 80)
+                        .shimmer()
+                case .success(let image):
+                    image
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 80, height: 80)
+                        .clipShape(Circle())
+                        .shadow(color: .black.opacity(0.25), radius: 4, x: 0, y: 2)
+                case .failure, _:
+                    Circle()
+                        .fill(Color(UIColor.secondarySystemFill))
+                        .frame(width: 80, height: 80)
+                        .overlay(
+                            Image(systemName: "person.fill")
+                                .foregroundColor(.secondary)
+                                .font(.title2)
+                        )
+                }
+            }
+
+            Text(name)
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundColor(.primary)
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
+                .frame(width: 84)
+
+            if let subtitle = subtitle, !subtitle.isEmpty {
+                Text(subtitle)
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+                    .frame(width: 84)
             }
         }
     }

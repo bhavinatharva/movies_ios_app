@@ -295,19 +295,21 @@ struct XtreamSeries: Codable {
     let cover: String?
     let categoryId: String?
     let lastModified: String?
-    
+    let tmdbId: String?
+
     enum CodingKeys: String, CodingKey {
         case name
         case seriesId = "series_id"
         case cover
         case categoryId = "category_id"
         case lastModified = "last_modified"
+        case tmdbId = "tmdb_id"
     }
-    
+
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         name = (try? container.decodeIfPresent(String.self, forKey: .name)) ?? "Unknown"
-        
+
         if let idInt = try? container.decode(Int.self, forKey: .seriesId) {
             seriesId = idInt
         } else if let idStr = try? container.decode(String.self, forKey: .seriesId), let idInt = Int(idStr) {
@@ -315,15 +317,19 @@ struct XtreamSeries: Codable {
         } else {
             seriesId = 0
         }
-        
+
         cover = try? container.decodeIfPresent(String.self, forKey: .cover)
         categoryId = try? container.decodeIfPresent(String.self, forKey: .categoryId)
-        
+
         if let lmI = try? container.decode(Int.self, forKey: .lastModified) {
             lastModified = String(lmI)
         } else {
             lastModified = try? container.decodeIfPresent(String.self, forKey: .lastModified)
         }
+
+        if let tS = try? container.decode(String.self, forKey: .tmdbId) { tmdbId = tS }
+        else if let tI = try? container.decode(Int.self, forKey: .tmdbId) { tmdbId = String(tI) }
+        else { tmdbId = nil }
     }
 }
 
@@ -394,7 +400,54 @@ struct XtreamEpisodeInfo: Codable {
 }
 
 struct XtreamSeriesInfoResponse: Codable {
+    let info: XtreamSeriesInfo?
     let episodes: [String: [XtreamEpisode]]
+
+    enum CodingKeys: String, CodingKey {
+        case info, episodes
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        info = try? container.decodeIfPresent(XtreamSeriesInfo.self, forKey: .info)
+        episodes = (try? container.decodeIfPresent([String: [XtreamEpisode]].self, forKey: .episodes)) ?? [:]
+    }
+}
+
+struct XtreamSeriesInfo: Codable {
+    let tmdbId: String?
+    let plot: String?
+    let cast: String?
+    let director: String?
+    let genre: String?
+    let releaseDate: String?
+    let rating: String?
+    let cover: String?
+    let backdropPath: String?
+
+    enum CodingKeys: String, CodingKey {
+        case tmdbId = "tmdb_id"
+        case plot, cast, director, genre, rating, cover
+        case releaseDate = "releasedate"
+        case backdropPath = "backdrop_path"
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        if let tS = try? container.decode(String.self, forKey: .tmdbId) { tmdbId = tS }
+        else if let tI = try? container.decode(Int.self, forKey: .tmdbId) { tmdbId = String(tI) }
+        else { tmdbId = nil }
+        plot = try? container.decodeIfPresent(String.self, forKey: .plot)
+        cast = try? container.decodeIfPresent(String.self, forKey: .cast)
+        director = try? container.decodeIfPresent(String.self, forKey: .director)
+        genre = try? container.decodeIfPresent(String.self, forKey: .genre)
+        releaseDate = try? container.decodeIfPresent(String.self, forKey: .releaseDate)
+        if let rS = try? container.decode(String.self, forKey: .rating) { rating = rS }
+        else if let rD = try? container.decode(Double.self, forKey: .rating) { rating = String(rD) }
+        else { rating = nil }
+        cover = try? container.decodeIfPresent(String.self, forKey: .cover)
+        backdropPath = try? container.decodeIfPresent(String.self, forKey: .backdropPath)
+    }
 }
 
 extension String {

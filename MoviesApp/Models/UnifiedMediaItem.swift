@@ -40,6 +40,7 @@ struct UnifiedMediaItem: Identifiable, Hashable, Codable {
     var country: String?
     var trailerUrl: URL?
     var addedDate: Date?
+    var tmdbId: String? // TMDB numeric id (from IPTV metadata or direct TMDB source)
     
     // General Initializer
     init(id: String,
@@ -59,7 +60,8 @@ struct UnifiedMediaItem: Identifiable, Hashable, Codable {
          director: String? = nil,
          country: String? = nil,
          trailerUrl: URL? = nil,
-         addedDate: Date? = nil) {
+         addedDate: Date? = nil,
+         tmdbId: String? = nil) {
         self.id = id
         self.title = title
         self.overview = overview
@@ -78,6 +80,7 @@ struct UnifiedMediaItem: Identifiable, Hashable, Codable {
         self.country = country
         self.trailerUrl = trailerUrl
         self.addedDate = addedDate
+        self.tmdbId = tmdbId
     }
     
     func merged(with details: UnifiedMediaItem) -> UnifiedMediaItem {
@@ -94,6 +97,7 @@ struct UnifiedMediaItem: Identifiable, Hashable, Codable {
         copy.country = details.country ?? self.country
         copy.trailerUrl = details.trailerUrl ?? self.trailerUrl
         copy.addedDate = details.addedDate ?? self.addedDate
+        copy.tmdbId = details.tmdbId ?? self.tmdbId
         return copy
     }
 
@@ -159,6 +163,7 @@ struct UnifiedMediaItem: Identifiable, Hashable, Codable {
         self.streamUrl = nil
         self.epgId = nil
         self.addedDate = UnifiedMediaItem.parseAddedDate(series.lastModified)
+        self.tmdbId = series.tmdbId
     }
     
     // Initializer from IPTVChannel (M3U channels)
@@ -197,6 +202,7 @@ struct UnifiedMediaItem: Identifiable, Hashable, Codable {
         self.country = info.country
         self.trailerUrl = info.youtubeTrailer != nil ? URL(string: "https://youtube.com/watch?v=\(info.youtubeTrailer!)") : nil
         self.addedDate = nil
+        self.tmdbId = info.tmdbId
     }
 
     // Initializer from XtreamEpisode

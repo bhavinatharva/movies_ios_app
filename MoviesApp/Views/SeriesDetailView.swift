@@ -7,14 +7,15 @@ import SwiftUI
 
 struct SeriesDetailView: View {
     let series: UnifiedMediaItem
-    
+
     @State private var seasons: [String] = []
     @State private var selectedSeason: String = ""
     @State private var episodes: [String: [XtreamEpisode]] = [:]
     @State private var isLoading = true
     @State private var errorMessage: String?
     @State private var selectedEpisode: XtreamEpisode?
-    
+    @State private var tmdbCastMembers: [TMDBCastMember] = []
+
     private let iptvService = XtreamProvider.shared
     private let authManager = AuthManager.shared
     
@@ -155,6 +156,63 @@ struct SeriesDetailView: View {
                             .foregroundColor(.secondary)
                         Spacer()
                     }
+
+                    // TMDB Cast Row
+                    if !tmdbCastMembers.isEmpty {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Cast")
+                                .font(.title3)
+                                .fontWeight(.bold)
+                                .padding(.horizontal)
+
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                LazyHStack(spacing: 16) {
+                                    ForEach(tmdbCastMembers) { member in
+                                        VStack(spacing: 6) {
+                                            AsyncImage(url: member.profileImageURL) { phase in
+                                                switch phase {
+                                                case .success(let image):
+                                                    image
+                                                        .resizable()
+                                                        .scaledToFill()
+                                                        .frame(width: 80, height: 80)
+                                                        .clipShape(Circle())
+                                                        .shadow(color: .black.opacity(0.25), radius: 4, x: 0, y: 2)
+                                                default:
+                                                    Circle()
+                                                        .fill(Color(UIColor.secondarySystemFill))
+                                                        .frame(width: 80, height: 80)
+                                                        .overlay(
+                                                            Image(systemName: "person.fill")
+                                                                .foregroundColor(.secondary)
+                                                                .font(.title2)
+                                                        )
+                                                }
+                                            }
+                                            Text(member.name)
+                                                .font(.caption)
+                                                .fontWeight(.semibold)
+                                                .foregroundColor(.primary)
+                                                .lineLimit(2)
+                                                .multilineTextAlignment(.center)
+                                                .frame(width: 84)
+                                            if !member.character.isEmpty {
+                                                Text(member.character)
+                                                    .font(.system(size: 10))
+                                                    .foregroundColor(.secondary)
+                                                    .lineLimit(2)
+                                                    .multilineTextAlignment(.center)
+                                                    .frame(width: 84)
+                                            }
+                                        }
+                                    }
+                                }
+                                .padding(.horizontal)
+                                .padding(.vertical, 4)
+                            }
+                        }
+                        .padding(.bottom, 20)
+                    }
                 }
             }
         }
@@ -249,6 +307,12 @@ struct SeriesDetailView: View {
                 }
                 self.selectedSeason = self.seasons.first ?? ""
                 self.isLoading = false
+            }
+            // Fetch TMDB cast: prefer tmdb_id from series info response, fall back to series item
+            let resolvedTmdbId = response.info?.tmdbId ?? series.tmdbId
+            if let tmdbId = resolvedTmdbId, !tmdbId.isEmpty {
+                let cast = await ApiServices().fetchTMDBCast(tmdbId: tmdbId, mediaType: .tvSeries)
+                await MainActor.run { self.tmdbCastMembers = cast }
             }
         } catch {
             await MainActor.run {

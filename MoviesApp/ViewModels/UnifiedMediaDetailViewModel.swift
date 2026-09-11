@@ -13,14 +13,20 @@ class UnifiedMediaDetailViewModel {
     var item: UnifiedMediaItem
     var isLoading: Bool = false
     var error: Error? = nil
-    
+
     var relatedMovies: [UnifiedMediaItem] = []
-    
+    var tmdbCastMembers: [TMDBCastMember] = []
+
     // Simple static memory cache to prevent duplicate loads during a session
     private static var detailsCache: [String: UnifiedMediaItem] = [:]
     private static var cacheQueue: [String] = []
     private static let maxCacheSize = 20
-    
+
+    // TMDB cast cache: key = "<tmdbId>-<mediaType>"
+    private static var castCache: [String: [TMDBCastMember]] = [:]
+
+    private let apiServices = ApiServices()
+
     init(item: UnifiedMediaItem) {
         self.item = item
     }
@@ -30,31 +36,33 @@ class UnifiedMediaDetailViewModel {
         if let cached = Self.detailsCache[item.id] {
             self.item = cached
             Task { await fetchRelatedMovies() }
+            // Still try to populate cast from cache or fetch
+            await fetchTMDBCastIfAvailable(tmdbId: cached.tmdbId, mediaType: cached.mediaType)
             return
         }
-        
+
         // Only fetch if it's an IPTV movie
         guard item.source == .iptv, item.mediaType == .movie else {
             return
         }
-        
+
         // Ensure we have credentials
         guard let creds = PlaylistManager.shared.fetchDefaultPlaylist()?.getCredentials() ?? AuthManager.shared.credentials,
               let vodId = Int(item.id) else {
             return
         }
-        
+
         self.isLoading = true
         self.error = nil
-        
+
         do {
             let response = try await XtreamProvider.shared.fetchVODInfo(creds: creds, vodId: vodId)
             if let info = response.info {
                 let detailItem = UnifiedMediaItem(from: info)
-                
+
                 // Keep the original item's ID, title, stream URL, etc., and merge the new details
                 self.item = self.item.merged(with: detailItem)
-                
+
                 // Cache it
                 Self.detailsCache[self.item.id] = self.item
                 if !Self.cacheQueue.contains(self.item.id) {
@@ -64,8 +72,13 @@ class UnifiedMediaDetailViewModel {
                         Self.detailsCache.removeValue(forKey: oldest)
                     }
                 }
+
+                // Fetch TMDB cast using the tmdb_id from IPTV metadata
+                if let tmdbId = info.tmdbId, !tmdbId.isEmpty {
+                    await fetchTMDBCastIfAvailable(tmdbId: tmdbId, mediaType: .movie)
+                }
             }
-            
+
             Task { await fetchRelatedMovies() }
         } catch {
             self.error = error
@@ -73,7 +86,7 @@ class UnifiedMediaDetailViewModel {
             print("⚠️ [UnifiedMediaDetailViewModel] Failed to fetch VOD Info: \(error)")
             #endif
         }
-        
+
         self.isLoading = false
     }
     
@@ -81,29 +94,51 @@ class UnifiedMediaDetailViewModel {
         // Run on background thread to prevent UI freezing
         let allMovies = IPTVDataManager.shared.movies
         let currentItem = self.item
-        
+
         let related = await Task.detached(priority: .background) {
             let currentGenres = currentItem.genres ?? []
             let currentYear = currentItem.releaseDate
-            
+
             let filtered = allMovies.filter { movie in
                 if movie.id == currentItem.id { return false }
-                
+
                 // Match genre
                 if let genres = movie.genres, !currentGenres.isEmpty, !Set(genres).isDisjoint(with: Set(currentGenres)) {
                     return true
                 }
-                
+
                 // Match year if genre is empty
                 if let year = movie.releaseDate, year == currentYear, currentYear != nil {
                     return true
                 }
-                
+
                 return false
             }
             return Array(filtered.shuffled().prefix(15))
         }.value
-        
+
         self.relatedMovies = related
+    }
+
+    // MARK: - TMDB Cast
+
+    /// Fetches TMDB cast using the given tmdb_id, checking the in-memory cache first.
+    /// Never throws — a failure silently results in an empty cast list.
+    func fetchTMDBCastIfAvailable(tmdbId: String?, mediaType: MediaType) async {
+        guard let tmdbId = tmdbId, !tmdbId.isEmpty else { return }
+        let cacheKey = "\(tmdbId)-\(mediaType.rawValue)"
+
+        if let cached = Self.castCache[cacheKey] {
+            self.tmdbCastMembers = cached
+            return
+        }
+
+        // Fetch on a background-priority task so the UI stays responsive
+        let cast = await Task.detached(priority: .background) {
+            await ApiServices().fetchTMDBCast(tmdbId: tmdbId, mediaType: mediaType)
+        }.value
+
+        Self.castCache[cacheKey] = cast
+        self.tmdbCastMembers = cast
     }
 }
