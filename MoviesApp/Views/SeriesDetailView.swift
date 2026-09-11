@@ -210,6 +210,7 @@ struct SeriesDetailView: View {
                                 .padding(.horizontal)
                                 .padding(.vertical, 4)
                             }
+                            .horizontalScrollFix()
                         }
                         .padding(.bottom, 20)
                     }

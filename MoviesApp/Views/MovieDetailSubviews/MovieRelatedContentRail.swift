@@ -48,6 +48,7 @@ struct MovieRelatedContentRail: View {
                 }
                 .padding(.horizontal, 24)
             }
+            .horizontalScrollFix()
         }
     }
 }

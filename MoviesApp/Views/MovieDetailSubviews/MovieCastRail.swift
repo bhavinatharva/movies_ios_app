@@ -74,6 +74,7 @@ struct MovieCastRail: View {
                     }
                     .padding(.horizontal, 24)
                 }
+                .horizontalScrollFix()
             }
         }
     }

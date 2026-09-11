@@ -215,6 +215,7 @@ struct UnifiedMediaDetailView: View {
                     }
                     .padding(.horizontal, 20)
                 }
+                .horizontalScrollFix()
             }
             
             // Play Button
@@ -361,6 +362,7 @@ struct UnifiedMediaDetailView: View {
                         .padding(.horizontal, 20)
                         .padding(.vertical, 4)
                     }
+                    .horizontalScrollFix()
                 }
             }
         }
@@ -461,6 +463,7 @@ struct UnifiedMediaDetailView: View {
                 }
                 .padding(.horizontal, 20)
             }
+            .horizontalScrollFix()
         }
     }
     

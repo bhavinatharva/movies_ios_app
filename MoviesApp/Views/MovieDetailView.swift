@@ -132,6 +132,7 @@ struct MovieDetailView: View {
                                     }
                                     .padding(.horizontal, 24)
                                 }
+                                .horizontalScrollFix()
                             }
                         }
                         

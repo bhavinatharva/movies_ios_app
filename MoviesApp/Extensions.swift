@@ -70,6 +70,12 @@ extension View {
         self.modifier(ShimmerModifier())
     }
     
+    /// Fixes gesture conflict when a horizontal ScrollView is nested inside a vertical ScrollView.
+    /// Without this, the horizontal scroll consumes all touch events and the outer scroll gets stuck.
+    func horizontalScrollFix() -> some View {
+        self.simultaneousGesture(DragGesture())
+    }
+    
     /// Adds a gorgeous interactive spring-scale reaction on finger presses (legacy fallback, standardise on PressScaleButtonStyle)
     func pressScaleEffect() -> some View {
         self
