@@ -44,15 +44,7 @@ struct HomeView: View {
                         switch viewModel.homeStatus {
                         case .notstarted, .loading:
                             if viewModel.liveChannels.isEmpty {
-                                VStack {
-                                    Spacer()
-                                    ProgressView("Loading...")
-                                        .controlSize(.large)
-                                        .tint(.accentColor)
-                                        .foregroundColor(.secondary)
-                                    Spacer()
-                                }
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                HomeShimmerView()
                                 
                                 headerView
                             } else {
@@ -435,5 +427,64 @@ struct IPTVHeroHeaderView: View {
             .padding(.bottom, 24)
         }
         .frame(height: 500)
+    }
+}
+
+// MARK: - Home Skeleton / Shimmer Loading View
+private struct HomeShimmerView: View {
+    var body: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 24) {
+
+                // Hero banner placeholder
+                RoundedRectangle(cornerRadius: 0)
+                    .fill(Color.white.opacity(0.08))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 480)
+                    .shimmer()
+
+                // Section 1
+                shimmerSection()
+
+                // Section 2
+                shimmerSection()
+
+                // Section 3
+                shimmerSection()
+            }
+        }
+        .ignoresSafeArea(edges: .top)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    @ViewBuilder
+    private func shimmerSection() -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Section title bar
+            RoundedRectangle(cornerRadius: 6)
+                .fill(Color.white.opacity(0.08))
+                .frame(width: 160, height: 18)
+                .shimmer()
+                .padding(.horizontal, 16)
+
+            // Horizontal row of card skeletons
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(0..<6, id: \.self) { _ in
+                        VStack(alignment: .leading, spacing: 8) {
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(Color.white.opacity(0.08))
+                                .frame(width: 120, height: 170)
+                                .shimmer()
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(Color.white.opacity(0.06))
+                                .frame(width: 100, height: 12)
+                                .shimmer()
+                        }
+                    }
+                }
+                .padding(.horizontal, 16)
+            }
+        }
     }
 }
