@@ -61,7 +61,7 @@ struct LiveTVView: View {
             .navigationDestination(item: $selectedChannel) { channel in
                 LiveTVDetailView(channel: channel)
             }
-            .sheet(item: $activeSheet) { sheet in
+            .fullScreenCover(item: $activeSheet) { sheet in
                 switch sheet {
                 case .categoryFilter:
                     LiveCategoryFilterSheet(

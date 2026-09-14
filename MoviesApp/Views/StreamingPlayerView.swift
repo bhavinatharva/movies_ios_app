@@ -236,6 +236,31 @@ struct StreamingPlayerView: View {
                 withAnimation(.spring()) { showNextEpisodeOverlay = true }
             }
         }
+        .confirmationDialog("Audio Tracks", isPresented: $showAudioActionSheet, titleVisibility: .visible) {
+            ForEach(availableAudio, id: \.self) { option in
+                Button(option.displayName) {
+                    if let group = audioGroup {
+                        playerManager.player.currentItem?.select(option, in: group)
+                    }
+                }
+            }
+        }
+        .confirmationDialog("Subtitles", isPresented: $showSubtitleActionSheet, titleVisibility: .visible) {
+            ForEach(availableSubtitles, id: \.self) { option in
+                Button(option.displayName) {
+                    if let group = subtitleGroup {
+                        playerManager.player.currentItem?.select(option, in: group)
+                    }
+                }
+            }
+        }
+        .confirmationDialog("Video Quality", isPresented: $showQualityActionSheet, titleVisibility: .visible) {
+            ForEach(availableQualities, id: \.self) { quality in
+                Button(quality == 0 ? "Auto" : "\(Int(quality))p") {
+                    setQuality(quality)
+                }
+            }
+        }
     }
     
     // MARK: - Subviews
@@ -294,11 +319,11 @@ struct StreamingPlayerView: View {
                 }
             }
             Spacer()
-            
-            // Audio / Subtitle / Quality — hidden in portrait to keep UI clean
+            // Media option buttons – hidden in compact vertical size class
             HStack(spacing: 16) {
                 if verticalSizeClass != .regular {
-                    Button(action: { 
+                    // Audio button
+                    Button(action: {
                         Task {
                             await fetchMediaOptions()
                             showAudioActionSheet = true
@@ -311,8 +336,8 @@ struct StreamingPlayerView: View {
                             .background(Color.white.opacity(0.15))
                             .cornerRadius(12)
                     }
-                    
-                    Button(action: { 
+                    // Subtitle button
+                    Button(action: {
                         Task {
                             await fetchMediaOptions()
                             showSubtitleActionSheet = true
@@ -325,8 +350,24 @@ struct StreamingPlayerView: View {
                             .background(Color.white.opacity(0.15))
                             .cornerRadius(12)
                     }
+                    // Quality button – hide for live TV
+                    if streamType != .liveTV {
+                        Button(action: {
+                            Task {
+                                await fetchMediaOptions()
+                                showQualityActionSheet = true
+                            }
+                        }) {
+                            Image(systemName: "gearshape")
+                                .font(.system(size: 18))
+                                .foregroundColor(.white)
+                                .frame(width: 44, height: 44)
+                                .background(Color.white.opacity(0.15))
+                                .cornerRadius(12)
+                        }
+                    }
                 }
-                
+                // Channel list button for live TV
                 if streamType == .liveTV {
                     Button(action: {
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
@@ -342,8 +383,7 @@ struct StreamingPlayerView: View {
                             .cornerRadius(12)
                     }
                 }
-                
-                // Close Button
+                // Close button
                 Button(action: {
                     playerManager.stop()
                     dismiss()

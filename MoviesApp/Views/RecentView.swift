@@ -80,7 +80,7 @@ struct RecentView: View {
                 }
             }
         }
-        .sheet(item: $activeSheet) { sheet in
+        .fullScreenCover(item: $activeSheet) { sheet in
             switch sheet {
             case .settings:
                 SettingsView()

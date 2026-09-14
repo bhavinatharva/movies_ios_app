@@ -12,16 +12,17 @@ struct HomeView: View {
     @State private var userDataManager = UserDataManager.shared
     @State private var viewModel = HomeViewModel()
     @State private var detailNavigationPath = NavigationPath()
-    @State private var selectedPlayableItem: UnifiedMediaItem?
-    @State private var selectedMovieForDetail: UnifiedMediaItem?
-    @State private var selectedSeriesForDetail: UnifiedMediaItem?
-    @State private var selectedCollectionForDetail: MovieCollection?
+    // Removed individual sheet state variables; unified ActiveSheet enum will be used instead
     
     private enum ActiveSheet: Identifiable {
         case settings
         case search
+        case movieDetail(UnifiedMediaItem)
+        case seriesDetail(UnifiedMediaItem)
+        case collectionDetail(MovieCollection)
+        case playableItem(UnifiedMediaItem)
         
-        var id: Int { hashValue }
+        var id: UUID { UUID() }
     }
     @State private var activeSheet: ActiveSheet?
     
@@ -77,14 +78,46 @@ struct HomeView: View {
                 }
             }
             .navigationBarHidden(true)
-            .sheet(item: $activeSheet) { sheet in
+            .fullScreenCover(item: $activeSheet) { sheet in
                 switch sheet {
                 case .settings:
                     SettingsView()
                 case .search:
                     SearchView()
+                case .movieDetail(let item):
+                    UnifiedMediaDetailView(item: item)
+                case .seriesDetail(let item):
+                    SeriesDetailView(
+                        series: item,
+                        resumeEpisodeId: UserDataManager.shared.lastWatchedEpisode[item.id]
+                    )
+                case .collectionDetail(let collection):
+                    MovieCollectionDetailView(collection: collection) { movie in
+                        activeSheet = .movieDetail(movie)
+                    }
+                case .playableItem(let item):
+                    ZStack(alignment: .topTrailing) {
+                        Color.appBackground.ignoresSafeArea()
+                        ContentUnavailableView {
+                            Label("Cannot Play", systemImage: "play.slash")
+                        } description: {
+                            Text("No streamable link found for this item.")
+                                .foregroundColor(.secondary)
+                        } actions: {
+                            Button(action: {
+                                activeSheet = nil
+                            }) {
+                                Text("Close")
+                                    .fontWeight(.bold)
+                                    .frame(width: 120, height: 44)
+                                    .background(Color.accentColor)
+                                    .foregroundColor(.white)
+                                    .cornerRadius(22)
+                            }
+                            .buttonStyle(PressScaleButtonStyle())
+                        }
+                    }
                 }
-            }
             .task(id: activePlaylistUrl) {
                 if hasDefaultPlaylist {
                     await viewModel.refreshContent()
@@ -96,60 +129,7 @@ struct HomeView: View {
             .onChange(of: UserDataManager.shared.favorites) { _, _ in
                 viewModel.updateFavorites()
             }
-            .background(
-                EmptyView()
-                    .fullScreenCover(item: $selectedMovieForDetail) { item in
-                        UnifiedMediaDetailView(item: item)
-                    }
-            )
-            .background(
-                EmptyView()
-                    .fullScreenCover(item: $selectedSeriesForDetail) { item in
-                        SeriesDetailView(
-                            series: item,
-                            resumeEpisodeId: UserDataManager.shared.lastWatchedEpisode[item.id]
-                        )
-                    }
-            )
-            .background(
-                EmptyView()
-                    .fullScreenCover(item: $selectedCollectionForDetail) { collection in
-                        MovieCollectionDetailView(collection: collection) { movie in
-                            selectedCollectionForDetail = nil
-                            // Delay slightly to allow the collection cover to dismiss before showing movie detail
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                selectedMovieForDetail = movie
-                            }
-                        }
-                    }
-            )
-            .background(
-                EmptyView()
-                    .fullScreenCover(item: $selectedPlayableItem) { _ in
-                        ZStack(alignment: .topTrailing) {
-                            Color.appBackground.ignoresSafeArea()
-                            
-                            ContentUnavailableView {
-                                Label("Cannot Play", systemImage: "play.slash")
-                            } description: {
-                                Text("No streamable link found for this item.")
-                                    .foregroundColor(.secondary)
-                            } actions: {
-                                Button(action: {
-                                    selectedPlayableItem = nil
-                                }) {
-                                    Text("Close")
-                                        .fontWeight(.bold)
-                                        .frame(width: 120, height: 44)
-                                        .background(Color.accentColor)
-                                        .foregroundColor(.white)
-                                        .cornerRadius(22)
-                                }
-                                .buttonStyle(PressScaleButtonStyle())
-                            }
-                        }
-                    }
-            )
+            // Sheet presentations are now handled by the unified .fullScreenCover above.
         }
     }
     
@@ -195,9 +175,9 @@ struct HomeView: View {
     private func handleMediaSelection(_ item: UnifiedMediaItem) {
         if item.mediaType == .tvSeries {
             // Open SeriesDetailView with the last-watched episode pre-selected
-            selectedSeriesForDetail = item
+            activeSheet = .seriesDetail(item)
         } else if item.mediaType == .movie {
-            selectedMovieForDetail = item
+            activeSheet = .movieDetail(item)
         } else {
             UserDataManager.shared.addToHistory(item)
             if let url = item.streamUrl {
@@ -209,7 +189,7 @@ struct HomeView: View {
                     streamId: item.id
                 )
             } else {
-                selectedPlayableItem = item
+                activeSheet = .playableItem(item)
             }
         }
     }
@@ -256,7 +236,7 @@ struct HomeView: View {
                         header: "Movie Collections",
                         collections: viewModel.movieCollections,
                         onSelect: { collection in
-                            selectedCollectionForDetail = collection
+                            activeSheet = .collectionDetail(collection)
                         }
                     )
                 }

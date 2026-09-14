@@ -49,7 +49,7 @@ struct SeriesView: View {
             .task {
                 // Loaded globally
             }
-            .sheet(item: $activeSheet) { sheet in
+            .fullScreenCover(item: $activeSheet) { sheet in
                 switch sheet {
                 case .categoryFilter:
                     CategoryFilterView(

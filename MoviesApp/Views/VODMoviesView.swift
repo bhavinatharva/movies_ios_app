@@ -49,7 +49,7 @@ struct VODMoviesView: View {
             .navigationDestination(item: $selectedMovie) { movie in
                 UnifiedMediaDetailView(item: movie)
             }
-            .sheet(item: $activeSheet) { sheet in
+            .fullScreenCover(item: $activeSheet) { sheet in
                 switch sheet {
                 case .categoryFilter:
                     CategoryFilterView(
