@@ -7,6 +7,7 @@ target 'MoviesApp' do
 
   # Pods for MoviesApp
   pod 'MobileVLCKit'
+  pod 'lottie-ios'
 
 end
 

@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct SearchView: View {
+    @Environment(\.dismiss) private var dismiss
     @State private var searchByMovies = true
     @State private var searchText = ""
     @State private var searchViewModel = SearchViewModel()
@@ -101,6 +102,13 @@ struct SearchView: View {
                         } label: {
                             Image(systemName: searchByMovies ? Constants.ImageConstants.movie : Constants.ImageConstants.tv)
                         }
+                    }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 20))
+                            .foregroundColor(.secondary)
                     }
                 }
             }

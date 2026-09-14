@@ -11,6 +11,7 @@ import CoreData
 struct SettingsView: View {
     @AppStorage("has_default_playlist") private var hasDefaultPlaylist = false
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dismiss) private var dismiss
     
     @State private var activePlaylist: Playlist?
     @AppStorage("preferred_video_quality") private var preferredVideoQuality: Double = 0
@@ -48,6 +49,15 @@ struct SettingsView: View {
             }
             .navigationTitle(Constants.StringConstants.tabSettings)
             .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 20))
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
             .onAppear {
                 activePlaylist = PlaylistManager.shared.fetchDefaultPlaylist()
             }
