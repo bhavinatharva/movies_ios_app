@@ -66,7 +66,7 @@ struct PlaylistHubView: View {
                                         isActive: playlist.isDefault,
                                         onActivate: { activate(playlist: playlist) },
                                         onDelete: { delete(playlist: playlist) },
-                                        onRefresh: { refreshCurrentContent() }
+                                        onRefresh: { refreshCurrentContent(for: playlist) }
                                     )
                                     .padding(.horizontal)
                                 }
@@ -257,13 +257,18 @@ struct PlaylistHubView: View {
         generator.impactOccurred()
         playlistManager.setDefault(playlist)
         refreshPlaylists()
+        
+        // Dispatch modern background sync pipeline
+        IPTVSyncManager.shared.startSync(playlist: playlist)
+        
         Task {
-            await IPTVDataManager.shared.refreshContent(clearFirst: true)
+            await IPTVDataManager.shared.loadFromCache(playlist: playlist)
             isActivating = false
         }
     }
     
     private func delete(playlist: Playlist) {
+        IPTVSyncManager.shared.cancelSync(playlistId: playlist.id)
         playlistManager.deletePlaylist(playlist)
         refreshPlaylists()
         Task {
@@ -271,10 +276,17 @@ struct PlaylistHubView: View {
         }
     }
     
-    private func refreshCurrentContent() {
+    private func refreshCurrentContent(for playlist: Playlist? = nil) {
+        guard let targetPlaylist = playlist ?? playlistManager.fetchDefaultPlaylist() else { return }
         isRefreshing = true
+        let generator = UIImpactFeedbackGenerator(style: .medium)
+        generator.impactOccurred()
+        
+        // Start background fetch and sync to SQLite
+        IPTVSyncManager.shared.startSync(playlist: targetPlaylist)
+        
         Task {
-            await IPTVDataManager.shared.refreshContent(clearFirst: true)
+            await IPTVDataManager.shared.loadFromCache(playlist: targetPlaylist)
             isRefreshing = false
         }
     }

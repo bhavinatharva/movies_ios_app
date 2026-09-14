@@ -77,9 +77,9 @@ struct UnifiedMediaDetailView: View {
                     .padding(.trailing, 20)
                     .padding(.top, 50)
                 }
-                Spacer()
             }
         }
+        .navigationBarBackButtonHidden(true)
     }
     
     // MARK: - Subviews

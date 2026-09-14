@@ -1,10 +1,10 @@
 # Xcode
 xcuserdata/
 *.xcuserstate
-project.xcworkspace/
-xcuserdata/
 *.xcworkspacedata
-MoviesApp.xcworkspace/xcuserdata/
+project.xcworkspace/
+**/*.xcuserstate
+**/xcuserdata/
 
 # CocoaPods
 Pods/

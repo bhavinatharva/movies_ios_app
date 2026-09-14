@@ -115,10 +115,13 @@ struct SettingsView: View {
                     Divider().padding(.leading, 48)
                     
                     Button(action: {
-                        Task {
-                            let generator = UIImpactFeedbackGenerator(style: .medium)
-                            generator.impactOccurred()
-                            await IPTVDataManager.shared.refreshContent()
+                        let generator = UIImpactFeedbackGenerator(style: .medium)
+                        generator.impactOccurred()
+                        if let defaultPlaylist = PlaylistManager.shared.fetchDefaultPlaylist() {
+                            IPTVSyncManager.shared.startSync(playlist: defaultPlaylist)
+                            Task {
+                                await IPTVDataManager.shared.loadFromCache(playlist: defaultPlaylist)
+                            }
                         }
                     }) {
                         SettingsRowUIComponent(

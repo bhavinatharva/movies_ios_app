@@ -65,8 +65,6 @@
 - Structs: LiveTVView
 ## EPGTimelineView.swift
 - Structs: EPGProgramCard, EPGTimelineView
-## PlaylistsListView.swift
-- Structs: AddPlaylistSheet, PlaylistsListView
 ## SeriesView.swift
 - Structs: SeriesGenreRowView, SeriesView
 ## VODMoviesView.swift

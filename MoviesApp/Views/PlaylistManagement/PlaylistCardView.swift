@@ -47,13 +47,32 @@ struct PlaylistCardView: View {
                     .foregroundColor(.secondary)
                     .lineLimit(1)
                 
-                HStack(spacing: 12) {
-                    Label("— Movies", systemImage: "film")
-                    Label("— Series", systemImage: "tv")
+                let syncStatus = IPTVSyncManager.shared.status(for: playlist.id)
+                switch syncStatus {
+                case .syncing(let progress):
+                    HStack(spacing: 6) {
+                        ProgressView()
+                            .scaleEffect(0.7)
+                        Text("Syncing \(Int(progress * 100))%...")
+                            .font(.caption2)
+                            .foregroundColor(.accentColor)
+                    }
+                    .padding(.top, 2)
+                case .error(let message):
+                    Text("Sync error: \(message)")
+                        .font(.caption2)
+                        .foregroundColor(.red)
+                        .lineLimit(1)
+                        .padding(.top, 2)
+                default:
+                    HStack(spacing: 12) {
+                        Label("— Movies", systemImage: "film")
+                        Label("— Series", systemImage: "tv")
+                    }
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .padding(.top, 2)
                 }
-                .font(.caption2)
-                .foregroundColor(.secondary)
-                .padding(.top, 2)
             }
             
             

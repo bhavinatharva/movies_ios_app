@@ -165,12 +165,6 @@ struct MovieDetailView: View {
                         }
                         .buttonStyle(PressScaleButtonStyle())
                     }
-                    Button(action: { selectedPlayableItem = nil }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.title)
-                            .foregroundColor(.white.opacity(0.6))
-                            .padding()
-                    }
                 }
             }
             

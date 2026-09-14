@@ -65,7 +65,6 @@
 | LiveTVDetailView.swift | LiveTVDetailView |
 | LiveTVView.swift | LiveTVView, LiveSegment |
 | EPGTimelineView.swift | EPGProgramCard, EPGTimelineView |
-| PlaylistsListView.swift | AddPlaylistSheet, PlaylistsListView |
 | SeriesView.swift | SeriesGenreRowView, SeriesView |
 | VODMoviesView.swift | VODMoviesView, VODGenreRowView |
 | PremiumPlayerRepresentable.swift | PremiumPlayerRepresentable, PlayerUIView, var |
