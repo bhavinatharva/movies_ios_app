@@ -117,31 +117,52 @@ struct HomeView: View {
                             .buttonStyle(PressScaleButtonStyle())
                         }
                     }
+                    
+                    .task(id: activePlaylistUrl) {
+                        if hasDefaultPlaylist {
+                            await viewModel.refreshContent()
+                        }
+                    }
+                    .onAppear {
+                        viewModel.updateFavorites()
+                    }
+                    .onChange(of: UserDataManager.shared.favorites) { _, _ in
+                        viewModel.updateFavorites()
+                    }
+                    // Sheet presentations are now handled by the unified .fullScreenCover above.
                 }
-            .task(id: activePlaylistUrl) {
-                if hasDefaultPlaylist {
-                    await viewModel.refreshContent()
-                }
-            }
-            .onAppear {
-                viewModel.updateFavorites()
-            }
-            .onChange(of: UserDataManager.shared.favorites) { _, _ in
-                viewModel.updateFavorites()
-            }
-            // Sheet presentations are now handled by the unified .fullScreenCover above.
-        }
+            }}
     }
     
-    private var headerView: some View {
-        HStack(spacing: 20) {
-            Text("IPTV")
-                .font(.system(size: 26, weight: .black, design: .rounded))
-                .foregroundColor(.accentColor)
-            
-            Spacer()
-            
+    private func handleMediaSelection(_ item: UnifiedMediaItem) {
+        if item.mediaType == .tvSeries {
+            activeSheet = .seriesDetail(item)
+        } else if item.mediaType == .movie {
+            activeSheet = .movieDetail(item)
+        } else {
+                UserDataManager.shared.addToHistory(item)
+                if let url = item.streamUrl {
+                    GlobalPlayerManager.shared.play(
+                        url: url,
+                        title: item.title,
+                        artwork: item.posterPath,
+                        isLive: item.mediaType == .liveTV,
+                        streamId: item.id
+                    )
+                } else {
+                    activeSheet = .playableItem(item)
+                }
+            }
+        }
+        
+        private var headerView: some View {
             HStack(spacing: 20) {
+                Text("IPTV")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundColor(.white)
+                
+                Spacer()
+                
                 Button {
                     activeSheet = .search
                 } label: {
@@ -157,164 +178,161 @@ struct HomeView: View {
                         .font(.system(size: 20, weight: .semibold))
                         .foregroundColor(.white)
                 }
-                
             }
-        }
-        .padding(.horizontal, 20)
-        .padding(.top, 16)
-        .padding(.bottom, 16)
-        .background(
-            LinearGradient(
-                colors: [.black.opacity(0.85), .clear],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-        )
-    }
-    
-    private func handleMediaSelection(_ item: UnifiedMediaItem) {
-        if item.mediaType == .tvSeries {
-            // Open SeriesDetailView with the last-watched episode pre-selected
-            activeSheet = .seriesDetail(item)
-        } else if item.mediaType == .movie {
-            activeSheet = .movieDetail(item)
-        } else {
-            UserDataManager.shared.addToHistory(item)
-            if let url = item.streamUrl {
-                GlobalPlayerManager.shared.play(
-                    url: url,
-                    title: item.title,
-                    artwork: item.posterPath,
-                    isLive: item.mediaType == .liveTV,
-                    streamId: item.id
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            .padding(.bottom, 16)
+            .background(
+                LinearGradient(
+                    colors: [.black.opacity(0.85), .clear],
+                    startPoint: .top,
+                    endPoint: .bottom
                 )
-            } else {
-                activeSheet = .playableItem(item)
+            )
+        }
+        
+        private var emptyPlaylistView: some View {
+            VStack(spacing: 20) {
+                Image(systemName: "play.square.fill")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 120)
+                    .foregroundColor(.white.opacity(0.7))
+                Text("No playlist available")
+                    .font(.title2)
+                    .foregroundColor(.white)
+                Button(action: {
+                    // Create a default playlist and update state
+//                    UserDataManager.shared.createDefaultPlaylist()
+                    hasDefaultPlaylist = true
+                }) {
+                    Text("Create Default Playlist")
+                        .fontWeight(.semibold)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 12)
+                        .background(Color.accentColor)
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.black.opacity(0.8))
         }
-    }
-    
-    private var emptyPlaylistView: some View {
-        ContentUnavailableView {
-            Label("No Playlist Loaded", systemImage: "tv.slash")
-        } description: {
-            Text("Go to the Settings tab to add your IPTV M3U Playlist URL and start watching.")
-        }
-    }
-    
-    private var contentView: some View {
-        ScrollView {
-            LazyVStack(spacing: 24) {
-                // 1. Featured Banner
-                if let featured = viewModel.featuredItem {
-                    IPTVHeroHeaderView(item: featured) {
-                        handleMediaSelection(featured)
-                    }
-                }
-                
-                // 2. Continue Watching
-                if !viewModel.continueWatching.isEmpty {
-                    UnifiedMediaListView(
-                        header: "Continue Watching",
-                        items: viewModel.continueWatching,
-                        onSelect: handleMediaSelection
-                    )
-                }
-                
-                // 3. Live Channels
-                if !viewModel.liveChannels.isEmpty {
-                    UnifiedMediaListView(
-                        header: "Live Channels",
-                        items: Array(viewModel.liveChannels.prefix(15)).map { $0.toUnified },
-                        onSelect: handleMediaSelection
-                    )
-                }
-                
-                // 4.5. Movie Collections
-                if !viewModel.movieCollections.isEmpty {
-                    MovieCollectionListView(
-                        header: "Movie Collections",
-                        collections: viewModel.movieCollections,
-                        onSelect: { collection in
-                            activeSheet = .collectionDetail(collection)
+        
+        private var contentView: some View {
+            ScrollView {
+                LazyVStack(spacing: 24) {
+                    // 1. Featured Banner
+                    if let featured = viewModel.featuredItem {
+                        IPTVHeroHeaderView(item: featured) {
+                            handleMediaSelection(featured)
                         }
-                    )
-                }
-                
-                // 5. Top 10
-                if !viewModel.top10Movies.isEmpty {
-                    UnifiedMediaListView(
-                        header: "Top 10 Movies",
-                        items: viewModel.top10Movies,
-                        onSelect: handleMediaSelection
-                    )
-                }
-                
-                // 6. Recently Added
-                if !viewModel.recentlyAdded.isEmpty {
-                    UnifiedMediaListView(
-                        header: "Recently Added",
-                        items: viewModel.recentlyAdded,
-                        onSelect: handleMediaSelection
-                    )
-                }
-                
-                // 7. Sports Live Now
-                if !viewModel.sportsLiveNow.isEmpty {
-                    UnifiedMediaListView(
-                        header: "Sports Live Now",
-                        items: viewModel.sportsLiveNow,
-                        onSelect: handleMediaSelection
-                    )
-                }
-                
-                // 8. Recommended For You
-                if !viewModel.recommended.isEmpty {
-                    UnifiedMediaListView(
-                        header: "Recommended For You",
-                        items: viewModel.recommended,
-                        onSelect: handleMediaSelection
-                    )
-                }
-                
-                
-                // 10. Favorites
-                if !viewModel.favorites.isEmpty {
-                    UnifiedMediaListView(
-                        header: "My Favorites",
-                        items: viewModel.favorites,
-                        onSelect: handleMediaSelection
-                    )
-                }
-                
-                // 11. Uncategorized
-                if !viewModel.uncategorized.isEmpty {
-                    UnifiedMediaListView(
-                        header: "Uncategorized",
-                        items: viewModel.uncategorized,
-                        onSelect: handleMediaSelection
-                    )
-                }
-                
-                // 12. Genres / Categories
-                ForEach(Array(viewModel.categorizedChannels.keys.sorted().prefix(15)), id: \.self) { category in
-                    let catLower = category.lowercased()
-                    if catLower != "sports" && catLower != "sport" { // Avoid duplicate sports sections
-                        HomeCategoryRowView(category: category, viewModel: viewModel, selectedPlayableItem: $selectedPlayableItem)
+                    }
+                    
+                    // 2. Continue Watching
+                    if !viewModel.continueWatching.isEmpty {
+                        UnifiedMediaListView(
+                            header: "Continue Watching",
+                            items: viewModel.continueWatching,
+                            onSelect: handleMediaSelection
+                        )
+                    }
+                    
+                    // 3. Live Channels
+                    if !viewModel.liveChannels.isEmpty {
+                        UnifiedMediaListView(
+                            header: "Live Channels",
+                            items: Array(viewModel.liveChannels.prefix(15)).map { $0.toUnified },
+                            onSelect: handleMediaSelection
+                        )
+                    }
+                    
+                    // 4.5. Movie Collections
+                    if !viewModel.movieCollections.isEmpty {
+                        MovieCollectionListView(
+                            header: "Movie Collections",
+                            collections: viewModel.movieCollections,
+                            onSelect: { collection in
+                                activeSheet = .collectionDetail(collection)
+                            }
+                        )
+                    }
+                    
+                    // 5. Top 10
+                    if !viewModel.top10Movies.isEmpty {
+                        UnifiedMediaListView(
+                            header: "Top 10 Movies",
+                            items: viewModel.top10Movies,
+                            onSelect: handleMediaSelection
+                        )
+                    }
+                    
+                    // 6. Recently Added
+                    if !viewModel.recentlyAdded.isEmpty {
+                        UnifiedMediaListView(
+                            header: "Recently Added",
+                            items: viewModel.recentlyAdded,
+                            onSelect: handleMediaSelection
+                        )
+                    }
+                    
+                    // 7. Sports Live Now
+                    if !viewModel.sportsLiveNow.isEmpty {
+                        UnifiedMediaListView(
+                            header: "Sports Live Now",
+                            items: viewModel.sportsLiveNow,
+                            onSelect: handleMediaSelection
+                        )
+                    }
+                    
+                    // 8. Recommended For You
+                    if !viewModel.recommended.isEmpty {
+                        UnifiedMediaListView(
+                            header: "Recommended For You",
+                            items: viewModel.recommended,
+                            onSelect: handleMediaSelection
+                        )
+                    }
+                    
+                    
+                    // 10. Favorites
+                    if !viewModel.favorites.isEmpty {
+                        UnifiedMediaListView(
+                            header: "My Favorites",
+                            items: viewModel.favorites,
+                            onSelect: handleMediaSelection
+                        )
+                    }
+                    
+                    // 11. Uncategorized
+                    if !viewModel.uncategorized.isEmpty {
+                        UnifiedMediaListView(
+                            header: "Uncategorized",
+                            items: viewModel.uncategorized,
+                            onSelect: handleMediaSelection
+                        )
+                    }
+                    
+                    // 12. Genres / Categories
+                    ForEach(Array(viewModel.categorizedChannels.keys.sorted().prefix(15)), id: \.self) { category in
+                        let catLower = category.lowercased()
+                        if catLower != "sports" && catLower != "sport" { // Avoid duplicate sports sections
+                            HomeCategoryRowView(category: category, viewModel: viewModel, onSelect: handleMediaSelection)
+                        }
                     }
                 }
+                .padding(.bottom, 30) // Extra padding to clear custom tab bar
             }
-            .padding(.bottom, 30) // Extra padding to clear custom tab bar
+            .ignoresSafeArea(edges: .top)
         }
-        .ignoresSafeArea(edges: .top)
     }
-}
+
 
 // MARK: - Lazy Loading Home Category Row View
 struct HomeCategoryRowView: View {
     let category: String
     var viewModel: HomeViewModel
-    @Binding var selectedPlayableItem: UnifiedMediaItem?
+    let onSelect: (UnifiedMediaItem) -> Void
     
     var body: some View {
         Group {
@@ -323,20 +341,7 @@ struct HomeCategoryRowView: View {
                     header: category,
                     // Limit to 20 items and map only when this view is rendered
                     items: channels.prefix(20).map { $0.toUnified },
-                    onSelect: { item in
-                        UserDataManager.shared.addToHistory(item)
-                        if let url = item.streamUrl {
-                            GlobalPlayerManager.shared.play(
-                                url: url,
-                                title: item.title,
-                                artwork: item.posterPath,
-                                isLive: item.mediaType == .liveTV,
-                                streamId: item.id
-                            )
-                        } else {
-                            selectedPlayableItem = item
-                        }
-                    }
+                    onSelect: onSelect
                 )
             }
         }
@@ -421,46 +426,47 @@ struct IPTVHeroHeaderView: View {
                 
             }
             .padding(.bottom, 24)
+            .frame(height: 500)
         }
-        .frame(height: 500)
     }
+    
+    
 }
-
 // MARK: - Home Skeleton / Shimmer Loading View
-private struct HomeShimmerView: View {
+struct HomeShimmerView: View {
     @Environment(\.colorScheme) private var colorScheme
-
+    
     /// Base fill for large skeleton blocks (hero, cards)
     private var blockFill: Color {
         colorScheme == .dark
-            ? Color.white.opacity(0.18)
-            : Color(UIColor.systemGray5)
+        ? Color.white.opacity(0.18)
+        : Color(UIColor.systemGray5)
     }
-
+    
     /// Base fill for small skeleton lines (title, subtitle)
     private var lineFill: Color {
         colorScheme == .dark
-            ? Color.white.opacity(0.14)
-            : Color(UIColor.systemGray4)
+        ? Color.white.opacity(0.14)
+        : Color(UIColor.systemGray4)
     }
-
+    
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 24) {
-
+                
                 // Hero banner placeholder
                 RoundedRectangle(cornerRadius: 0)
                     .fill(blockFill)
                     .frame(maxWidth: .infinity)
                     .frame(height: 480)
                     .shimmer()
-
+                
                 // Section 1
                 shimmerSection()
-
+                
                 // Section 2
                 shimmerSection()
-
+                
                 // Section 3
                 shimmerSection()
             }
@@ -468,8 +474,7 @@ private struct HomeShimmerView: View {
         .ignoresSafeArea(edges: .top)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
-
-    @ViewBuilder
+    
     private func shimmerSection() -> some View {
         VStack(alignment: .leading, spacing: 12) {
             // Section title bar
@@ -478,7 +483,7 @@ private struct HomeShimmerView: View {
                 .frame(width: 160, height: 18)
                 .shimmer()
                 .padding(.horizontal, 16)
-
+            
             // Horizontal row of card skeletons
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
