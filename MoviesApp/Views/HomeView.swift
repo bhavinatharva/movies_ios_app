@@ -16,8 +16,14 @@ struct HomeView: View {
     @State private var selectedMovieForDetail: UnifiedMediaItem?
     @State private var selectedSeriesForDetail: UnifiedMediaItem?
     @State private var selectedCollectionForDetail: MovieCollection?
-    @State private var showSettings = false
-    @State private var showSearch = false
+    
+    private enum ActiveSheet: Identifiable {
+        case settings
+        case search
+        
+        var id: Int { hashValue }
+    }
+    @State private var activeSheet: ActiveSheet?
     
     var body: some View {
         NavigationStack(path: $detailNavigationPath) {
@@ -71,11 +77,13 @@ struct HomeView: View {
                 }
             }
             .navigationBarHidden(true)
-            .sheet(isPresented: $showSettings) {
-                SettingsView()
-            }
-            .sheet(isPresented: $showSearch) {
-                SearchView()
+            .sheet(item: $activeSheet) { sheet in
+                switch sheet {
+                case .settings:
+                    SettingsView()
+                case .search:
+                    SearchView()
+                }
             }
             .task(id: activePlaylistUrl) {
                 if hasDefaultPlaylist {
@@ -155,7 +163,7 @@ struct HomeView: View {
             
             HStack(spacing: 20) {
                 Button {
-                    showSearch = true
+                    activeSheet = .search
                 } label: {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 20, weight: .semibold))
@@ -163,7 +171,7 @@ struct HomeView: View {
                 }
                 
                 Button {
-                    showSettings = true
+                    activeSheet = .settings
                 } label: {
                     Image(systemName: "gearshape.fill")
                         .font(.system(size: 20, weight: .semibold))

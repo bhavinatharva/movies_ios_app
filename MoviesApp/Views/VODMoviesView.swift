@@ -9,9 +9,15 @@ struct VODMoviesView: View {
     @Bindable private var dataManager = IPTVDataManager.shared
     @State private var selectedCategory: XtreamCategory?
     @State private var selectedMovie: UnifiedMediaItem?
-    @State private var showingCategoryFilter = false
-    @State private var showSettings = false
-    @State private var showSearch = false
+    
+    private enum ActiveSheet: Identifiable {
+        case categoryFilter
+        case settings
+        case search
+        
+        var id: Int { hashValue }
+    }
+    @State private var activeSheet: ActiveSheet?
     
     private let columns = [
         GridItem(.adaptive(minimum: 110), spacing: 16)
@@ -43,20 +49,21 @@ struct VODMoviesView: View {
             .navigationDestination(item: $selectedMovie) { movie in
                 UnifiedMediaDetailView(item: movie)
             }
-            .sheet(isPresented: $showingCategoryFilter) {
-                CategoryFilterView(
-                    categories: dataManager.vodCategories,
-                    selectedCategory: selectedCategory,
-                    onSelect: { category in
-                        selectedCategory = category
-                    }
-                )
-            }
-            .sheet(isPresented: $showSettings) {
-                SettingsView()
-            }
-            .sheet(isPresented: $showSearch) {
-                SearchView()
+            .sheet(item: $activeSheet) { sheet in
+                switch sheet {
+                case .categoryFilter:
+                    CategoryFilterView(
+                        categories: dataManager.vodCategories,
+                        selectedCategory: selectedCategory,
+                        onSelect: { category in
+                            selectedCategory = category
+                        }
+                    )
+                case .settings:
+                    SettingsView()
+                case .search:
+                    SearchView()
+                }
             }
         }
     }
@@ -185,12 +192,12 @@ struct VODMoviesView: View {
     private var trailingToolbarItems: some ToolbarContent {
         ToolbarItemGroup(placement: .navigationBarTrailing) {
             Button {
-                showSearch = true
+                activeSheet = .search
             } label: {
                 Image(systemName: "magnifyingglass")
             }
             Button {
-                showSettings = true
+                activeSheet = .settings
             } label: {
                 Image(systemName: "gearshape.fill")
             }
@@ -201,7 +208,7 @@ struct VODMoviesView: View {
     @ViewBuilder
     private var categoryMenu: some View {
         Button {
-            showingCategoryFilter = true
+            activeSheet = .categoryFilter
         } label: {
             Image(systemName: "line.3.horizontal.decrease.circle")
         }

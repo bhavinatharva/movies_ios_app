@@ -7,8 +7,14 @@ import SwiftUI
 
 struct RecentView: View {
     @Bindable private var userDataManager = UserDataManager.shared
-    @State private var showSettings = false
-    @State private var showSearch = false
+    
+    private enum ActiveSheet: Identifiable {
+        case settings
+        case search
+        
+        var id: Int { hashValue }
+    }
+    @State private var activeSheet: ActiveSheet?
     
     var body: some View {
         NavigationStack {
@@ -53,12 +59,12 @@ struct RecentView: View {
             .toolbar {
                 ToolbarItemGroup(placement: .navigationBarTrailing) {
                     Button {
-                        showSearch = true
+                        activeSheet = .search
                     } label: {
                         Image(systemName: "magnifyingglass")
                     }
                     Button {
-                        showSettings = true
+                        activeSheet = .settings
                     } label: {
                         Image(systemName: "gearshape.fill")
                     }
@@ -74,11 +80,13 @@ struct RecentView: View {
                 }
             }
         }
-        .sheet(isPresented: $showSettings) {
-            SettingsView()
-        }
-        .sheet(isPresented: $showSearch) {
-            SearchView()
+        .sheet(item: $activeSheet) { sheet in
+            switch sheet {
+            case .settings:
+                SettingsView()
+            case .search:
+                SearchView()
+            }
         }
     }
 }

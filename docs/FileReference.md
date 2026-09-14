@@ -41,6 +41,7 @@
 | SettingsView.swift | SettingsView, SettingsCardContainer, SettingsRowUIComponent |
 | MovieDetailView.swift | MovieDetailView, MovieDetailView_Previews |
 | SearchView.swift | SearchView |
+| RecentView.swift | RecentView |
 | YoutubePlayer.swift | YoutubePlayer |
 
 | MovieCardView.swift | MovieCardView |

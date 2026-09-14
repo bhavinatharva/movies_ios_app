@@ -12,9 +12,15 @@ struct LiveTVView: View {
     
     @State private var selectedCategory: String? = nil
     @State private var selectedChannel: IPTVChannel?
-    @State private var showingCategoryFilter = false
     @State private var searchQuery: String = ""
-    @State private var showSettings = false
+    
+    private enum ActiveSheet: Identifiable {
+        case categoryFilter
+        case settings
+        
+        var id: Int { hashValue }
+    }
+    @State private var activeSheet: ActiveSheet?
     
     var categories: [String] {
         dataManager.categorizedChannels.keys.sorted()
@@ -55,17 +61,19 @@ struct LiveTVView: View {
             .navigationDestination(item: $selectedChannel) { channel in
                 LiveTVDetailView(channel: channel)
             }
-            .sheet(isPresented: $showingCategoryFilter) {
-                LiveCategoryFilterSheet(
-                    categories: categories,
-                    selectedCategory: selectedCategory,
-                    onSelect: { category in
-                        selectedCategory = category
-                    }
-                )
-            }
-            .sheet(isPresented: $showSettings) {
-                SettingsView()
+            .sheet(item: $activeSheet) { sheet in
+                switch sheet {
+                case .categoryFilter:
+                    LiveCategoryFilterSheet(
+                        categories: categories,
+                        selectedCategory: selectedCategory,
+                        onSelect: { category in
+                            selectedCategory = category
+                        }
+                    )
+                case .settings:
+                    SettingsView()
+                }
             }
             .onAppear {
                 if selectedCategory == nil {
@@ -131,12 +139,12 @@ struct LiveTVView: View {
     private var trailingToolbarItems: some ToolbarContent {
         ToolbarItemGroup(placement: .navigationBarTrailing) {
             Button {
-                showSettings = true
+                activeSheet = .settings
             } label: {
                 Image(systemName: "gearshape.fill")
             }
             Button {
-                showingCategoryFilter = true
+                activeSheet = .categoryFilter
             } label: {
                 Image(systemName: "line.3.horizontal.decrease.circle")
             }

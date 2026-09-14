@@ -18,6 +18,8 @@
 - Structs: MovieDetailView, MovieDetailView_Previews
 ## SearchView.swift
 - Structs: SearchView
+## RecentView.swift
+- Structs: RecentView
 ## YoutubePlayer.swift
 - Structs: YoutubePlayer
 
