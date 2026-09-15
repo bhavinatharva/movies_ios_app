@@ -12,7 +12,7 @@ struct ContentView: View {
     
     var body: some View {
         MainTabView()
-            .preferredColorScheme(userDataManager.currentTheme.colorScheme)
+            .preferredColorScheme(.dark)
             .onAppear {
                 if let config = ApiConfig.shared {
                     print("ApiConfig.shared.baseUrl", config.baseUrl ?? "Not available")

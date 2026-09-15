@@ -29,20 +29,16 @@ struct HomeView: View {
     var body: some View {
         NavigationStack(path: $detailNavigationPath) {
             ZStack {
-                // Dynamic Premium theatrical background
-                if colorScheme == .light {
-                    Color.appBackground.ignoresSafeArea()
-                } else {
-                    LinearGradient(
-                        stops: [
-                            .init(color: Color(red: 0.05, green: 0.05, blue: 0.07), location: 0),
-                            .init(color: Color(red: 0.01, green: 0.01, blue: 0.02), location: 1)
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                    .ignoresSafeArea()
-                }
+                // Dynamic Premium theatrical dark gradient background
+                LinearGradient(
+                    stops: [
+                        .init(color: Color(red: 0.06, green: 0.06, blue: 0.08), location: 0),
+                        .init(color: Color(red: 0.02, green: 0.02, blue: 0.03), location: 1)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
                 
                 if !hasDefaultPlaylist {
                     VStack(spacing: 0) {
@@ -155,10 +151,13 @@ struct HomeView: View {
             }
         }
         
-        private var headerView: some View {
-            HStack(spacing: 20) {
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    
+    private var headerView: some View {
+        HStack(spacing: 20) {
+            if horizontalSizeClass != .regular {
                 Text("IPTV")
-                    .font(.system(size: 24, weight: .bold))
+                    .font(.system(size: 24, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
                 
                 Spacer()
@@ -178,18 +177,21 @@ struct HomeView: View {
                         .font(.system(size: 20, weight: .semibold))
                         .foregroundColor(.white)
                 }
+            } else {
+                Spacer()
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 16)
-            .padding(.bottom, 16)
-            .background(
-                LinearGradient(
-                    colors: [.black.opacity(0.85), .clear],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            )
         }
+        .padding(.horizontal, 20)
+        .padding(.top, horizontalSizeClass == .regular ? 8 : 16)
+        .padding(.bottom, 16)
+        .background(
+            LinearGradient(
+                colors: [.black.opacity(horizontalSizeClass == .regular ? 0.4 : 0.85), .clear],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        )
+    }
         
         private var emptyPlaylistView: some View {
             VStack(spacing: 20) {
@@ -351,15 +353,20 @@ struct HomeCategoryRowView: View {
 struct IPTVHeroHeaderView: View {
     let item: UnifiedMediaItem
     let onPlay: () -> Void
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    
+    private var heroHeight: CGFloat {
+        horizontalSizeClass == .regular ? 460 : 440
+    }
     
     private var fallbackHeroBackground: some View {
         ZStack {
             LinearGradient(
-                colors: [Color.accentColor.opacity(0.15), Color.black],
+                colors: [Color.accentColor.opacity(0.2), Color.black],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
-            .frame(height: 500)
+            .frame(height: heroHeight)
             
             Image(systemName: "popcorn.fill")
                 .font(.system(size: 80))
@@ -377,16 +384,17 @@ struct IPTVHeroHeaderView: View {
                         image
                             .resizable()
                             .scaledToFill()
-                            .frame(height: 500)
+                            .frame(height: heroHeight)
+                            .frame(maxWidth: .infinity)
                             .clipped()
                             .overlay {
-                                // Double-layer premium theatrical vignette gradients
+                                // Multi-directional gradient vignette
                                 LinearGradient(
                                     stops: [
-                                        .init(color: .black.opacity(0.75), location: 0),
+                                        .init(color: .black.opacity(0.7), location: 0),
                                         .init(color: .clear, location: 0.3),
-                                        .init(color: .clear, location: 0.6),
-                                        .init(color: Color.appBackground, location: 1.0)
+                                        .init(color: .clear, location: 0.55),
+                                        .init(color: Color(red: 0.06, green: 0.06, blue: 0.08), location: 1.0)
                                     ],
                                     startPoint: .top,
                                     endPoint: .bottom
@@ -403,7 +411,7 @@ struct IPTVHeroHeaderView: View {
             }
             
             // Text & Control Overlay
-            VStack(spacing: 16) {
+            VStack(spacing: 12) {
                 // Floating category tag
                 if let category = item.genres?.first {
                     Text(category.uppercased())
@@ -416,21 +424,56 @@ struct IPTVHeroHeaderView: View {
                 }
                 
                 Text(item.title)
-                    .font(.system(size: 32, weight: .black, design: .rounded))
+                    .font(.system(size: horizontalSizeClass == .regular ? 36 : 28, weight: .black, design: .rounded))
                     .foregroundColor(.white)
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
-                    .minimumScaleFactor(0.55) // Automatically scale font down up to 55% to fit without cutting!
-                    .padding(.horizontal, 24)
+                    .minimumScaleFactor(0.6)
+                    .padding(.horizontal, 32)
                     .shadow(color: .black.opacity(0.8), radius: 8, x: 0, y: 4)
                 
+                // Hero Action Buttons
+                HStack(spacing: 14) {
+                    Button(action: onPlay) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "play.fill")
+                                .font(.system(size: 16, weight: .bold))
+                            Text("Watch Now")
+                                .font(.system(size: 15, weight: .bold, design: .rounded))
+                        }
+                        .foregroundColor(.black)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 12)
+                        .background(Color.white)
+                        .clipShape(Capsule())
+                        .shadow(color: .white.opacity(0.3), radius: 8, x: 0, y: 3)
+                    }
+                    .buttonStyle(PressScaleButtonStyle())
+                    
+                    Button(action: {
+                        UserDataManager.shared.toggleFavorite(id: item.id)
+                    }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: UserDataManager.shared.isFavorite(id: item.id) ? "star.fill" : "star")
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundColor(UserDataManager.shared.isFavorite(id: item.id) ? .yellow : .white)
+                            Text("Favorite")
+                                .font(.system(size: 14, weight: .bold, design: .rounded))
+                                .foregroundColor(.white)
+                        }
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 12)
+                        .background(Color.white.opacity(0.15))
+                        .clipShape(Capsule())
+                    }
+                    .buttonStyle(PressScaleButtonStyle())
+                }
+                .padding(.top, 4)
             }
-            .padding(.bottom, 24)
-            .frame(height: 500)
+            .padding(.bottom, 28)
+            .frame(height: heroHeight)
         }
     }
-    
-    
 }
 // MARK: - Home Skeleton / Shimmer Loading View
 struct HomeShimmerView: View {

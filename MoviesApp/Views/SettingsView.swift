@@ -179,18 +179,15 @@ struct SettingsView: View {
                     icon: "moon.fill",
                     iconColor: .indigo,
                     title: "Dark Mode",
-                    subtitle: "Use dark theme for the app",
-                    trailing: Toggle("", isOn: Binding(
-                        get: { 
-                            if userDataManager.currentTheme == .system {
-                                return colorScheme == .dark
-                            }
-                            return userDataManager.currentTheme == .dark
-                        },
-                        set: { isDark in
-                            userDataManager.currentTheme = isDark ? .dark : .light
-                        }
-                    )).labelsHidden()
+                    subtitle: "Cinema dark experience is always enabled",
+                    trailing: HStack(spacing: 4) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.accentColor)
+                        Text("Active")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.accentColor)
+                    }
                 )
             }
         }

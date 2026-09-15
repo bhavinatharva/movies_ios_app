@@ -2,6 +2,7 @@ import SwiftUI
 
 struct PlaylistHubView: View {
     @AppStorage("has_default_playlist") private var hasDefaultPlaylist = false
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
     private let playlistManager = PlaylistManager.shared
     
     @State private var playlists: [Playlist] = []
@@ -60,15 +61,30 @@ struct PlaylistHubView: View {
                                     .foregroundColor(.primary)
                                     .padding(.horizontal)
                                 
-                                ForEach(filteredPlaylists) { playlist in
-                                    PlaylistCardView(
-                                        playlist: playlist,
-                                        isActive: playlist.isDefault,
-                                        onActivate: { activate(playlist: playlist) },
-                                        onDelete: { delete(playlist: playlist) },
-                                        onRefresh: { refreshCurrentContent(for: playlist) }
-                                    )
+                                if horizontalSizeClass == .regular {
+                                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 320), spacing: 16)], spacing: 16) {
+                                        ForEach(filteredPlaylists) { playlist in
+                                            PlaylistCardView(
+                                                playlist: playlist,
+                                                isActive: playlist.isDefault,
+                                                onActivate: { activate(playlist: playlist) },
+                                                onDelete: { delete(playlist: playlist) },
+                                                onRefresh: { refreshCurrentContent(for: playlist) }
+                                            )
+                                        }
+                                    }
                                     .padding(.horizontal)
+                                } else {
+                                    ForEach(filteredPlaylists) { playlist in
+                                        PlaylistCardView(
+                                            playlist: playlist,
+                                            isActive: playlist.isDefault,
+                                            onActivate: { activate(playlist: playlist) },
+                                            onDelete: { delete(playlist: playlist) },
+                                            onRefresh: { refreshCurrentContent(for: playlist) }
+                                        )
+                                        .padding(.horizontal)
+                                    }
                                 }
                             }
                         }

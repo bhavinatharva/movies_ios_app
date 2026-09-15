@@ -19,9 +19,15 @@ struct SeriesView: View {
     }
     @State private var activeSheet: ActiveSheet?
     
-    private let columns = [
-        GridItem(.adaptive(minimum: 110), spacing: 16)
-    ]
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    
+    private var gridColumns: [GridItem] {
+        if horizontalSizeClass == .regular {
+            return [GridItem(.adaptive(minimum: 160, maximum: 220), spacing: 20)]
+        } else {
+            return [GridItem(.adaptive(minimum: 110), spacing: 16)]
+        }
+    }
     
     var body: some View {
         NavigationStack {
@@ -34,7 +40,23 @@ struct SeriesView: View {
                     } else if case .error(let underlyingError) = dataManager.homeStatus {
                         ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(underlyingError.localizedDescription))
                     } else {
-                        contentView
+                        if horizontalSizeClass == .regular {
+                            HStack(spacing: 0) {
+                                categorySidebar
+                                    .frame(width: 240)
+                                    .background(Color.black.opacity(0.3))
+                                    .overlay(
+                                        Rectangle()
+                                            .frame(width: 0.5)
+                                            .foregroundColor(Color.white.opacity(0.1)),
+                                        alignment: .trailing
+                                    )
+                                
+                                contentView
+                            }
+                        } else {
+                            contentView
+                        }
                     }
                 }
             }
@@ -68,6 +90,73 @@ struct SeriesView: View {
         }
     }
     
+    // iPad Category Selector Sidebar
+    private var categorySidebar: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("CATEGORIES")
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .foregroundColor(.gray)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 16)
+                    .padding(.bottom, 6)
+                
+                Button(action: {
+                    withAnimation(.spring(response: 0.3)) {
+                        selectedCategory = nil
+                    }
+                }) {
+                    HStack {
+                        Text("All / Featured")
+                            .font(.system(size: 14, weight: selectedCategory == nil ? .bold : .medium))
+                            .foregroundColor(selectedCategory == nil ? .white : .gray)
+                        Spacer()
+                        if selectedCategory == nil {
+                            Image(systemName: "checkmark")
+                                .font(.caption.bold())
+                                .foregroundColor(.accentColor)
+                        }
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(selectedCategory == nil ? Color.accentColor.opacity(0.15) : Color.clear)
+                    .cornerRadius(8)
+                    .padding(.horizontal, 8)
+                }
+                .buttonStyle(PlainButtonStyle())
+                
+                ForEach(dataManager.seriesCategories) { cat in
+                    Button(action: {
+                        withAnimation(.spring(response: 0.3)) {
+                            selectedCategory = cat
+                        }
+                    }) {
+                        HStack {
+                            Text(cat.name)
+                                .font(.system(size: 14, weight: selectedCategory?.id == cat.id ? .bold : .medium))
+                                .foregroundColor(selectedCategory?.id == cat.id ? .white : .gray)
+                                .lineLimit(1)
+                            Spacer()
+                            if selectedCategory?.id == cat.id {
+                                Image(systemName: "checkmark")
+                                    .font(.caption.bold())
+                                    .foregroundColor(.accentColor)
+                            }
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .background(selectedCategory?.id == cat.id ? Color.accentColor.opacity(0.15) : Color.clear)
+                        .cornerRadius(8)
+                        .padding(.horizontal, 8)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
+            }
+            .padding(.bottom, 20)
+        }
+    }
+    
     @ViewBuilder
     private var skeletonView: some View {
         VStack {
@@ -85,7 +174,7 @@ struct SeriesView: View {
     private var contentView: some View {
         ScrollView {
             if let category = selectedCategory {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 110), spacing: 16)], spacing: 16) {
+                LazyVGrid(columns: gridColumns, spacing: horizontalSizeClass == .regular ? 20 : 16) {
                     ForEach(dataManager.categorizedSeries[category.id] ?? []) { series in
                         GeometryReader { geo in
                             UnifiedMediaCardView(item: series, width: geo.size.width)
@@ -96,8 +185,9 @@ struct SeriesView: View {
                         .aspectRatio(2/3, contentMode: .fit)
                     }
                 }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, horizontalSizeClass == .regular ? 24 : 16)
                 .padding(.top, 16)
+                .padding(.bottom, 30)
             } else {
                 homeRailsView
             }
@@ -194,7 +284,9 @@ struct SeriesView: View {
             } label: {
                 Image(systemName: "gearshape.fill")
             }
-            categoryMenu
+            if horizontalSizeClass != .regular {
+                categoryMenu
+            }
         }
     }
     

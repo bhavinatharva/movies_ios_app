@@ -16,6 +16,16 @@ struct RecentView: View {
     }
     @State private var activeSheet: ActiveSheet?
     
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    
+    private var gridColumns: [GridItem] {
+        if horizontalSizeClass == .regular {
+            return [GridItem(.adaptive(minimum: 150, maximum: 200), spacing: 20)]
+        } else {
+            return [GridItem(.adaptive(minimum: 110), spacing: 16)]
+        }
+    }
+    
     var body: some View {
         NavigationStack {
             ZStack {
@@ -29,10 +39,7 @@ struct RecentView: View {
                     )
                 } else {
                     ScrollView {
-                        let columns = [
-                            GridItem(.adaptive(minimum: 110), spacing: 16)
-                        ]
-                        LazyVGrid(columns: columns, spacing: 16) {
+                        LazyVGrid(columns: gridColumns, spacing: horizontalSizeClass == .regular ? 20 : 16) {
                             ForEach(userDataManager.recentlyWatched) { item in
                                 GeometryReader { geo in
                                     UnifiedMediaCardView(item: item, width: geo.size.width)

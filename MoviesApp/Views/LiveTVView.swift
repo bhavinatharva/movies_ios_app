@@ -35,6 +35,16 @@ struct LiveTVView: View {
         return cat == nil ? Array(dataManager.liveChannels.prefix(50)) : (dataManager.categorizedChannels[cat!] ?? [])
     }
     
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    
+    private var gridColumns: [GridItem] {
+        if horizontalSizeClass == .regular {
+            return [GridItem(.adaptive(minimum: 150, maximum: 200), spacing: 18)]
+        } else {
+            return [GridItem(.adaptive(minimum: 110), spacing: 14)]
+        }
+    }
+    
     var body: some View {
         NavigationStack {
             ZStack {
@@ -48,7 +58,24 @@ struct LiveTVView: View {
                     } else if case .error(let error) = dataManager.homeStatus {
                         ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(error.localizedDescription))
                     } else {
-                        contentView
+                        if horizontalSizeClass == .regular {
+                            // iPad: Native side-by-side category and channel browser
+                            HStack(spacing: 0) {
+                                categorySidebar
+                                    .frame(width: 240)
+                                    .background(Color.black.opacity(0.3))
+                                    .overlay(
+                                        Rectangle()
+                                            .frame(width: 0.5)
+                                            .foregroundColor(Color.white.opacity(0.1)),
+                                        alignment: .trailing
+                                    )
+                                
+                                contentView
+                            }
+                        } else {
+                            contentView
+                        }
                     }
                 }
             }
@@ -88,6 +115,73 @@ struct LiveTVView: View {
         }
     }
     
+    // iPad Category Selector Sidebar
+    private var categorySidebar: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("CATEGORIES")
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .foregroundColor(.gray)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 16)
+                    .padding(.bottom, 6)
+                
+                Button(action: {
+                    withAnimation(.spring(response: 0.3)) {
+                        selectedCategory = nil
+                    }
+                }) {
+                    HStack {
+                        Text("All Channels")
+                            .font(.system(size: 14, weight: selectedCategory == nil ? .bold : .medium))
+                            .foregroundColor(selectedCategory == nil ? .white : .gray)
+                        Spacer()
+                        if selectedCategory == nil {
+                            Image(systemName: "checkmark")
+                                .font(.caption.bold())
+                                .foregroundColor(.accentColor)
+                        }
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(selectedCategory == nil ? Color.accentColor.opacity(0.15) : Color.clear)
+                    .cornerRadius(8)
+                    .padding(.horizontal, 8)
+                }
+                .buttonStyle(PlainButtonStyle())
+                
+                ForEach(categories, id: \.self) { cat in
+                    Button(action: {
+                        withAnimation(.spring(response: 0.3)) {
+                            selectedCategory = cat
+                        }
+                    }) {
+                        HStack {
+                            Text(cat)
+                                .font(.system(size: 14, weight: selectedCategory == cat ? .bold : .medium))
+                                .foregroundColor(selectedCategory == cat ? .white : .gray)
+                                .lineLimit(1)
+                            Spacer()
+                            if selectedCategory == cat {
+                                Image(systemName: "checkmark")
+                                    .font(.caption.bold())
+                                    .foregroundColor(.accentColor)
+                            }
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .background(selectedCategory == cat ? Color.accentColor.opacity(0.15) : Color.clear)
+                        .cornerRadius(8)
+                        .padding(.horizontal, 8)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
+            }
+            .padding(.bottom, 20)
+        }
+    }
+    
     @ViewBuilder
     private var contentView: some View {
         ScrollView {
@@ -119,7 +213,7 @@ struct LiveTVView: View {
                     ContentUnavailableView("No Channels Found", systemImage: "tv.slash")
                         .padding(.top, 40)
                 } else {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 110), spacing: 16)], spacing: 16) {
+                    LazyVGrid(columns: gridColumns, spacing: horizontalSizeClass == .regular ? 20 : 16) {
                         ForEach(filteredChannels) { channel in
                             LiveChannelGridCardView(channel: channel)
                                 .onTapGesture {
@@ -127,7 +221,7 @@ struct LiveTVView: View {
                                 }
                         }
                     }
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, horizontalSizeClass == .regular ? 24 : 16)
                     .padding(.top, 16)
                     .padding(.bottom, 30)
                 }
@@ -143,10 +237,12 @@ struct LiveTVView: View {
             } label: {
                 Image(systemName: "gearshape.fill")
             }
-            Button {
-                activeSheet = .categoryFilter
-            } label: {
-                Image(systemName: "line.3.horizontal.decrease.circle")
+            if horizontalSizeClass != .regular {
+                Button {
+                    activeSheet = .categoryFilter
+                } label: {
+                    Image(systemName: "line.3.horizontal.decrease.circle")
+                }
             }
         }
     }

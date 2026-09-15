@@ -15,6 +15,16 @@ struct SearchView: View {
     @State private var navigationPath = NavigationPath()
     @State private var selectedPlayableItem: UnifiedMediaItem? = nil
     
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    
+    private var gridColumns: [GridItem] {
+        if horizontalSizeClass == .regular {
+            return [GridItem(.adaptive(minimum: 150, maximum: 200), spacing: 20)]
+        } else {
+            return [GridItem(.adaptive(minimum: 110), spacing: 16)]
+        }
+    }
+    
     private var isIPTVActive: Bool {
         IPTVDataManager.shared.homeStatus == .success && !IPTVDataManager.shared.availableTabs.isEmpty
     }
@@ -44,7 +54,7 @@ struct SearchView: View {
                         .padding(.top, 60)
                     } else {
                         // Render Grid View
-                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 110), spacing: 16)], spacing: 16) {
+                        LazyVGrid(columns: gridColumns, spacing: horizontalSizeClass == .regular ? 20 : 16) {
                             if isIPTVActive {
                                 ForEach(searchViewModel.iptvResults) { item in
                                     GeometryReader { geo in

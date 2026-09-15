@@ -68,7 +68,7 @@ struct UnifiedMediaCardView: View {
     }
     
     var body: some View {
-        let cardWidth = width ?? (horizontalSizeClass == .regular ? 180 : 140)
+        let cardWidth = width ?? (horizontalSizeClass == .regular ? 200 : 140)
         let cardHeight = cardWidth * 3 / 2 // Modern 2:3 aspect ratio
         
         ZStack(alignment: .bottomLeading) {

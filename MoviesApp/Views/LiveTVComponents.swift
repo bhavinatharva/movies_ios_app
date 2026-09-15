@@ -275,54 +275,94 @@ struct LiveChannelGridCardView: View {
     @State private var epg = MockEPGInfo(currentShow: "Loading...", nextShow: "", progress: 0.0)
     
     var body: some View {
-        VStack(spacing: 8) {
-            // Logo Background
+        VStack(alignment: .leading, spacing: 10) {
+            // Logo Background Container
             ZStack {
-                Color.white.opacity(0.05)
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Color.white.opacity(0.06))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(Color.white.opacity(0.12), lineWidth: 0.8)
+                    )
+                
                 if let logoUrl = channel.logoUrl {
                     AsyncImage(url: logoUrl) { image in
-                        image.resizable().scaledToFit().padding(12)
+                        image
+                            .resizable()
+                            .scaledToFit()
+                            .padding(14)
                     } placeholder: {
-                        Image(systemName: "tv").resizable().scaledToFit().padding(32).foregroundColor(.white.opacity(0.3))
+                        Image(systemName: "tv")
+                            .font(.system(size: 28))
+                            .foregroundColor(.white.opacity(0.3))
                     }
                 } else {
-                    Image(systemName: "tv").resizable().scaledToFit().padding(32).foregroundColor(.white.opacity(0.3))
+                    Image(systemName: "tv")
+                        .font(.system(size: 28))
+                        .foregroundColor(.white.opacity(0.3))
                 }
                 
-                // Live Badge
+                // Live & Favorite Badges
                 VStack {
                     HStack {
+                        if UserDataManager.shared.isFavorite(id: channel.toUnified.id) {
+                            Image(systemName: "star.fill")
+                                .font(.system(size: 9))
+                                .foregroundColor(.yellow)
+                                .padding(5)
+                                .background(Color.black.opacity(0.6))
+                                .clipShape(Circle())
+                                .padding(8)
+                        }
                         Spacer()
-                        Text("LIVE")
-                            .font(.system(size: 9, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 3)
-                            .background(Color.red)
-                            .cornerRadius(4)
-                            .padding(8)
+                        HStack(spacing: 4) {
+                            Circle()
+                                .fill(Color.red)
+                                .frame(width: 5, height: 5)
+                            Text("LIVE")
+                                .font(.system(size: 9, weight: .black, design: .rounded))
+                                .foregroundColor(.white)
+                        }
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3.5)
+                        .background(Color.red.opacity(0.9))
+                        .clipShape(Capsule())
+                        .padding(8)
                     }
                     Spacer()
                 }
             }
-            .aspectRatio(1.0, contentMode: .fill)
-            .cornerRadius(12)
+            .aspectRatio(1.2, contentMode: .fill)
             
-            // Metadata
-            VStack(alignment: .leading, spacing: 4) {
+            // Channel Metadata & EPG
+            VStack(alignment: .leading, spacing: 3) {
                 Text(channel.name)
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
                     .lineLimit(1)
                 
                 Text(epg.currentShow)
-                    .font(.system(size: 11))
-                    .foregroundColor(.secondary)
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundColor(.gray)
                     .lineLimit(1)
+                
+                // Subtle mini EPG progress bar
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(Color.white.opacity(0.1))
+                            .frame(height: 3)
+                        Capsule()
+                            .fill(Color.accentColor.opacity(0.8))
+                            .frame(width: max(0, min(geo.size.width * CGFloat(epg.progress), geo.size.width)), height: 3)
+                    }
+                }
+                .frame(height: 3)
+                .padding(.top, 2)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 4)
+            .padding(.horizontal, 2)
         }
+        .contentShape(Rectangle())
         .onAppear {
             epg = getMockEPG(for: channel.name)
         }

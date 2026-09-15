@@ -118,46 +118,155 @@ struct MainTabView: View {
 
 struct SidebarView: View {
     @Binding var selectedTab: IPTVTab
+    @AppStorage("has_default_playlist") private var hasDefaultPlaylist = false
+    @State private var activePlaylist: Playlist?
+    @State private var showSettings = false
+    @State private var showSearch = false
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("IPTV")
-                .font(.title2)
-                .fontWeight(.black)
-                .foregroundColor(.accentColor)
-                .padding(.top, 60)
-                .padding(.bottom, 20)
-                .padding(.horizontal, 24)
+        VStack(alignment: .leading, spacing: 0) {
+            // App Branding & Status Header
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 10) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(LinearGradient(colors: [Color.accentColor, Color.purple], startPoint: .topLeading, endPoint: .bottomTrailing))
+                            .frame(width: 36, height: 36)
+                        Image(systemName: "play.tv.fill")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(.white)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("IPTV PRO")
+                            .font(.system(size: 18, weight: .black, design: .rounded))
+                            .foregroundColor(.white)
+                        
+                        HStack(spacing: 5) {
+                            Circle()
+                                .fill(hasDefaultPlaylist ? Color.green : Color.orange)
+                                .frame(width: 6, height: 6)
+                            Text(hasDefaultPlaylist ? (activePlaylist?.name ?? "Connected") : "No Playlist")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(.gray)
+                                .lineLimit(1)
+                        }
+                    }
+                }
+            }
+            .padding(.top, 40)
+            .padding(.bottom, 28)
+            .padding(.horizontal, 20)
             
-            VStack(spacing: 8) {
+            // Primary Navigation Items
+            VStack(spacing: 6) {
                 ForEach(IPTVTab.allCases) { tab in
                     Button(action: {
-                        selectedTab = tab
-                    }) {
-                        HStack(spacing: 16) {
-                            Image(systemName: tab.systemImage)
-                                .font(.title3)
-                                .frame(width: 24)
-                            Text(tab.title)
-                                .font(.headline)
-                            Spacer()
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                            selectedTab = tab
                         }
-                        .foregroundColor(selectedTab == tab ? .white : .gray)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 14)
-                        .background(selectedTab == tab ? Color.accentColor : Color.clear)
-                        .cornerRadius(12)
+                    }) {
+                        HStack(spacing: 14) {
+                            Image(systemName: tab.systemImage)
+                                .font(.system(size: 17, weight: selectedTab == tab ? .bold : .medium))
+                                .foregroundColor(selectedTab == tab ? .accentColor : .gray)
+                                .frame(width: 24)
+                            
+                            Text(tab.title)
+                                .font(.system(size: 15, weight: selectedTab == tab ? .bold : .medium, design: .rounded))
+                                .foregroundColor(selectedTab == tab ? .white : Color.white.opacity(0.7))
+                            
+                            Spacer()
+                            
+                            if selectedTab == tab {
+                                Capsule()
+                                    .fill(Color.accentColor)
+                                    .frame(width: 4, height: 18)
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .background(
+                            selectedTab == tab
+                            ? Color.accentColor.opacity(0.15)
+                            : Color.clear
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .stroke(selectedTab == tab ? Color.accentColor.opacity(0.3) : Color.clear, lineWidth: 1)
+                        )
                         .padding(.horizontal, 12)
                     }
                     .buttonStyle(PlainButtonStyle())
                 }
             }
+            
             Spacer()
+            
+            // Quick Action Utilities (Search & Settings)
+            VStack(spacing: 8) {
+                Divider()
+                    .background(Color.white.opacity(0.1))
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 8)
+                
+                Button(action: { showSearch = true }) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundColor(.gray)
+                        Text("Search")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.white.opacity(0.8))
+                        Spacer()
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(Color.white.opacity(0.04))
+                    .cornerRadius(10)
+                    .padding(.horizontal, 12)
+                }
+                .buttonStyle(PlainButtonStyle())
+                
+                Button(action: { showSettings = true }) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "gearshape.fill")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundColor(.gray)
+                        Text("Settings")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.white.opacity(0.8))
+                        Spacer()
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(Color.white.opacity(0.04))
+                    .cornerRadius(10)
+                    .padding(.horizontal, 12)
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+            .padding(.bottom, 24)
         }
-        .frame(width: 250)
-        .background(Color.black.opacity(0.4))
-        .background(VisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialDark)))
-        .ignoresSafeArea()
+        .frame(width: 260)
+        .background(Color(red: 0.06, green: 0.06, blue: 0.08))
+        .overlay(
+            Rectangle()
+                .frame(width: 0.5)
+                .foregroundColor(Color.white.opacity(0.1)),
+            alignment: .trailing
+        )
+        .ignoresSafeArea(.all, edges: .vertical)
+        .onAppear {
+            activePlaylist = PlaylistManager.shared.fetchDefaultPlaylist()
+        }
+        .fullScreenCover(isPresented: $showSearch) {
+            SearchView()
+        }
+        .fullScreenCover(isPresented: $showSettings) {
+            SettingsView()
+        }
     }
 }
 
