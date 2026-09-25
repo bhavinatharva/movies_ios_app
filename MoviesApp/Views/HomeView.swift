@@ -156,9 +156,15 @@ struct HomeView: View {
     private var headerView: some View {
         HStack(spacing: 20) {
             if horizontalSizeClass != .regular {
+                #if os(tvOS)
+                Text("IPTV")
+                    .font(.system(size: 60, weight: .bold, design: .rounded))
+                    .foregroundColor(.white)
+                #else
                 Text("IPTV")
                     .font(.system(size: 24, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
+                #endif
                 
                 Spacer()
                 
@@ -356,7 +362,11 @@ struct IPTVHeroHeaderView: View {
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     private var heroHeight: CGFloat {
+        #if os(tvOS)
+        800
+        #else
         horizontalSizeClass == .regular ? 460 : 440
+        #endif
     }
     
     private var fallbackHeroBackground: some View {
@@ -424,7 +434,11 @@ struct IPTVHeroHeaderView: View {
                 }
                 
                 Text(item.title)
+                    #if os(tvOS)
+                    .font(.system(size: 64, weight: .black, design: .rounded))
+                    #else
                     .font(.system(size: horizontalSizeClass == .regular ? 36 : 28, weight: .black, design: .rounded))
+                    #endif
                     .foregroundColor(.white)
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
@@ -437,9 +451,17 @@ struct IPTVHeroHeaderView: View {
                     Button(action: onPlay) {
                         HStack(spacing: 8) {
                             Image(systemName: "play.fill")
+                                #if os(tvOS)
+                                .font(.system(size: 24, weight: .bold))
+                                #else
                                 .font(.system(size: 16, weight: .bold))
+                                #endif
                             Text("Watch Now")
+                                #if os(tvOS)
+                                .font(.system(size: 22, weight: .bold, design: .rounded))
+                                #else
                                 .font(.system(size: 15, weight: .bold, design: .rounded))
+                                #endif
                         }
                         .foregroundColor(.black)
                         .padding(.horizontal, 24)
@@ -455,10 +477,18 @@ struct IPTVHeroHeaderView: View {
                     }) {
                         HStack(spacing: 6) {
                             Image(systemName: UserDataManager.shared.isFavorite(id: item.id) ? "star.fill" : "star")
+                                #if os(tvOS)
+                                .font(.system(size: 24, weight: .bold))
+                                #else
                                 .font(.system(size: 15, weight: .bold))
+                                #endif
                                 .foregroundColor(UserDataManager.shared.isFavorite(id: item.id) ? .yellow : .white)
                             Text("Favorite")
+                                #if os(tvOS)
+                                .font(.system(size: 22, weight: .bold, design: .rounded))
+                                #else
                                 .font(.system(size: 14, weight: .bold, design: .rounded))
+                                #endif
                                 .foregroundColor(.white)
                         }
                         .padding(.horizontal, 18)

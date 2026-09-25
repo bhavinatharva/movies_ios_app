@@ -15,9 +15,14 @@ struct UnifiedMediaListView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(header)
+                #if os(tvOS)
+                .font(.system(size: 38, weight: .bold, design: .rounded))
+                #else
                 .font(.system(size: 20, weight: .bold, design: .rounded))
+                #endif
                 .foregroundColor(.primary)
                 .padding(.horizontal, 16)
+
             
             ScrollView(.horizontal, showsIndicators: false) {
                 LazyHStack(spacing: 16) {
@@ -61,7 +66,11 @@ struct UnifiedMediaCardView: View {
                     .foregroundColor(.white.opacity(0.3))
                 
                 Text(item.title)
+                    #if os(tvOS)
+                    .font(.system(size: 24, weight: .bold))
+                    #else
                     .font(.system(size: 10, weight: .bold))
+                    #endif
                     .foregroundColor(.white.opacity(0.5))
                     .lineLimit(2)
                     .multilineTextAlignment(.center)
@@ -72,8 +81,13 @@ struct UnifiedMediaCardView: View {
     }
     
     var body: some View {
+        #if os(tvOS)
+        let cardWidth = width ?? 320
+        #else
         let cardWidth = width ?? (horizontalSizeClass == .regular ? 200 : 140)
+        #endif
         let cardHeight = cardWidth * 3 / 2 // Modern 2:3 aspect ratio
+
         
         ZStack(alignment: .bottomLeading) {
             let encodedPosterUrl = item.posterPath?.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? item.posterPath
@@ -106,7 +120,11 @@ struct UnifiedMediaCardView: View {
                 }
                 
                 Text(item.title)
+                    #if os(tvOS)
+                    .font(.system(size: width == nil ? 24 : 28, weight: .bold, design: .rounded))
+                    #else
                     .font(.system(size: width == nil ? 12 : 14, weight: .bold, design: .rounded))
+                    #endif
                     .foregroundColor(.white)
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
