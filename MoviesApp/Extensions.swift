@@ -73,7 +73,11 @@ extension View {
     /// Fixes gesture conflict when a horizontal ScrollView is nested inside a vertical ScrollView.
     /// Without this, the horizontal scroll consumes all touch events and the outer scroll gets stuck.
     func horizontalScrollFix() -> some View {
+        #if os(iOS)
         self.simultaneousGesture(DragGesture())
+        #else
+        self
+        #endif
     }
     
     /// Adds a gorgeous interactive spring-scale reaction on finger presses (legacy fallback, standardise on PressScaleButtonStyle)
@@ -142,4 +146,54 @@ struct PressScaleButtonStyle: ButtonStyle {
             .animation(.spring(response: 0.3, dampingFraction: 0.65, blendDuration: 0), value: configuration.isPressed)
     }
 }
+
+#if os(tvOS)
+extension UIColor {
+    static var systemBackground: UIColor {
+        return UIColor.black
+    }
+    static var secondarySystemFill: UIColor {
+        return UIColor.white.withAlphaComponent(0.15)
+    }
+    static var tertiarySystemFill: UIColor {
+        return UIColor.white.withAlphaComponent(0.10)
+    }
+    static var quaternarySystemFill: UIColor {
+        return UIColor.white.withAlphaComponent(0.05)
+    }
+    static var systemFill: UIColor {
+        return UIColor.white.withAlphaComponent(0.20)
+    }
+    static var systemGray2: UIColor {
+        return UIColor.systemGray.withAlphaComponent(0.8)
+    }
+    static var systemGray3: UIColor {
+        return UIColor.systemGray.withAlphaComponent(0.6)
+    }
+    static var systemGray4: UIColor {
+        return UIColor.systemGray.withAlphaComponent(0.4)
+    }
+    static var systemGray5: UIColor {
+        return UIColor.systemGray.withAlphaComponent(0.25)
+    }
+    static var systemGray6: UIColor {
+        return UIColor.systemGray.withAlphaComponent(0.15)
+    }
+    static var systemGroupedBackground: UIColor {
+        return UIColor.black
+    }
+    static var secondarySystemGroupedBackground: UIColor {
+        return UIColor.white.withAlphaComponent(0.10)
+    }
+    static var tertiarySystemGroupedBackground: UIColor {
+        return UIColor.white.withAlphaComponent(0.05)
+    }
+}
+
+extension UIBlurEffect.Style {
+    static var systemMaterialDark: UIBlurEffect.Style {
+        return .dark
+    }
+}
+#endif
 

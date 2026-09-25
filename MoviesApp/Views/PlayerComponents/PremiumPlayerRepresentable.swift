@@ -69,8 +69,10 @@ class PlayerUIView: UIView, AVPictureInPictureControllerDelegate {
             
             pipController = AVPictureInPictureController(playerLayer: playerLayer)
             pipController?.delegate = self
+            #if os(iOS)
             pipController?.canStartPictureInPictureAutomaticallyFromInline = true
-            print("[PiP DEBUG] pipController initialized and canStartPictureInPictureAutomaticallyFromInline = true")
+            #endif
+            print("[PiP DEBUG] pipController initialized")
         } else {
             print("[PiP DEBUG] AVPictureInPictureController is not supported on this device/simulator.")
         }

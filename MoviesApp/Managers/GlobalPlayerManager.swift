@@ -30,6 +30,10 @@ public class VLCMedia {
 }
 public class VLCTime {
     public var intValue: Int32 = 0
+    public init() {}
+    public init(int: Int32) {
+        self.intValue = int
+    }
 }
 public enum VLCMediaPlayerState {
     case stopped, opening, buffering, ended, error, playing, paused

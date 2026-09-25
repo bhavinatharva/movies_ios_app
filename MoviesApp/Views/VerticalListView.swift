@@ -73,8 +73,11 @@ struct VerticalListView: View {
                 }
             }
             .listRowBackground(Color.appBackground)
+            #if os(iOS)
             .listRowSeparator(.visible, edges: .bottom)
+            #endif
             .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+            #if os(iOS)
             .swipeActions(edge: .trailing) {
                 if canDelete {
                     Button(role: .destructive) {
@@ -85,6 +88,7 @@ struct VerticalListView: View {
                     }
                 }
             }
+            #endif
         }
         .listStyle(.plain)
         .background(Color.appBackground)

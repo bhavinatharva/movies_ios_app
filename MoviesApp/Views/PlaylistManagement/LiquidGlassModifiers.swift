@@ -43,6 +43,7 @@ struct PressLiftModifier: ViewModifier {
     @Environment(\.accessibilityReduceMotion) var reduceMotion
     
     func body(content: Content) -> some View {
+        #if os(iOS)
         content
             .scaleEffect(isPressed ? 0.96 : 1.0)
             .animation(reduceMotion ? .none : .interactiveSpring(response: 0.3, dampingFraction: 0.7, blendDuration: 0.1), value: isPressed)
@@ -50,11 +51,9 @@ struct PressLiftModifier: ViewModifier {
                 DragGesture(minimumDistance: 0)
                     .onChanged { _ in
                         if !isPressed {
-                            #if os(iOS)
                             let generator = UIImpactFeedbackGenerator(style: .light)
                             generator.prepare()
                             generator.impactOccurred()
-                            #endif
                             isPressed = true
                         }
                     }
@@ -62,6 +61,9 @@ struct PressLiftModifier: ViewModifier {
                         isPressed = false
                     }
             )
+        #else
+        content
+        #endif
     }
 }
 

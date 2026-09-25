@@ -231,7 +231,9 @@ struct StreamingPlayerView: View {
         } message: {
             Text(playerManager.playbackError ?? "Unknown error occurred.")
         }
+        #if os(iOS)
         .statusBarHidden(true)
+        #endif
         .onAppear {
             #if os(iOS)
             OrientationManager.shared.lockOrientation(.allButUpsideDown)
@@ -272,11 +274,18 @@ struct StreamingPlayerView: View {
         }
         .confirmationDialog("Video Quality", isPresented: $showQualityActionSheet, titleVisibility: .visible) {
             ForEach(availableQualities, id: \.self) { quality in
-                Button(quality == 0 ? "Auto" : "\(Int(quality))p") {
+                Button(qualityTitle(for: quality)) {
                     setQuality(quality)
                 }
             }
         }
+    }
+    
+    private func qualityTitle(for quality: Double) -> String {
+        if quality == 0 {
+            return "Auto"
+        }
+        return "\(Int(quality))p"
     }
     
     // MARK: - Subviews
@@ -476,6 +485,7 @@ struct StreamingPlayerView: View {
                     ProgressView(value: epg.progress, total: 1.0)
                         .progressViewStyle(LinearProgressViewStyle(tint: Color.red))
                 } else {
+                    #if os(iOS)
                     Slider(value: $sliderValue, in: 0...max(1, playerManager.duration), onEditingChanged: { editing in
                         playerManager.isUserSeeking = editing
                         if !editing {
@@ -488,6 +498,10 @@ struct StreamingPlayerView: View {
                         }
                     })
                     .tint(Color.accentColor)
+                    #else
+                    ProgressView(value: sliderValue, total: max(1, playerManager.duration))
+                        .progressViewStyle(LinearProgressViewStyle(tint: Color.accentColor))
+                    #endif
                 }
                 
                 Text(formatTime(playerManager.duration))
@@ -1032,6 +1046,7 @@ struct VerticalSliderView: View {
                         .frame(width: 6, height: geometry.size.height * CGFloat(value))
                 }
                 .contentShape(Rectangle())
+                #if os(iOS)
                 .gesture(
                     DragGesture(minimumDistance: 0)
                         .onChanged { gesture in
@@ -1040,6 +1055,7 @@ struct VerticalSliderView: View {
                             value = max(0, min(1, Double(newValue)))
                         }
                 )
+                #endif
             }
             .frame(width: 20, height: 120)
         }
