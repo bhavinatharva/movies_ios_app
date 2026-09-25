@@ -35,23 +35,27 @@ struct AddPlaylistWizardView: View {
                     
                     if playlistType == 0 {
                         TextField("Server URL (e.g. http://server:port)", text: $urlString)
+                            #if os(iOS)
                             .keyboardType(.URL)
-                            .autocapitalization(.none)
-                            .disableAutocorrection(true)
+                            #endif
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled(true)
                             .onChange(of: urlString) { _, newValue in
                                 autoParseURL(newValue)
                             }
                         
                         TextField("Username", text: $username)
-                            .autocapitalization(.none)
-                            .disableAutocorrection(true)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled(true)
                         
                         SecureField("Password", text: $password)
                     } else if playlistType == 1 {
                         TextField("M3U URL", text: $urlString)
+                            #if os(iOS)
                             .keyboardType(.URL)
-                            .autocapitalization(.none)
-                            .disableAutocorrection(true)
+                            #endif
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled(true)
                             .onChange(of: urlString) { _, newValue in
                                 autoParseURL(newValue)
                             }
@@ -70,8 +74,11 @@ struct AddPlaylistWizardView: View {
                 // Error message moved to the overlay as requested
             }
             .navigationTitle("Add Playlist")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.large)
+            #endif
             .toolbar {
+                #if os(iOS)
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") { dismiss() }
                 }
@@ -87,6 +94,23 @@ struct AddPlaylistWizardView: View {
                         .disabled(urlString.isEmpty && playlistType != 2)
                     }
                 }
+                #else
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                
+                ToolbarItem(placement: .confirmationAction) {
+                    if isLoading {
+                        ProgressView()
+                    } else {
+                        Button("Add") {
+                            importTask = Task { await processPlaylist() }
+                        }
+                        .fontWeight(.bold)
+                        .disabled(urlString.isEmpty && playlistType != 2)
+                    }
+                }
+                #endif
             }
             .disabled(isLoading)
             .overlay {

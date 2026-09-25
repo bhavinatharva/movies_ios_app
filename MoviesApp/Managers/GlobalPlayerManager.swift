@@ -8,7 +8,33 @@
 import SwiftUI
 import Combine
 import AVFoundation
+#if canImport(TVVLCKit)
+import TVVLCKit
+#elseif canImport(MobileVLCKit)
 import MobileVLCKit
+#else
+public protocol VLCMediaPlayerDelegate: AnyObject {}
+public class VLCMediaPlayer {
+    public weak var delegate: VLCMediaPlayerDelegate?
+    public var media: VLCMedia?
+    public var isPlaying: Bool = false
+    public var state: VLCMediaPlayerState = .stopped
+    public var time: VLCTime = VLCTime()
+    public func play() {}
+    public func pause() {}
+    public func stop() {}
+}
+public class VLCMedia {
+    public var length: VLCTime = VLCTime()
+    public init(url: URL) {}
+}
+public class VLCTime {
+    public var intValue: Int32 = 0
+}
+public enum VLCMediaPlayerState {
+    case stopped, opening, buffering, ended, error, playing, paused
+}
+#endif
 
 @MainActor
 final class GlobalPlayerManager: NSObject, ObservableObject, VLCMediaPlayerDelegate {

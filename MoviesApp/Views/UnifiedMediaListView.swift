@@ -27,7 +27,11 @@ struct UnifiedMediaListView: View {
                         }) {
                             UnifiedMediaCardView(item: item)
                         }
+                        #if os(tvOS)
+                        .buttonStyle(.card)
+                        #else
                         .buttonStyle(PressScaleButtonStyle())
+                        #endif
                     }
                 }
                 .padding(.horizontal, 16)

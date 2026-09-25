@@ -48,8 +48,11 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle(Constants.StringConstants.tabSettings)
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.large)
+            #endif
             .toolbar {
+                #if os(iOS)
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: { dismiss() }) {
                         Image(systemName: "xmark.circle.fill")
@@ -57,6 +60,15 @@ struct SettingsView: View {
                             .foregroundColor(.secondary)
                     }
                 }
+                #else
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 20))
+                            .foregroundColor(.secondary)
+                    }
+                }
+                #endif
             }
             .onAppear {
                 activePlaylist = PlaylistManager.shared.fetchDefaultPlaylist()
@@ -115,8 +127,10 @@ struct SettingsView: View {
                     Divider().padding(.leading, 48)
                     
                     Button(action: {
+                        #if os(iOS)
                         let generator = UIImpactFeedbackGenerator(style: .medium)
                         generator.impactOccurred()
+                        #endif
                         if let defaultPlaylist = PlaylistManager.shared.fetchDefaultPlaylist() {
                             IPTVSyncManager.shared.startSync(playlist: defaultPlaylist)
                             Task {
@@ -223,8 +237,10 @@ struct SettingsView: View {
                             }
                             try? context.save()
                         }
+                        #if os(iOS)
                         let generator = UINotificationFeedbackGenerator()
                         generator.notificationOccurred(.success)
+                        #endif
                     }
                 } message: {
                     Text("Are you sure you want to permanently delete your playback and history records?")
@@ -257,8 +273,10 @@ struct SettingsView: View {
                             }
                             try? context.save()
                         }
+                        #if os(iOS)
                         let generator = UINotificationFeedbackGenerator()
                         generator.notificationOccurred(.success)
+                        #endif
                     }
                 } message: {
                     Text("Are you sure you want to delete all saved items from your favorites list?")

@@ -50,9 +50,11 @@ struct PressLiftModifier: ViewModifier {
                 DragGesture(minimumDistance: 0)
                     .onChanged { _ in
                         if !isPressed {
+                            #if os(iOS)
                             let generator = UIImpactFeedbackGenerator(style: .light)
                             generator.prepare()
                             generator.impactOccurred()
+                            #endif
                             isPressed = true
                         }
                     }

@@ -1,6 +1,6 @@
 import SwiftUI
+#if os(iOS)
 import MediaPlayer
-import AVFoundation
 
 struct GestureController: View {
     let streamType: MediaType
@@ -89,3 +89,18 @@ struct GestureController: View {
         }
     }
 }
+#else
+struct GestureController: View {
+    let streamType: MediaType
+    let onDoubleTap: () -> Void
+    let onSingleTap: () -> Void
+    let onSwipeLeft: () -> Void
+    let onSwipeRight: () -> Void
+    var onSeekDrag: ((CGFloat) -> Void)? = nil
+    var onSeekEnd: (() -> Void)? = nil
+    
+    var body: some View {
+        Color.clear
+    }
+}
+#endif

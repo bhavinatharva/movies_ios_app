@@ -13,6 +13,7 @@ struct MainTabView: View {
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
 
     init() {
+        #if os(iOS)
         // Configure native iOS TabBar appearance for a premium glass translucent effect
         let appearance = UITabBarAppearance()
         appearance.configureWithDefaultBackground()
@@ -38,10 +39,40 @@ struct MainTabView: View {
 
         UITabBar.appearance().standardAppearance = appearance
         UITabBar.appearance().scrollEdgeAppearance = appearance
+        #endif
     }
 
     var body: some View {
         ZStack {
+            #if os(tvOS)
+            TabView(selection: $selectedTab) {
+                HomeView()
+                    .tabItem { Label(IPTVTab.home.title, systemImage: IPTVTab.home.systemImage) }
+                    .tag(IPTVTab.home)
+
+                RecentView()
+                    .tabItem { Label(IPTVTab.recent.title, systemImage: IPTVTab.recent.systemImage) }
+                    .tag(IPTVTab.recent)
+
+                if dataManager.availableTabs.contains(.liveTV) {
+                    LiveTVView()
+                        .tabItem { Label(IPTVTab.liveTV.title, systemImage: IPTVTab.liveTV.systemImage) }
+                        .tag(IPTVTab.liveTV)
+                }
+
+                if dataManager.availableTabs.contains(.movies) {
+                    VODMoviesView()
+                        .tabItem { Label(IPTVTab.movies.title, systemImage: IPTVTab.movies.systemImage) }
+                        .tag(IPTVTab.movies)
+                }
+
+                if dataManager.availableTabs.contains(.series) {
+                    SeriesView()
+                        .tabItem { Label(IPTVTab.series.title, systemImage: IPTVTab.series.systemImage) }
+                        .tag(IPTVTab.series)
+                }
+            }
+            #else
             if horizontalSizeClass == .regular {
                 HStack(spacing: 0) {
                     SidebarView(selectedTab: $selectedTab)
@@ -78,6 +109,7 @@ struct MainTabView: View {
                 }
                 .ignoresSafeArea(.keyboard, edges: .bottom)
             }
+            #endif
         }
         .fullScreenCover(isPresented: Binding(
             get: { globalPlayerManager.currentTitle != nil },

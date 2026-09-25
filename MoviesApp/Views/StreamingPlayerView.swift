@@ -6,8 +6,14 @@
 import SwiftUI
 import AVKit
 import AVFoundation
+#if os(iOS)
 import MediaPlayer
+#endif
+#if canImport(TVVLCKit)
+import TVVLCKit
+#elseif canImport(MobileVLCKit)
 import MobileVLCKit
+#endif
 
 struct StreamingPlayerView: View {
     let initialUrl: URL
@@ -67,7 +73,9 @@ struct StreamingPlayerView: View {
     // Sliders state
     @State private var brightnessLevel: Double = 0.5
     @State private var volumeLevel: Double = 0.5
+    #if os(iOS)
     @State private var volumeSlider: UISlider? = nil
+    #endif
     
     // Detect stream types
     var streamType: MediaType {
@@ -149,23 +157,27 @@ struct StreamingPlayerView: View {
                         topOverlayView
                         Spacer()
                         HStack {
+                            #if os(iOS)
                             VerticalSliderView(value: Binding(get: { brightnessLevel }, set: { val in
                                 brightnessLevel = val
                                 UIScreen.main.brightness = CGFloat(val)
                                 resetTimer()
                             }), icon: "sun.max.fill")
                             .padding(.leading, 40)
+                            #endif
                             
                             Spacer()
                             centerControlsView
                             Spacer()
                             
+                            #if os(iOS)
                             VerticalSliderView(value: Binding(get: { volumeLevel }, set: { val in
                                 volumeLevel = val
                                 volumeSlider?.value = Float(val)
                                 resetTimer()
                             }), icon: "speaker.wave.3.fill")
                             .padding(.trailing, 40)
+                            #endif
                         }
                         Spacer()
                         bottomControlsView
@@ -221,13 +233,17 @@ struct StreamingPlayerView: View {
         }
         .statusBarHidden(true)
         .onAppear {
+            #if os(iOS)
             OrientationManager.shared.lockOrientation(.allButUpsideDown)
+            #endif
             setupPlayer()
             setupVolumeView()
             syncSliders()
         }
         .onDisappear {
+            #if os(iOS)
             OrientationManager.shared.lockOrientation(.portrait, rotateTo: .portrait)
+            #endif
             teardownPlayerView()
         }
         .onChange(of: playerManager.currentTime) { _, newTime in
@@ -513,8 +529,10 @@ struct StreamingPlayerView: View {
                 
                 // Lock Button
                 Button(action: {
+                    #if os(iOS)
                     let gen = UIImpactFeedbackGenerator(style: .medium)
                     gen.impactOccurred()
+                    #endif
                     withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                         isLocked = true
                         showControls = false
@@ -683,8 +701,10 @@ struct StreamingPlayerView: View {
                         playerManager.player.seek(to: CMTime(seconds: end, preferredTimescale: 1))
                         playerManager.showSkipIntro = false
                         resetTimer()
+                        #if os(iOS)
                         let generator = UIImpactFeedbackGenerator(style: .medium)
                         generator.impactOccurred()
+                        #endif
                     }
                 }) {
                     HStack(spacing: 8) {
@@ -762,8 +782,10 @@ struct StreamingPlayerView: View {
     private func zapChannel(forward: Bool) {
         let channels = IPTVDataManager.shared.liveChannels
         guard !channels.isEmpty else { return }
+        #if os(iOS)
         let generator = UIImpactFeedbackGenerator(style: .heavy)
         generator.impactOccurred()
+        #endif
         
         if let currentIndex = channels.firstIndex(where: { $0.streamUrl == currentUrl }) {
             var newIndex = forward ? currentIndex + 1 : currentIndex - 1
@@ -808,6 +830,7 @@ struct StreamingPlayerView: View {
     }
     
     private func setupVolumeView() {
+        #if os(iOS)
         let view = MPVolumeView()
         for subview in view.subviews {
             if let slider = subview as? UISlider {
@@ -815,13 +838,16 @@ struct StreamingPlayerView: View {
                 break
             }
         }
+        #endif
     }
     
     private func syncSliders() {
+        #if os(iOS)
         brightnessLevel = Double(UIScreen.main.brightness)
         if let slider = volumeSlider {
             volumeLevel = Double(slider.value)
         }
+        #endif
     }
     
     private func toggleControls() {
@@ -839,15 +865,19 @@ struct StreamingPlayerView: View {
     }
     
     private func togglePlay() {
+        #if os(iOS)
         let generator = UIImpactFeedbackGenerator(style: .medium)
         generator.impactOccurred()
+        #endif
         playerManager.togglePlayPause()
         resetTimer()
     }
     
     private func skip(by seconds: Double) {
+        #if os(iOS)
         let generator = UIImpactFeedbackGenerator(style: .light)
         generator.impactOccurred()
+        #endif
         let newTime = max(0, min(playerManager.duration, playerManager.currentTime + seconds))
         if playerManager.isUsingVLC {
             playerManager.vlcPlayer.time = VLCTime(int: Int32(newTime * 1000))

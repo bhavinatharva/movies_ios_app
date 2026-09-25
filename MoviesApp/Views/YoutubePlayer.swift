@@ -6,6 +6,8 @@
 //
 
 import SwiftUI
+
+#if canImport(WebKit)
 import WebKit
 
 struct YoutubePlayer: UIViewRepresentable {
@@ -54,3 +56,22 @@ struct YoutubePlayer: UIViewRepresentable {
         uiView.loadHTMLString(htmlString, baseURL: URL(string: "https://www.youtube.com"))
     }
 }
+#else
+struct YoutubePlayer: View {
+    let videoIds: [String]
+    let showControls: Bool
+    
+    var body: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "play.slash.fill")
+                .font(.system(size: 44))
+                .foregroundColor(.gray)
+            Text("YouTube previews are not supported on Apple TV.")
+                .font(.headline)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.black)
+    }
+}
+#endif

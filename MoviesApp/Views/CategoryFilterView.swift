@@ -42,6 +42,7 @@ struct CategoryFilterView: View {
                 }
             }
             .navigationTitle("Select Category")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -52,6 +53,17 @@ struct CategoryFilterView: View {
                     }
                 }
             }
+            #else
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 20))
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            #endif
         }
     }
 }

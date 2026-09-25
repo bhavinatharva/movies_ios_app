@@ -105,7 +105,9 @@ struct ActorDetailView: View {
                 .ignoresSafeArea(edges: .top)
             }
         }
+        #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
+        #endif
     }
 }
 

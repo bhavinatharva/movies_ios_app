@@ -23,10 +23,16 @@ struct ActorHorizontalListView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 LazyHStack(spacing: 16) {
                     ForEach(actors) { actor in
-                        ActorCardView(actor: actor)
-                            .onTapGesture {
-                                onSelect(actor)
-                            }
+                        Button(action: {
+                            onSelect(actor)
+                        }) {
+                            ActorCardView(actor: actor)
+                        }
+                        #if os(tvOS)
+                        .buttonStyle(.card)
+                        #else
+                        .buttonStyle(PlainButtonStyle())
+                        #endif
                     }
                 }
                 .padding(.horizontal, 16)

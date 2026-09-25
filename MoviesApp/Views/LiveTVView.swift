@@ -80,8 +80,12 @@ struct LiveTVView: View {
                 }
             }
             .navigationTitle(selectedCategory ?? "Live TV")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $searchQuery, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search channels...")
+            #else
+            .searchable(text: $searchQuery, prompt: "Search channels...")
+            #endif
             .toolbar {
                 trailingToolbarItems
             }
@@ -309,6 +313,7 @@ struct LiveCategoryFilterSheet: View {
                 }
             }
             .navigationTitle("Select Category")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -319,6 +324,17 @@ struct LiveCategoryFilterSheet: View {
                     }
                 }
             }
+            #else
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 20))
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            #endif
         }
     }
 }

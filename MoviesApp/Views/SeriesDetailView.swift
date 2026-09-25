@@ -246,7 +246,9 @@ struct SeriesDetailView: View {
             }
         }
         .navigationTitle(series.title)
+        #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
+        #endif
         .task {
             await loadSeriesInfo()
         }

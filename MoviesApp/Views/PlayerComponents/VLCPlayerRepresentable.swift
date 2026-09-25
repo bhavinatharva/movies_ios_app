@@ -1,7 +1,13 @@
 import SwiftUI
-import MobileVLCKit
 import AVFoundation
 
+#if canImport(TVVLCKit)
+import TVVLCKit
+#elseif canImport(MobileVLCKit)
+import MobileVLCKit
+#endif
+
+#if canImport(TVVLCKit) || canImport(MobileVLCKit)
 class VLCPlayerUIView: UIView, VLCMediaPlayerDelegate {
     let internalPlayer: VLCMediaPlayer
     var isAspectFill: Bool = false {
@@ -54,3 +60,13 @@ struct VLCPlayerRepresentable: UIViewRepresentable {
         }
     }
 }
+#else
+struct VLCPlayerRepresentable: View {
+    var player: VLCMediaPlayer
+    var isAspectFill: Bool
+    
+    var body: some View {
+        Color.black
+    }
+}
+#endif

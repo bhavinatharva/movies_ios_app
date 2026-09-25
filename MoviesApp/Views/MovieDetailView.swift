@@ -220,6 +220,7 @@ private struct VideoPlayerCoverView: View {
                         .aspectRatio(1.77, contentMode: .fit)
                 }
             }
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -232,6 +233,19 @@ private struct VideoPlayerCoverView: View {
                     }
                 }
             }
+            #else
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(action: { dismiss() }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "chevron.left")
+                            Text("Back")
+                        }
+                        .foregroundColor(.white)
+                    }
+                }
+            }
+            #endif
             .toolbarBackground(Color.black, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
         }

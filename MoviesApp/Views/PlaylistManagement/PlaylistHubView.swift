@@ -100,8 +100,10 @@ struct PlaylistHubView: View {
                 HStack {
                     Spacer()
                     Button(action: {
+                        #if os(iOS)
                         let generator = UIImpactFeedbackGenerator(style: .medium)
                         generator.impactOccurred()
+                        #endif
                         isShowingAddWizard = true
                     }) {
                         HStack(spacing: 8) {
@@ -125,7 +127,9 @@ struct PlaylistHubView: View {
             }
         }
         .navigationTitle("Playlist Hub")
+        #if os(iOS)
         .navigationBarTitleDisplayMode(.large)
+        #endif
         .onAppear {
             refreshPlaylists()
         }
@@ -135,6 +139,7 @@ struct PlaylistHubView: View {
             }
         }
         .toolbar {
+            #if os(iOS)
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(action: {
                     let generator = UIImpactFeedbackGenerator(style: .medium)
@@ -146,6 +151,17 @@ struct PlaylistHubView: View {
                         .foregroundColor(.accentColor)
                 }
             }
+            #else
+            ToolbarItem(placement: .primaryAction) {
+                Button(action: {
+                    isShowingAddWizard = true
+                }) {
+                    Image(systemName: "plus")
+                        .font(.headline)
+                        .foregroundColor(.accentColor)
+                }
+            }
+            #endif
         }
         .overlay {
             if isActivating || isRefreshing {
@@ -269,8 +285,10 @@ struct PlaylistHubView: View {
     private func activate(playlist: Playlist) {
         guard !playlist.isDefault else { return }
         isActivating = true
+        #if os(iOS)
         let generator = UIImpactFeedbackGenerator(style: .medium)
         generator.impactOccurred()
+        #endif
         playlistManager.setDefault(playlist)
         refreshPlaylists()
         
@@ -295,8 +313,10 @@ struct PlaylistHubView: View {
     private func refreshCurrentContent(for playlist: Playlist? = nil) {
         guard let targetPlaylist = playlist ?? playlistManager.fetchDefaultPlaylist() else { return }
         isRefreshing = true
+        #if os(iOS)
         let generator = UIImpactFeedbackGenerator(style: .medium)
         generator.impactOccurred()
+        #endif
         
         // Start background fetch and sync to SQLite
         IPTVSyncManager.shared.startSync(playlist: targetPlaylist)

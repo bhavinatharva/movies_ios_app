@@ -221,8 +221,10 @@ struct PremiumPaywallView: View {
             
             VStack(spacing: 12) {
                 Button(action: {
+                    #if os(iOS)
                     let generator = UIImpactFeedbackGenerator(style: .heavy)
                     generator.impactOccurred()
+                    #endif
                     Task {
                         isPurchasing = true
                         if let product = storeManager.products.first(where: { $0.id == selectedPlan.productId }) {

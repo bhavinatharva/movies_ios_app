@@ -61,7 +61,9 @@ struct VODMoviesView: View {
                 }
             }
             .navigationTitle(selectedCategory?.name ?? Constants.StringConstants.tabMovies)
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
                 trailingToolbarItems
             }

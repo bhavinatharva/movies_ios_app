@@ -61,7 +61,9 @@ struct SeriesView: View {
                 }
             }
             .navigationTitle(selectedCategory?.name ?? Constants.StringConstants.tabSeries)
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
                 trailingToolbarItems
             }

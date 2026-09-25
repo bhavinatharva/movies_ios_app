@@ -4,18 +4,20 @@ import SwiftUI
 import Combine
 
 class AppDelegate: NSObject, UIApplicationDelegate {
-    
+    #if os(iOS)
     // Global variable to keep track of allowed orientations
     static var orientationLock = UIInterfaceOrientationMask.allButUpsideDown
     
     func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
         return AppDelegate.orientationLock
     }
+    #endif
 }
 
 class OrientationManager: ObservableObject {
     static let shared = OrientationManager()
     
+    #if os(iOS)
     func lockOrientation(_ orientation: UIInterfaceOrientationMask, rotateTo: UIInterfaceOrientation? = nil) {
         AppDelegate.orientationLock = orientation
         
@@ -30,4 +32,5 @@ class OrientationManager: ObservableObject {
         
         UIViewController.attemptRotationToDeviceOrientation()
     }
+    #endif
 }

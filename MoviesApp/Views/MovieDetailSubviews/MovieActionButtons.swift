@@ -8,8 +8,10 @@ struct MovieActionButtons: View {
     var body: some View {
         HStack(spacing: 16) {
             Button(action: {
+                #if os(iOS)
                 let generator = UIImpactFeedbackGenerator(style: .medium)
                 generator.impactOccurred()
+                #endif
                 onPlayTapped()
             }) {
                 HStack(spacing: 8) {
@@ -28,8 +30,10 @@ struct MovieActionButtons: View {
             .buttonStyle(PressScaleButtonStyle())
             
             Button(action: {
+                #if os(iOS)
                 let generator = UIImpactFeedbackGenerator(style: .light)
                 generator.impactOccurred()
+                #endif
                 onTrailerTapped()
             }) {
                 HStack(spacing: 8) {
@@ -50,8 +54,10 @@ struct MovieActionButtons: View {
             .disabled(!hasTrailer)
             
             Button(action: {
+                #if os(iOS)
                 let generator = UIImpactFeedbackGenerator(style: .light)
                 generator.impactOccurred()
+                #endif
             }) {
                 Image(systemName: "plus")
                     .font(.system(size: 20, weight: .semibold))

@@ -28,7 +28,11 @@ struct MovieCollectionListView: View {
                         }) {
                             MovieCollectionCardView(collection: collection)
                         }
+                        #if os(tvOS)
+                        .buttonStyle(.card)
+                        #else
                         .buttonStyle(PressScaleButtonStyle())
+                        #endif
                     }
                 }
                 // Larger cards for collections

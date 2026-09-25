@@ -23,8 +23,10 @@ struct LockScreenController: View {
                 VStack {
                     Spacer()
                     Button(action: {
+                        #if os(iOS)
                         let generator = UIImpactFeedbackGenerator(style: .heavy)
                         generator.impactOccurred()
+                        #endif
                         withAnimation(.spring()) {
                             isLocked = false
                         }

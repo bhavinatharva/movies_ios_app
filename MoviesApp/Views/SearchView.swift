@@ -60,8 +60,10 @@ struct SearchView: View {
                                     GeometryReader { geo in
                                         UnifiedMediaCardView(item: item, width: geo.size.width)
                                             .onTapGesture {
+                                                #if os(iOS)
                                                 let generator = UIImpactFeedbackGenerator(style: .medium)
                                                 generator.impactOccurred()
+                                                #endif
                                                 if item.mediaType == .movie || item.mediaType == .tvSeries {
                                                     selectedPlayableItem = item
                                                 } else {
@@ -103,6 +105,7 @@ struct SearchView: View {
             .navigationTitle(isIPTVActive ? "Search.." : (searchByMovies ? Constants.StringConstants.movieSearch : Constants.StringConstants.tvSearch))
             .toolbar {
                 if !isIPTVActive {
+                    #if os(iOS)
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
                             searchByMovies.toggle()
@@ -113,7 +116,20 @@ struct SearchView: View {
                             Image(systemName: searchByMovies ? Constants.ImageConstants.movie : Constants.ImageConstants.tv)
                         }
                     }
+                    #else
+                    ToolbarItem(placement: .primaryAction) {
+                        Button {
+                            searchByMovies.toggle()
+                            Task {
+                                await searchViewModel.getSearchMovies(for: searchByMovies ? "movie" : "tv", searchPhase: searchText)
+                            }
+                        } label: {
+                            Image(systemName: searchByMovies ? Constants.ImageConstants.movie : Constants.ImageConstants.tv)
+                        }
+                    }
+                    #endif
                 }
+                #if os(iOS)
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: { dismiss() }) {
                         Image(systemName: "xmark.circle.fill")
@@ -121,8 +137,21 @@ struct SearchView: View {
                             .foregroundColor(.secondary)
                     }
                 }
+                #else
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 20))
+                            .foregroundColor(.secondary)
+                    }
+                }
+                #endif
             }
+            #if os(iOS)
             .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: Constants.StringConstants.search)
+            #else
+            .searchable(text: $searchText, prompt: Constants.StringConstants.search)
+            #endif
             .task(id: searchText) {
                 try? await Task.sleep(for: .milliseconds(300))
                 
