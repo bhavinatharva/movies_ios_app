@@ -173,8 +173,22 @@ final class GlobalPlayerManager: NSObject, ObservableObject, VLCMediaPlayerDeleg
                 if !streamType.isNativelySupported {
                     print("GlobalPlayerManager: Stream type \(streamType) is not natively supported. Using VLCMediaPlayer directly.")
                     self.isUsingVLC = true
-                    self.vlcPlayer.media = VLCMedia(url: url)
-                    self.vlcPlayer.play()
+                    let media = VLCMedia(url: url)
+                    
+                    // Disable hardware decoding (avcodec-hw: none) which fixes the VideoToolbox get_buffer() crash (err=-12906) on Apple TV simulator.
+                    media.addOptions([
+                        "network-caching": 3000,
+                        "avcodec-hw": "none",
+                        "drop-late-frames": "",
+                        "skip-frames": ""
+                    ])
+                    
+                    self.vlcPlayer.media = media
+                    
+                    // Delay play to allow SwiftUI to mount VLCPlayerRepresentable and set the drawable
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                        self.vlcPlayer.play()
+                    }
                     return
                 }
                 
@@ -206,8 +220,17 @@ final class GlobalPlayerManager: NSObject, ObservableObject, VLCMediaPlayerDeleg
                             print("GlobalPlayerManager: AVPlayer failed, falling back to VLCMediaPlayer")
                             self.isUsingVLC = true
                             self.playbackError = nil
-                            self.vlcPlayer.media = VLCMedia(url: url)
-                            self.vlcPlayer.play()
+                            let media = VLCMedia(url: url)
+                            media.addOptions([
+                                "network-caching": 3000,
+                                "avcodec-hw": "none",
+                                "drop-late-frames": "",
+                                "skip-frames": ""
+                            ])
+                            self.vlcPlayer.media = media
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                                self.vlcPlayer.play()
+                            }
                         }
                     }
                 }

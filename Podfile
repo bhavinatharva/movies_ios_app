@@ -17,6 +17,7 @@ target 'MoviesAppTV' do
 
   # Pods for MoviesAppTV
   pod 'lottie-ios'
+  pod 'TVVLCKit'
 end
 
 post_install do |installer|

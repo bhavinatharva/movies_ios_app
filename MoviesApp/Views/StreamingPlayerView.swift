@@ -399,6 +399,20 @@ struct StreamingPlayerView: View {
                         .background(Color.red)
                         .clipShape(Capsule())
                         .onAppear { isLiveGlow = true }
+                    } else if !currentUrl.pathExtension.isEmpty {
+                        Text(currentUrl.pathExtension.uppercased())
+                            #if os(tvOS)
+                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            #else
+                            .font(.system(size: 10, weight: .bold, design: .rounded))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            #endif
+                            .foregroundColor(.white)
+                            .background(Color.white.opacity(0.25))
+                            .clipShape(Capsule())
                     }
                     
                     Text(currentTitle)

@@ -35,7 +35,7 @@ struct AddPlaylistWizardView: View {
                     Button(action: {
                         playlistType = 1
                         name = "Free IPTV Demo"
-                        urlString = "https://iptv-org.github.io/iptv/index.m3u"
+                        urlString = "http://star.flix4k.net:8080/player_api.php?username=chinnu010525&password=ch010525"
                     }) {
                         HStack {
                             Image(systemName: "sparkles.tv")

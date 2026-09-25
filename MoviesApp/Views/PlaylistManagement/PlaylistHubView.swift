@@ -36,10 +36,18 @@ struct PlaylistHubView: View {
                     TextField("Search Playlists, URL...", text: $searchText)
                         .foregroundColor(.primary)
                 }
+                #if os(tvOS)
+                .padding(24)
+                .font(.system(size: 32))
+                .liquidGlass(cornerRadius: 15, blurRadius: 10, opacity: 0.8)
+                .padding(.horizontal, 40)
+                .padding(.top, 24)
+                #else
                 .padding(12)
                 .liquidGlass(cornerRadius: 15, blurRadius: 10, opacity: 0.8)
                 .padding(.horizontal)
                 .padding(.top, 8)
+                #endif
                 
                 if playlists.isEmpty {
                     Spacer()
@@ -56,10 +64,15 @@ struct PlaylistHubView: View {
                             // All Playlists
                             VStack(alignment: .leading, spacing: 16) {
                                 Text("All Playlists")
+                                    #if os(tvOS)
+                                    .font(.system(size: 44, weight: .bold))
+                                    .padding(.horizontal, 40)
+                                    #else
                                     .font(.title3)
                                     .fontWeight(.bold)
-                                    .foregroundColor(.primary)
                                     .padding(.horizontal)
+                                    #endif
+                                    .foregroundColor(.primary)
                                 
                                 if horizontalSizeClass == .regular {
                                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 320), spacing: 16)], spacing: 16) {
@@ -108,9 +121,17 @@ struct PlaylistHubView: View {
                     }) {
                         HStack(spacing: 8) {
                             Image(systemName: "plus.circle.fill")
+                                #if os(tvOS)
+                                .font(.system(size: 36))
+                                #else
                                 .font(.title2)
+                                #endif
                             Text("Add Playlist")
+                                #if os(tvOS)
+                                .font(.system(size: 32, weight: .bold))
+                                #else
                                 .fontWeight(.bold)
+                                #endif
                         }
                         .foregroundColor(.white)
                         .padding(.horizontal, 20)
@@ -189,27 +210,43 @@ struct PlaylistHubView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("ACTIVE PLAYLIST")
+                        #if os(tvOS)
+                        .font(.system(size: 24, weight: .black))
+                        #else
                         .font(.caption)
                         .fontWeight(.black)
+                        #endif
                         .foregroundColor(.accentColor)
                         .tracking(1.5)
                     
                     Text(playlist.name)
+                        #if os(tvOS)
+                        .font(.system(size: 54, weight: .bold))
+                        #else
                         .font(.title)
                         .fontWeight(.bold)
+                        #endif
                         .foregroundColor(.primary)
                         .lineLimit(1)
                 }
                 Spacer()
                 
                 Image(systemName: "checkmark.seal.fill")
+                    #if os(tvOS)
+                    .font(.system(size: 64))
+                    #else
                     .font(.system(size: 32))
+                    #endif
                     .foregroundColor(.accentColor)
             }
             
             HStack {
                 Text(playlist.url)
+                    #if os(tvOS)
+                    .font(.system(size: 28))
+                    #else
                     .font(.subheadline)
+                    #endif
                     .foregroundColor(.secondary)
                     .lineLimit(1)
                 Spacer()
@@ -247,13 +284,21 @@ struct PlaylistHubView: View {
     private var emptyStateView: some View {
         VStack(spacing: 20) {
             Image(systemName: "tv.badge.wifi")
+                #if os(tvOS)
+                .font(.system(size: 150))
+                #else
                 .font(.system(size: 80))
+                #endif
                 .foregroundColor(.accentColor.opacity(0.8))
                 .shadow(color: .accentColor.opacity(0.4), radius: 20)
             
             Text("Welcome to IPTV Hub")
+                #if os(tvOS)
+                .font(.system(size: 54, weight: .bold))
+                #else
                 .font(.title2)
                 .fontWeight(.bold)
+                #endif
             
             Text("Your premium streaming experience starts here. Tap below to add an M3U or Xtream Codes playlist.")
                 .font(.subheadline)
@@ -265,9 +310,17 @@ struct PlaylistHubView: View {
                 isShowingAddWizard = true
             }) {
                 Text("Import Playlist")
+                    #if os(tvOS)
+                    .font(.system(size: 32, weight: .bold))
+                    #else
                     .fontWeight(.bold)
+                    #endif
                     .foregroundColor(.white)
+                    #if os(tvOS)
+                    .frame(width: 400, height: 80)
+                    #else
                     .frame(width: 200, height: 50)
+                    #endif
                     .background(Color.accentColor)
                     .cornerRadius(25)
                     .shadow(color: Color.accentColor.opacity(0.4), radius: 10)

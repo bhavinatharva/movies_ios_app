@@ -115,8 +115,26 @@ struct UnifiedMediaCardView: View {
             }
             
             VStack(alignment: .leading, spacing: 4) {
-                if item.releaseDate == "LIVE" {
-                    LiveIndicatorView()
+                HStack(spacing: 6) {
+                    if item.releaseDate == "LIVE" {
+                        LiveIndicatorView()
+                    }
+                    
+                    if let url = item.streamUrl, !url.pathExtension.isEmpty {
+                        Text(url.pathExtension.uppercased())
+                            #if os(tvOS)
+                            .font(.system(size: 14, weight: .bold))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            #else
+                            .font(.system(size: 8, weight: .bold))
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 2)
+                            #endif
+                            .foregroundColor(.white)
+                            .background(Color.white.opacity(0.3))
+                            .clipShape(Capsule())
+                    }
                 }
                 
                 Text(item.title)
