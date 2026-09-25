@@ -7,63 +7,61 @@ struct CategoryFilterView: View {
     @Environment(\.dismiss) var dismiss
     
     var body: some View {
-        NavigationStack {
-            List {
+        List {
+            Button(action: {
+                onSelect(nil)
+                dismiss()
+            }) {
+                HStack {
+                    Text("All (Home)")
+                        .foregroundColor(.primary)
+                    Spacer()
+                    if selectedCategory == nil {
+                        Image(systemName: "checkmark")
+                            .foregroundColor(.accentColor)
+                    }
+                }
+            }
+            
+            ForEach(categories) { category in
                 Button(action: {
-                    onSelect(nil)
+                    onSelect(category)
                     dismiss()
                 }) {
                     HStack {
-                        Text("All (Home)")
+                        Text(category.name)
                             .foregroundColor(.primary)
                         Spacer()
-                        if selectedCategory == nil {
+                        if selectedCategory?.id == category.id {
                             Image(systemName: "checkmark")
                                 .foregroundColor(.accentColor)
                         }
                     }
                 }
-                
-                ForEach(categories) { category in
-                    Button(action: {
-                        onSelect(category)
-                        dismiss()
-                    }) {
-                        HStack {
-                            Text(category.name)
-                                .foregroundColor(.primary)
-                            Spacer()
-                            if selectedCategory?.id == category.id {
-                                Image(systemName: "checkmark")
-                                    .foregroundColor(.accentColor)
-                            }
-                        }
-                    }
-                }
             }
-            .navigationTitle("Select Category")
-            #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { dismiss() }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 20))
-                            .foregroundColor(.secondary)
-                    }
-                }
-            }
-            #else
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(action: { dismiss() }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 20))
-                            .foregroundColor(.secondary)
-                    }
-                }
-            }
-            #endif
         }
+        .navigationTitle("Select Category")
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: { dismiss() }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 20))
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+        #else
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button(action: { dismiss() }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 20))
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+        #endif
     }
 }

@@ -18,7 +18,6 @@ struct AddPlaylistWizardView: View {
     private let playlistManager = PlaylistManager.shared
     
     var body: some View {
-        NavigationStack {
             Form {
                 Section {
                     Picker("Playlist Type", selection: $playlistType) {
@@ -181,7 +180,6 @@ struct AddPlaylistWizardView: View {
                         }
                     }
                 }
-            }
         }
     }
     

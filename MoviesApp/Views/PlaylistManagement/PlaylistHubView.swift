@@ -154,7 +154,7 @@ struct PlaylistHubView: View {
         .onAppear {
             refreshPlaylists()
         }
-        .fullScreenCover(isPresented: $isShowingAddWizard) {
+        .navigationDestination(isPresented: $isShowingAddWizard) {
             AddPlaylistWizardView {
                 refreshPlaylists()
             }

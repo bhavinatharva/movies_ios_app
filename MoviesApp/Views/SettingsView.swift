@@ -24,8 +24,7 @@ struct SettingsView: View {
     
 
     var body: some View {
-        NavigationStack {
-            ZStack {
+        ZStack {
                 Color.appBackground.ignoresSafeArea()
                 
                 ScrollView {
@@ -72,7 +71,6 @@ struct SettingsView: View {
             }
             .onAppear {
                 activePlaylist = PlaylistManager.shared.fetchDefaultPlaylist()
-            }
         }
     }
     

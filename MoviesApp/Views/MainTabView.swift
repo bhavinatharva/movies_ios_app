@@ -287,12 +287,20 @@ struct SidebarView: View {
         .onAppear {
             activePlaylist = PlaylistManager.shared.fetchDefaultPlaylist()
         }
-        .fullScreenCover(isPresented: $showSearch) {
-            SearchView()
-        }
-        .fullScreenCover(isPresented: $showSettings) {
-            SettingsView()
-        }
+        .overlay(
+            Group {
+                if showSearch {
+                    SearchView()
+                        .transition(.move(edge: .bottom))
+                        .zIndex(100)
+                }
+                if showSettings {
+                    SettingsView()
+                        .transition(.move(edge: .bottom))
+                        .zIndex(100)
+                }
+            }
+        )
     }
 }
 

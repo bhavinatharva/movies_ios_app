@@ -8,7 +8,7 @@ import SwiftUI
 struct RecentView: View {
     @Bindable private var userDataManager = UserDataManager.shared
     
-    private enum ActiveSheet: Identifiable {
+    private enum ActiveSheet: Identifiable, Hashable {
         case settings
         case search
         
@@ -108,7 +108,7 @@ struct RecentView: View {
                 }
             }
         }
-        .fullScreenCover(item: $activeSheet) { sheet in
+        .navigationDestination(item: $activeSheet) { sheet in
             switch sheet {
             case .settings:
                 SettingsView()

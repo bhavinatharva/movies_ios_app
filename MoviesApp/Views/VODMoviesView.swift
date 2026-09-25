@@ -10,7 +10,7 @@ struct VODMoviesView: View {
     @State private var selectedCategory: XtreamCategory?
     @State private var selectedMovie: UnifiedMediaItem?
     
-    private enum ActiveSheet: Identifiable {
+    private enum ActiveSheet: Identifiable, Hashable {
         case categoryFilter
         case settings
         case search
@@ -77,7 +77,7 @@ struct VODMoviesView: View {
             .navigationDestination(item: $selectedMovie) { movie in
                 UnifiedMediaDetailView(item: movie)
             }
-            .fullScreenCover(item: $activeSheet) { sheet in
+            .navigationDestination(item: $activeSheet) { sheet in
                 switch sheet {
                 case .categoryFilter:
                     CategoryFilterView(

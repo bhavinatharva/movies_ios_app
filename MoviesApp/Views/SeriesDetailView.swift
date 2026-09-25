@@ -255,7 +255,7 @@ struct SeriesDetailView: View {
         .task {
             await loadSeriesInfo()
         }
-        .fullScreenCover(item: $selectedEpisode) { _ in
+        .navigationDestination(item: $selectedEpisode) { _ in
             ZStack(alignment: .topTrailing) {
                 Color.appBackground.ignoresSafeArea()
                 

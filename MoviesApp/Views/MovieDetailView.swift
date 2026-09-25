@@ -143,10 +143,10 @@ struct MovieDetailView: View {
                 }
             }
             .ignoresSafeArea(edges: .top)
-            .fullScreenCover(item: $selectedVideo) { video in
+            .navigationDestination(item: $selectedVideo) { video in
                 VideoPlayerCoverView(video: video)
             }
-            .fullScreenCover(item: $selectedPlayableItem) { _ in
+            .navigationDestination(item: $selectedPlayableItem) { _ in
                 ZStack(alignment: .topTrailing) {
                     Color.appBackground.ignoresSafeArea()
                     ContentUnavailableView {

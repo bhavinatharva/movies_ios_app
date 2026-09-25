@@ -34,8 +34,7 @@ struct SearchView: View {
     }
     
     var body: some View {
-        NavigationStack(path: $navigationPath) {
-            ZStack {
+        ZStack {
                 Color.appBackground.ignoresSafeArea()
                 
                 ScrollView {
@@ -205,7 +204,7 @@ struct SearchView: View {
             .navigationDestination(for: TrendingModel.self) { trendingModel in
                 MovieDetailView(title: trendingModel)
             }
-            .fullScreenCover(item: $selectedPlayableItem) { item in
+            .navigationDestination(item: $selectedPlayableItem) { item in
                 if item.mediaType == .movie || item.mediaType == .tvSeries {
                     UnifiedMediaDetailView(item: item)
                 } else {
@@ -232,7 +231,6 @@ struct SearchView: View {
                         }
                     }
                 }
-            }
         }
     }
 }

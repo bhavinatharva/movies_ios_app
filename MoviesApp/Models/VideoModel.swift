@@ -12,7 +12,7 @@ struct VideoResponse: Decodable {
     let results: [VideoModel]
 }
 
-struct VideoModel: Decodable, Identifiable {
+struct VideoModel: Decodable, Identifiable, Hashable {
     let id: String
     let iso_639_1: String?
     let iso_3166_1: String?

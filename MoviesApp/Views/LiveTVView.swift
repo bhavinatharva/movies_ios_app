@@ -14,7 +14,7 @@ struct LiveTVView: View {
     @State private var selectedChannel: IPTVChannel?
     @State private var searchQuery: String = ""
     
-    private enum ActiveSheet: Identifiable {
+    private enum ActiveSheet: Identifiable, Hashable {
         case categoryFilter
         case settings
         
@@ -96,7 +96,7 @@ struct LiveTVView: View {
             .navigationDestination(item: $selectedChannel) { channel in
                 LiveTVDetailView(channel: channel)
             }
-            .fullScreenCover(item: $activeSheet) { sheet in
+            .navigationDestination(item: $activeSheet) { sheet in
                 switch sheet {
                 case .categoryFilter:
                     LiveCategoryFilterSheet(

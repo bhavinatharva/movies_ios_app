@@ -14,7 +14,7 @@ struct HomeView: View {
     @State private var detailNavigationPath = NavigationPath()
     // Removed individual sheet state variables; unified ActiveSheet enum will be used instead
     
-    private enum ActiveSheet: Identifiable {
+    private enum ActiveSheet: Identifiable, Hashable {
         case settings
         case search
         case movieDetail(UnifiedMediaItem)
@@ -74,7 +74,7 @@ struct HomeView: View {
                 }
             }
             .navigationBarHidden(true)
-            .fullScreenCover(item: $activeSheet) { sheet in
+            .navigationDestination(item: $activeSheet) { sheet in
                 switch sheet {
                 case .settings:
                     SettingsView()
