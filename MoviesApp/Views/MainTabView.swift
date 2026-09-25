@@ -42,35 +42,47 @@ struct MainTabView: View {
         #endif
     }
 
+    #if os(tvOS)
+    @State private var tvSelectedTab: Int = 0
+    #endif
+
     var body: some View {
         ZStack {
             #if os(tvOS)
-            TabView(selection: $selectedTab) {
+            TabView(selection: $tvSelectedTab) {
                 HomeView()
                     .tabItem { Label(IPTVTab.home.title, systemImage: IPTVTab.home.systemImage) }
-                    .tag(IPTVTab.home)
-
-                RecentView()
-                    .tabItem { Label(IPTVTab.recent.title, systemImage: IPTVTab.recent.systemImage) }
-                    .tag(IPTVTab.recent)
+                    .tag(0)
 
                 if dataManager.availableTabs.contains(.liveTV) {
                     LiveTVView()
                         .tabItem { Label(IPTVTab.liveTV.title, systemImage: IPTVTab.liveTV.systemImage) }
-                        .tag(IPTVTab.liveTV)
+                        .tag(1)
                 }
 
                 if dataManager.availableTabs.contains(.movies) {
                     VODMoviesView()
                         .tabItem { Label(IPTVTab.movies.title, systemImage: IPTVTab.movies.systemImage) }
-                        .tag(IPTVTab.movies)
+                        .tag(2)
                 }
 
                 if dataManager.availableTabs.contains(.series) {
                     SeriesView()
                         .tabItem { Label(IPTVTab.series.title, systemImage: IPTVTab.series.systemImage) }
-                        .tag(IPTVTab.series)
+                        .tag(3)
                 }
+
+                RecentView()
+                    .tabItem { Label(IPTVTab.recent.title, systemImage: IPTVTab.recent.systemImage) }
+                    .tag(4)
+
+                SearchView()
+                    .tabItem { Label("Search", systemImage: "magnifyingglass") }
+                    .tag(5)
+
+                SettingsView()
+                    .tabItem { Label("Settings", systemImage: "gearshape.fill") }
+                    .tag(6)
             }
             #else
             if horizontalSizeClass == .regular {

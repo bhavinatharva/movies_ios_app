@@ -18,11 +18,15 @@ struct SearchView: View {
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     private var gridColumns: [GridItem] {
+        #if os(tvOS)
+        return [GridItem(.adaptive(minimum: 200, maximum: 260), spacing: 28)]
+        #else
         if horizontalSizeClass == .regular {
             return [GridItem(.adaptive(minimum: 150, maximum: 200), spacing: 20)]
         } else {
             return [GridItem(.adaptive(minimum: 110), spacing: 16)]
         }
+        #endif
     }
     
     private var isIPTVActive: Bool {
@@ -57,6 +61,29 @@ struct SearchView: View {
                         LazyVGrid(columns: gridColumns, spacing: horizontalSizeClass == .regular ? 20 : 16) {
                             if isIPTVActive {
                                 ForEach(searchViewModel.iptvResults) { item in
+                                    #if os(tvOS)
+                                    Button {
+                                        if item.mediaType == .movie || item.mediaType == .tvSeries {
+                                            selectedPlayableItem = item
+                                        } else {
+                                            UserDataManager.shared.addToHistory(item)
+                                            if let url = item.streamUrl {
+                                                GlobalPlayerManager.shared.play(
+                                                    url: url,
+                                                    title: item.title,
+                                                    artwork: item.posterPath,
+                                                    isLive: item.mediaType == .liveTV,
+                                                    streamId: item.id
+                                                )
+                                            } else {
+                                                selectedPlayableItem = item
+                                            }
+                                        }
+                                    } label: {
+                                        UnifiedMediaCardView(item: item, width: 210)
+                                    }
+                                    .buttonStyle(.card)
+                                    #else
                                     GeometryReader { geo in
                                         UnifiedMediaCardView(item: item, width: geo.size.width)
                                             .onTapGesture {
@@ -83,9 +110,18 @@ struct SearchView: View {
                                             }
                                     }
                                     .aspectRatio(2/3, contentMode: .fit)
+                                    #endif
                                 }
                             } else {
                                 ForEach(searchViewModel.searchingMovies) { title in
+                                    #if os(tvOS)
+                                    Button {
+                                        navigationPath.append(title)
+                                    } label: {
+                                        MovieCardView(movie: title, width: 210)
+                                    }
+                                    .buttonStyle(.card)
+                                    #else
                                     GeometryReader { geo in
                                         MovieCardView(movie: title, width: geo.size.width)
                                             .onTapGesture {
@@ -93,6 +129,7 @@ struct SearchView: View {
                                             }
                                     }
                                     .aspectRatio(2/3, contentMode: .fit)
+                                    #endif
                                 }
                             }
                         }

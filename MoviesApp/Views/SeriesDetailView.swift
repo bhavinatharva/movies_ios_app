@@ -174,6 +174,9 @@ struct SeriesDetailView: View {
                                         )
                                         .cornerRadius(8)
                                     }
+                                    #if os(tvOS)
+                                    .buttonStyle(.card)
+                                    #endif
                                 }
                             }
                             .padding(.top)

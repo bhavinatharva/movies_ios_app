@@ -234,6 +234,25 @@ struct StreamingPlayerView: View {
         #if os(iOS)
         .statusBarHidden(true)
         #endif
+        #if os(tvOS)
+        .onPlayPauseCommand {
+            togglePlay()
+        }
+        .onMoveCommand { direction in
+            switch direction {
+            case .left:
+                skip(by: -10)
+                showSkipIndicator(isForward: false)
+            case .right:
+                skip(by: 10)
+                showSkipIndicator(isForward: true)
+            case .up, .down:
+                withAnimation { showControls.toggle() }
+            @unknown default:
+                break
+            }
+        }
+        #endif
         .onAppear {
             #if os(iOS)
             OrientationManager.shared.lockOrientation(.allButUpsideDown)

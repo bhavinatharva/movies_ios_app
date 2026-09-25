@@ -22,11 +22,15 @@ struct VODMoviesView: View {
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     private var gridColumns: [GridItem] {
+        #if os(tvOS)
+        return [GridItem(.adaptive(minimum: 200, maximum: 260), spacing: 28)]
+        #else
         if horizontalSizeClass == .regular {
             return [GridItem(.adaptive(minimum: 160, maximum: 220), spacing: 20)]
         } else {
             return [GridItem(.adaptive(minimum: 110), spacing: 16)]
         }
+        #endif
     }
     
     var body: some View {
@@ -126,7 +130,11 @@ struct VODMoviesView: View {
                     .cornerRadius(8)
                     .padding(.horizontal, 8)
                 }
+                #if os(tvOS)
+                .buttonStyle(PressScaleButtonStyle())
+                #else
                 .buttonStyle(PlainButtonStyle())
+                #endif
                 
                 ForEach(dataManager.vodCategories) { cat in
                     Button(action: {
@@ -152,7 +160,11 @@ struct VODMoviesView: View {
                         .cornerRadius(8)
                         .padding(.horizontal, 8)
                     }
+                    #if os(tvOS)
+                    .buttonStyle(PressScaleButtonStyle())
+                    #else
                     .buttonStyle(PlainButtonStyle())
+                    #endif
                 }
             }
             .padding(.bottom, 20)
@@ -178,6 +190,15 @@ struct VODMoviesView: View {
             if let category = selectedCategory {
                 LazyVGrid(columns: gridColumns, spacing: horizontalSizeClass == .regular ? 20 : 16) {
                     ForEach(dataManager.categorizedMovies[category.id] ?? []) { movie in
+                        #if os(tvOS)
+                        Button {
+                            UserDataManager.shared.addToHistory(movie)
+                            selectedMovie = movie
+                        } label: {
+                            UnifiedMediaCardView(item: movie, width: 210)
+                        }
+                        .buttonStyle(.card)
+                        #else
                         GeometryReader { geo in
                             UnifiedMediaCardView(item: movie, width: geo.size.width)
                                 .onTapGesture {
@@ -186,6 +207,7 @@ struct VODMoviesView: View {
                                 }
                         }
                         .aspectRatio(2/3, contentMode: .fit)
+                        #endif
                     }
                 }
                 .padding(.horizontal, horizontalSizeClass == .regular ? 24 : 16)

@@ -38,11 +38,15 @@ struct LiveTVView: View {
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     private var gridColumns: [GridItem] {
+        #if os(tvOS)
+        return [GridItem(.adaptive(minimum: 220, maximum: 280), spacing: 28)]
+        #else
         if horizontalSizeClass == .regular {
             return [GridItem(.adaptive(minimum: 150, maximum: 200), spacing: 18)]
         } else {
             return [GridItem(.adaptive(minimum: 110), spacing: 14)]
         }
+        #endif
     }
     
     var body: some View {
@@ -153,7 +157,11 @@ struct LiveTVView: View {
                     .cornerRadius(8)
                     .padding(.horizontal, 8)
                 }
+                #if os(tvOS)
+                .buttonStyle(PressScaleButtonStyle())
+                #else
                 .buttonStyle(PlainButtonStyle())
+                #endif
                 
                 ForEach(categories, id: \.self) { cat in
                     Button(action: {
@@ -179,7 +187,11 @@ struct LiveTVView: View {
                         .cornerRadius(8)
                         .padding(.horizontal, 8)
                     }
+                    #if os(tvOS)
+                    .buttonStyle(PressScaleButtonStyle())
+                    #else
                     .buttonStyle(PlainButtonStyle())
+                    #endif
                 }
             }
             .padding(.bottom, 20)
@@ -219,10 +231,19 @@ struct LiveTVView: View {
                 } else {
                     LazyVGrid(columns: gridColumns, spacing: horizontalSizeClass == .regular ? 20 : 16) {
                         ForEach(filteredChannels) { channel in
+                            #if os(tvOS)
+                            Button {
+                                selectedChannel = channel
+                            } label: {
+                                LiveChannelGridCardView(channel: channel)
+                            }
+                            .buttonStyle(.card)
+                            #else
                             LiveChannelGridCardView(channel: channel)
                                 .onTapGesture {
                                     selectedChannel = channel
                                 }
+                            #endif
                         }
                     }
                     .padding(.horizontal, horizontalSizeClass == .regular ? 24 : 16)

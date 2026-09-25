@@ -138,6 +138,30 @@ struct ShimmerModifier: ViewModifier {
 }
 
 // MARK: - Premium Tap Micro-Interaction Button Style
+#if os(tvOS)
+struct PressScaleButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        TVFocusableButton(configuration: configuration)
+    }
+    
+    private struct TVFocusableButton: View {
+        let configuration: Configuration
+        @Environment(\.isFocused) private var isFocused
+        
+        var body: some View {
+            configuration.label
+                .scaleEffect(isFocused ? 1.08 : (configuration.isPressed ? 0.96 : 1.0))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.white.opacity(isFocused ? 0.9 : 0), lineWidth: 3)
+                )
+                .shadow(color: isFocused ? Color.white.opacity(0.35) : Color.black.opacity(0.3), radius: isFocused ? 14 : 6, x: 0, y: isFocused ? 6 : 3)
+                .animation(.easeInOut(duration: 0.2), value: isFocused)
+                .animation(.spring(response: 0.3, dampingFraction: 0.65, blendDuration: 0), value: configuration.isPressed)
+        }
+    }
+}
+#else
 struct PressScaleButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -146,6 +170,7 @@ struct PressScaleButtonStyle: ButtonStyle {
             .animation(.spring(response: 0.3, dampingFraction: 0.65, blendDuration: 0), value: configuration.isPressed)
     }
 }
+#endif
 
 #if os(tvOS)
 extension UIColor {

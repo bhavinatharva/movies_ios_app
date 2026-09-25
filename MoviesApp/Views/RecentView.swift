@@ -19,11 +19,15 @@ struct RecentView: View {
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     private var gridColumns: [GridItem] {
+        #if os(tvOS)
+        return [GridItem(.adaptive(minimum: 200, maximum: 260), spacing: 28)]
+        #else
         if horizontalSizeClass == .regular {
             return [GridItem(.adaptive(minimum: 150, maximum: 200), spacing: 20)]
         } else {
             return [GridItem(.adaptive(minimum: 110), spacing: 16)]
         }
+        #endif
     }
     
     var body: some View {
@@ -41,6 +45,22 @@ struct RecentView: View {
                     ScrollView {
                         LazyVGrid(columns: gridColumns, spacing: horizontalSizeClass == .regular ? 20 : 16) {
                             ForEach(userDataManager.recentlyWatched) { item in
+                                #if os(tvOS)
+                                Button {
+                                    if let url = item.streamUrl {
+                                        GlobalPlayerManager.shared.play(
+                                            url: url,
+                                            title: item.title,
+                                            artwork: item.posterPath,
+                                            isLive: item.mediaType == .liveTV,
+                                            streamId: item.id
+                                        )
+                                    }
+                                } label: {
+                                    UnifiedMediaCardView(item: item, width: 210)
+                                }
+                                .buttonStyle(.card)
+                                #else
                                 GeometryReader { geo in
                                     UnifiedMediaCardView(item: item, width: geo.size.width)
                                         .onTapGesture {
@@ -56,6 +76,7 @@ struct RecentView: View {
                                         }
                                 }
                                 .aspectRatio(3/4, contentMode: .fit)
+                                #endif
                             }
                         }
                         .padding(16)

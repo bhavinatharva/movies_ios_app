@@ -30,6 +30,21 @@ struct AddPlaylistWizardView: View {
                     .padding(.vertical, 8)
                 }
                 
+                #if os(tvOS)
+                Section(header: Text("Quick Setup (Demo Playlist)")) {
+                    Button(action: {
+                        playlistType = 1
+                        name = "Free IPTV Demo"
+                        urlString = "https://iptv-org.github.io/iptv/index.m3u"
+                    }) {
+                        HStack {
+                            Image(systemName: "sparkles.tv")
+                            Text("Fill Public Demo Playlist")
+                        }
+                    }
+                }
+                #endif
+                
                 Section(header: Text("Details")) {
                     TextField("Playlist Name", text: $name)
                     
