@@ -76,11 +76,11 @@ struct MainTabView: View {
                     .tabItem { Label(IPTVTab.recent.title, systemImage: IPTVTab.recent.systemImage) }
                     .tag(4)
 
-                SearchView()
+                NavigationStack { SearchView() }
                     .tabItem { Label("Search", systemImage: "magnifyingglass") }
                     .tag(5)
 
-                SettingsView()
+                NavigationStack { SettingsView() }
                     .tabItem { Label("Settings", systemImage: "gearshape.fill") }
                     .tag(6)
             }
@@ -290,12 +290,12 @@ struct SidebarView: View {
         .overlay(
             Group {
                 if showSearch {
-                    SearchView()
+                    NavigationStack { SearchView() }
                         .transition(.move(edge: .bottom))
                         .zIndex(100)
                 }
                 if showSettings {
-                    SettingsView()
+                    NavigationStack { SettingsView() }
                         .transition(.move(edge: .bottom))
                         .zIndex(100)
                 }
