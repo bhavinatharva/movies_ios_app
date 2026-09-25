@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		118E222EEA5A8D804B581807 /* Pods_MoviesApp.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 24B2EC28BF68C163886BC463 /* Pods_MoviesApp.framework */; };
 		2F1A0EEAEFEB4FBE57716278 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 59F974A47806D6A0E8DE81CA /* Foundation.framework */; };
+		3256CA743066BB6700271E62 /* KSPlayer in Frameworks */ = {isa = PBXBuildFile; productRef = 3256CA733066BB6700271E62 /* KSPlayer */; };
 		340F856CA8B5418EEDEB46EA /* Pods_MoviesAppTV.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7DAD5A9E67A74C5D87D349E3 /* Pods_MoviesAppTV.framework */; };
 /* End PBXBuildFile section */
 
@@ -68,6 +69,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				2F1A0EEAEFEB4FBE57716278 /* Foundation.framework in Frameworks */,
+				3256CA743066BB6700271E62 /* KSPlayer in Frameworks */,
 				340F856CA8B5418EEDEB46EA /* Pods_MoviesAppTV.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -194,6 +196,9 @@
 			);
 			mainGroup = 32C22A2C2EC20EEB0052FBD7;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				3256CA723066B9DB00271E62 /* XCRemoteSwiftPackageReference "KSPlayer" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 32C22A362EC20EEC0052FBD7 /* Products */;
 			projectDirPath = "";
@@ -231,9 +236,13 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-MoviesApp/Pods-MoviesApp-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
+			inputPaths = (
+			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-MoviesApp/Pods-MoviesApp-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -270,9 +279,13 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-MoviesAppTV/Pods-MoviesAppTV-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
+			inputPaths = (
+			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-MoviesAppTV/Pods-MoviesAppTV-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -606,6 +619,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		3256CA723066B9DB00271E62 /* XCRemoteSwiftPackageReference "KSPlayer" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/kingslay/KSPlayer.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.3.4;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		3256CA733066BB6700271E62 /* KSPlayer */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3256CA723066B9DB00271E62 /* XCRemoteSwiftPackageReference "KSPlayer" */;
+			productName = KSPlayer;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 32C22A2D2EC20EEB0052FBD7 /* Project object */;
 }

@@ -27,6 +27,7 @@ public class VLCMediaPlayer {
 public class VLCMedia {
     public var length: VLCTime = VLCTime()
     public init(url: URL) {}
+    public func addOptions(_ options: [AnyHashable: Any]) {}
 }
 public class VLCTime {
     public var intValue: Int32 = 0
@@ -40,6 +41,10 @@ public enum VLCMediaPlayerState {
 }
 #endif
 
+#if canImport(KSPlayer)
+import KSPlayer
+#endif
+
 @MainActor
 final class GlobalPlayerManager: NSObject, ObservableObject, VLCMediaPlayerDelegate {
     static let shared = GlobalPlayerManager()
@@ -50,6 +55,10 @@ final class GlobalPlayerManager: NSObject, ObservableObject, VLCMediaPlayerDeleg
     // VLC Player
     @Published var vlcPlayer = VLCMediaPlayer()
     @Published var isUsingVLC: Bool = false
+    
+    // KSPlayer
+    @Published var isUsingKSPlayer: Bool = false
+    @Published var ksPlayerUrl: URL?
     
     @Published var isPlaying: Bool = false
     @Published var isMinimized: Bool = false
@@ -76,7 +85,7 @@ final class GlobalPlayerManager: NSObject, ObservableObject, VLCMediaPlayerDeleg
     
     @Published var playbackError: String?
     
-    private var currentUrl: URL?
+    var currentUrl: URL?
     private var retryCount: Int = 0
     
     // Internal observation
@@ -133,13 +142,20 @@ final class GlobalPlayerManager: NSObject, ObservableObject, VLCMediaPlayerDeleg
     
     func play(url: URL, title: String?, artwork: String?, isLive: Bool = false, streamId: String? = nil, subtitle: String? = nil, nextEpisodeTitle: String? = nil, onPlayNext: (() -> Void)? = nil) {
         // If it's already playing the exact same stream, just maximize.
-        // We check currentUrl instead of the AVPlayerItem to prevent a race condition 
-        // where StreamingPlayerView might re-trigger play before the first background load completes.
-        if self.currentUrl == url {
+        /*if self.currentUrl == url {
             playbackError = nil
             maximize()
             return
-        }
+        }*/
+        
+        #if canImport(KSPlayer)
+        KSOptions.firstPlayerType = KSMEPlayer.self
+        KSOptions.secondPlayerType = KSAVPlayer.self
+        KSOptions.isAutoPlay = true
+        #if targetEnvironment(simulator)
+        KSOptions.hardwareDecode = false
+        #endif
+        #endif
         
         self.currentUrl = url
         self.isLive = isLive
@@ -169,6 +185,14 @@ final class GlobalPlayerManager: NSObject, ObservableObject, VLCMediaPlayerDeleg
             await MainActor.run {
                 self.currentIntroMarker = marker
                 self.showSkipIntro = false
+                
+                #if canImport(KSPlayer)
+                print("GlobalPlayerManager: KSPlayer imported, routing stream to KSPlayer.")
+                self.isUsingKSPlayer = true
+                self.isUsingVLC = false
+                self.ksPlayerUrl = url
+                return
+                #endif
                 
                 if !streamType.isNativelySupported {
                     print("GlobalPlayerManager: Stream type \(streamType) is not natively supported. Using VLCMediaPlayer directly.")
@@ -244,7 +268,10 @@ final class GlobalPlayerManager: NSObject, ObservableObject, VLCMediaPlayerDeleg
     }
     
     func stop() {
-        if isUsingVLC {
+        if isUsingKSPlayer {
+            ksPlayerUrl = nil
+            isUsingKSPlayer = false
+        } else if isUsingVLC {
             vlcPlayer.stop()
         } else {
             player.pause()

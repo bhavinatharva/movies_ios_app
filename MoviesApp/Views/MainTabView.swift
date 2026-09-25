@@ -123,24 +123,6 @@ struct MainTabView: View {
             }
             #endif
         }
-        .fullScreenCover(isPresented: Binding(
-            get: { globalPlayerManager.currentTitle != nil },
-            set: { _ in } // Dismissal is handled by StreamingPlayerView calling stop()
-        )) {
-            if let title = globalPlayerManager.currentTitle,
-               let urlStr = globalPlayerManager.player.currentItem?.asset as? AVURLAsset {
-                StreamingPlayerView(
-                    url: urlStr.url,
-                    title: title,
-                    streamId: globalPlayerManager.streamId,
-                    subtitle: globalPlayerManager.subtitle,
-                    isLive: globalPlayerManager.isLive,
-                    logoUrl: globalPlayerManager.currentArtwork,
-                    nextEpisodeTitle: globalPlayerManager.nextEpisodeTitle,
-                    onPlayNext: globalPlayerManager.onPlayNext
-                )
-            }
-        }
     }
 
     @ViewBuilder

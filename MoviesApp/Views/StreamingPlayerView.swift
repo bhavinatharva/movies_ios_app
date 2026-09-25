@@ -14,6 +14,9 @@ import TVVLCKit
 #elseif canImport(MobileVLCKit)
 import MobileVLCKit
 #endif
+#if canImport(KSPlayer)
+import KSPlayer
+#endif
 
 struct StreamingPlayerView: View {
     let initialUrl: URL
@@ -105,7 +108,14 @@ struct StreamingPlayerView: View {
     var body: some View {
         ZStack {
             // 1. Core Native Player
-            if playerManager.isUsingVLC {
+            if playerManager.isUsingKSPlayer {
+                #if canImport(KSPlayer)
+                if let ksUrl = playerManager.ksPlayerUrl {
+                    KSVideoPlayerView(url: ksUrl, options: KSOptions())
+                        .ignoresSafeArea()
+                }
+                #endif
+            } else if playerManager.isUsingVLC {
                 VLCPlayerRepresentable(player: playerManager.vlcPlayer, isAspectFill: isAspectFill)
                     .ignoresSafeArea()
             } else {

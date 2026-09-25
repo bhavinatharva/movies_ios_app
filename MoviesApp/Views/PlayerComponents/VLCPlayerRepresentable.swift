@@ -1,6 +1,4 @@
 import SwiftUI
-import AVFoundation
-
 #if canImport(TVVLCKit)
 import TVVLCKit
 #elseif canImport(MobileVLCKit)
@@ -8,24 +6,41 @@ import MobileVLCKit
 #endif
 
 #if canImport(TVVLCKit) || canImport(MobileVLCKit)
-class VLCPlayerUIView: UIView, VLCMediaPlayerDelegate {
+struct VLCPlayerRepresentable: UIViewRepresentable {
+    var player: VLCMediaPlayer
+    var isAspectFill: Bool
+
+    func makeUIView(context: Context) -> VLCPlayerUIView {
+        return VLCPlayerUIView(player: player, isAspectFill: isAspectFill)
+    }
+
+    func updateUIView(_ uiView: VLCPlayerUIView, context: Context) {
+        uiView.isAspectFill = isAspectFill
+        if player.drawable as? UIView != uiView {
+            player.drawable = uiView
+        }
+    }
+}
+
+class VLCPlayerUIView: UIView {
     let internalPlayer: VLCMediaPlayer
     var isAspectFill: Bool = false {
         didSet {
             updateGravity()
         }
     }
-    
-    init(player: VLCMediaPlayer) {
+
+    init(player: VLCMediaPlayer, isAspectFill: Bool) {
         self.internalPlayer = player
+        self.isAspectFill = isAspectFill
         super.init(frame: .zero)
         setupPlayer()
     }
-    
+
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
+
     private func setupPlayer() {
         internalPlayer.drawable = self
         updateGravity()
@@ -33,40 +48,19 @@ class VLCPlayerUIView: UIView, VLCMediaPlayerDelegate {
     
     private func updateGravity() {
         if isAspectFill {
-            internalPlayer.videoCropGeometry = UnsafeMutablePointer<Int8>(mutating: "16:9".cString(using: .utf8))
+            internalPlayer.videoAspectRatio = UnsafeMutablePointer<Int8>(mutating: ("16:9" as NSString).utf8String)
         } else {
-            internalPlayer.videoCropGeometry = nil
-        }
-    }
-}
-
-struct VLCPlayerRepresentable: UIViewRepresentable {
-    var player: VLCMediaPlayer
-    var isAspectFill: Bool
-    
-    func makeUIView(context: Context) -> VLCPlayerUIView {
-        let view = VLCPlayerUIView(player: player)
-        view.isAspectFill = isAspectFill
-        view.backgroundColor = .black
-        return view
-    }
-    
-    func updateUIView(_ uiView: VLCPlayerUIView, context: Context) {
-        if player.drawable as? UIView != uiView {
-            player.drawable = uiView
-        }
-        if uiView.isAspectFill != isAspectFill {
-            uiView.isAspectFill = isAspectFill
+            internalPlayer.videoAspectRatio = nil
         }
     }
 }
 #else
 struct VLCPlayerRepresentable: View {
-    var player: VLCMediaPlayer
+    var player: Any
     var isAspectFill: Bool
     
     var body: some View {
-        Color.black
+        Text("VLCKit not available")
     }
 }
 #endif
