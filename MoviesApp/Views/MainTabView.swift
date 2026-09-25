@@ -11,6 +11,8 @@ struct MainTabView: View {
     @Bindable private var dataManager = IPTVDataManager.shared
     @EnvironmentObject var globalPlayerManager: GlobalPlayerManager
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    @State private var showSearch = false
+    @State private var showSettings = false
 
     init() {
         #if os(iOS)
@@ -87,10 +89,34 @@ struct MainTabView: View {
             #else
             if horizontalSizeClass == .regular {
                 HStack(spacing: 0) {
-                    SidebarView(selectedTab: $selectedTab)
+                    SidebarView(selectedTab: $selectedTab, showSettings: $showSettings, showSearch: $showSearch)
                     tabViewContent(for: selectedTab)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
+                .overlay(
+                    Group {
+                        if showSearch {
+                            NavigationStack {
+                                SearchView()
+                                    .toolbar {
+                                        ToolbarItem(placement: .navigationBarLeading) {
+                                            Button("Close") { showSearch = false }
+                                        }
+                                    }
+                            }
+                        }
+                        if showSettings {
+                            NavigationStack {
+                                SettingsView()
+                                    .toolbar {
+                                        ToolbarItem(placement: .navigationBarLeading) {
+                                            Button("Close") { showSettings = false }
+                                        }
+                                    }
+                            }
+                        }
+                    }
+                )
             } else {
                 TabView(selection: $selectedTab) {
                     HomeView()
@@ -146,8 +172,8 @@ struct SidebarView: View {
     @Binding var selectedTab: IPTVTab
     @AppStorage("has_default_playlist") private var hasDefaultPlaylist = false
     @State private var activePlaylist: Playlist?
-    @State private var showSettings = false
-    @State private var showSearch = false
+    @Binding var showSettings: Bool
+    @Binding var showSearch: Bool
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -287,20 +313,6 @@ struct SidebarView: View {
         .onAppear {
             activePlaylist = PlaylistManager.shared.fetchDefaultPlaylist()
         }
-        .overlay(
-            Group {
-                if showSearch {
-                    NavigationStack { SearchView() }
-                        .transition(.move(edge: .bottom))
-                        .zIndex(100)
-                }
-                if showSettings {
-                    NavigationStack { SettingsView() }
-                        .transition(.move(edge: .bottom))
-                        .zIndex(100)
-                }
-            }
-        )
     }
 }
 
