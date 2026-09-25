@@ -236,18 +236,57 @@ struct StreamingPlayerView: View {
         #endif
         #if os(tvOS)
         .onPlayPauseCommand {
+            withAnimation { showControls = true }
             togglePlay()
+        }
+        .onExitCommand {
+            if showChannelDrawer {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    showChannelDrawer = false
+                    showControls = true
+                }
+                resetTimer()
+            } else if showControls {
+                withAnimation { showControls = false }
+                hideControlsTask?.cancel()
+            } else {
+                playerManager.stop()
+                dismiss()
+            }
         }
         .onMoveCommand { direction in
             switch direction {
             case .left:
-                skip(by: -10)
-                showSkipIndicator(isForward: false)
+                // Live TV: left/right doesn't zap — use up/down for that
+                if streamType != .liveTV {
+                    skip(by: -10)
+                    showSkipIndicator(isForward: false)
+                }
+                withAnimation { showControls = true }
+                resetTimer()
             case .right:
-                skip(by: 10)
-                showSkipIndicator(isForward: true)
-            case .up, .down:
-                withAnimation { showControls.toggle() }
+                if streamType != .liveTV {
+                    skip(by: 10)
+                    showSkipIndicator(isForward: true)
+                }
+                withAnimation { showControls = true }
+                resetTimer()
+            case .up:
+                // Live TV: navigate to previous channel (Apple TV UX convention)
+                if streamType == .liveTV {
+                    zapChannel(forward: false)
+                } else {
+                    withAnimation { showControls = true }
+                    resetTimer()
+                }
+            case .down:
+                // Live TV: navigate to next channel
+                if streamType == .liveTV {
+                    zapChannel(forward: true)
+                } else {
+                    withAnimation { showControls = true }
+                    resetTimer()
+                }
             @unknown default:
                 break
             }
@@ -311,7 +350,7 @@ struct StreamingPlayerView: View {
     
     private var topOverlayView: some View {
         HStack(spacing: 16) {
-            // Channel Logo Placeholder
+            // Channel Logo
             if streamType == .liveTV {
                 ZStack {
                     Color.white.opacity(0.2)
@@ -325,8 +364,13 @@ struct StreamingPlayerView: View {
                         Image(systemName: "tv").foregroundColor(.white.opacity(0.8))
                     }
                 }
+                #if os(tvOS)
+                .frame(width: 56, height: 56)
+                .cornerRadius(10)
+                #else
                 .frame(width: 32, height: 32)
                 .cornerRadius(6)
+                #endif
             }
             
             VStack(alignment: .leading, spacing: 4) {
@@ -335,38 +379,116 @@ struct StreamingPlayerView: View {
                         HStack(spacing: 5) {
                             Circle()
                                 .fill(Color.white)
+                                #if os(tvOS)
+                                .frame(width: 8, height: 8)
+                                #else
                                 .frame(width: 6, height: 6)
+                                #endif
                                 .scaleEffect(isLiveGlow ? 1.3 : 0.8)
                                 .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: isLiveGlow)
                             Text("LIVE")
+                                #if os(tvOS)
+                                .font(.system(size: 13, weight: .black, design: .rounded))
+                                #else
                                 .font(.system(size: 9, weight: .black, design: .rounded))
+                                #endif
                         }
                         .foregroundColor(.white)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
                         .background(Color.red)
                         .clipShape(Capsule())
                         .onAppear { isLiveGlow = true }
                     }
                     
                     Text(currentTitle)
+                        #if os(tvOS)
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        #else
                         .font(.system(size: 18, weight: .bold, design: .rounded))
+                        #endif
                         .foregroundColor(.white)
                         .lineLimit(1)
                 }
                 
                 if let sub = subtitle, !sub.isEmpty {
                     Text(sub)
+                        #if os(tvOS)
+                        .font(.system(size: 18, weight: .medium))
+                        #else
                         .font(.system(size: 12, weight: .medium))
+                        #endif
                         .foregroundColor(.white.opacity(0.6))
                         .lineLimit(1)
                 }
             }
             Spacer()
-            // Media option buttons – hidden in compact vertical size class
+            // Action buttons
             HStack(spacing: 16) {
+                #if os(tvOS)
+                // tvOS: Audio & Subtitles always accessible via focusable buttons
+                Button(action: {
+                    Task {
+                        await fetchMediaOptions()
+                        showAudioActionSheet = true
+                    }
+                }) {
+                    Image(systemName: "waveform")
+                        .font(.system(size: 22))
+                        .foregroundColor(.white)
+                        .frame(width: 56, height: 56)
+                        .background(Color.white.opacity(0.15))
+                        .cornerRadius(14)
+                }
+                .buttonStyle(PressScaleButtonStyle())
+                
+                Button(action: {
+                    Task {
+                        await fetchMediaOptions()
+                        showSubtitleActionSheet = true
+                    }
+                }) {
+                    Image(systemName: "captions.bubble")
+                        .font(.system(size: 22))
+                        .foregroundColor(.white)
+                        .frame(width: 56, height: 56)
+                        .background(Color.white.opacity(0.15))
+                        .cornerRadius(14)
+                }
+                .buttonStyle(PressScaleButtonStyle())
+                
+                if streamType == .liveTV {
+                    Button(action: {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                            showChannelDrawer.toggle()
+                            if showChannelDrawer { showControls = false }
+                        }
+                    }) {
+                        Image(systemName: "list.bullet")
+                            .font(.system(size: 22))
+                            .foregroundColor(.white)
+                            .frame(width: 56, height: 56)
+                            .background(Color.white.opacity(0.15))
+                            .cornerRadius(14)
+                    }
+                    .buttonStyle(PressScaleButtonStyle())
+                }
+                
+                Button(action: {
+                    playerManager.stop()
+                    dismiss()
+                }) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(width: 56, height: 56)
+                        .background(Color.white.opacity(0.15))
+                        .cornerRadius(14)
+                }
+                .buttonStyle(PressScaleButtonStyle())
+                #else
+                // iOS: show options based on size class
                 if verticalSizeClass != .regular {
-                    // Audio button
                     Button(action: {
                         Task {
                             await fetchMediaOptions()
@@ -380,7 +502,6 @@ struct StreamingPlayerView: View {
                             .background(Color.white.opacity(0.15))
                             .cornerRadius(12)
                     }
-                    // Subtitle button
                     Button(action: {
                         Task {
                             await fetchMediaOptions()
@@ -394,7 +515,6 @@ struct StreamingPlayerView: View {
                             .background(Color.white.opacity(0.15))
                             .cornerRadius(12)
                     }
-                    // Quality button – hide for live TV
                     if streamType != .liveTV {
                         Button(action: {
                             Task {
@@ -411,7 +531,6 @@ struct StreamingPlayerView: View {
                         }
                     }
                 }
-                // Channel list button for live TV
                 if streamType == .liveTV {
                     Button(action: {
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
@@ -427,7 +546,6 @@ struct StreamingPlayerView: View {
                             .cornerRadius(12)
                     }
                 }
-                // Close button
                 Button(action: {
                     playerManager.stop()
                     dismiss()
@@ -439,13 +557,51 @@ struct StreamingPlayerView: View {
                         .background(Color.white.opacity(0.15))
                         .cornerRadius(12)
                 }
+                #endif
             }
         }
+        #if os(tvOS)
+        .padding(.horizontal, 60)
+        .padding(.top, 40)
+        #else
         .padding(.horizontal, 40)
         .padding(.top, 20)
+        #endif
     }
     
     private var centerControlsView: some View {
+        #if os(tvOS)
+        HStack(spacing: 80) {
+            Button(action: { skip(by: -10) }) {
+                Image(systemName: "gobackward.10")
+                    .font(.system(size: 52))
+                    .foregroundColor(.white)
+            }
+            .buttonStyle(PressScaleButtonStyle())
+            
+            Button(action: togglePlay) {
+                ZStack {
+                    Circle()
+                        .fill(Color.white.opacity(0.12))
+                        .frame(width: 120, height: 120)
+                        .overlay(Circle().stroke(Color.white.opacity(0.25), lineWidth: 1.5))
+                    
+                    Image(systemName: playerManager.isPlaying ? "pause.fill" : "play.fill")
+                        .font(.system(size: 56))
+                        .foregroundColor(.white)
+                        .offset(x: playerManager.isPlaying ? 0 : 3)
+                }
+            }
+            .buttonStyle(PressScaleButtonStyle())
+            
+            Button(action: { skip(by: 10) }) {
+                Image(systemName: "goforward.10")
+                    .font(.system(size: 52))
+                    .foregroundColor(.white)
+            }
+            .buttonStyle(PressScaleButtonStyle())
+        }
+        #else
         HStack(spacing: 60) {
             Button(action: { skip(by: -10) }) {
                 Image(systemName: "gobackward.10")
@@ -476,9 +632,92 @@ struct StreamingPlayerView: View {
             }
             .buttonStyle(PressScaleButtonStyle())
         }
+        #endif
     }
     
     private var bottomControlsView: some View {
+        #if os(tvOS)
+        // tvOS: Clean 10-foot experience — progress bar + time, no iOS-specific controls
+        VStack(spacing: 20) {
+            if streamType == .liveTV {
+                let epg = getMockEPG(for: currentTitle)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(epg.currentShow)
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundColor(.white)
+                    Text("Up Next: \(epg.nextShow)")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.white.opacity(0.6))
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 60)
+            }
+            
+            HStack(spacing: 20) {
+                Text(formatTime(playerManager.currentTime))
+                    .font(.system(size: 18, weight: .bold, design: .monospaced))
+                    .foregroundColor(.white.opacity(0.9))
+                    .frame(width: 80, alignment: .leading)
+                
+                if streamType == .liveTV {
+                    let epg = getMockEPG(for: currentTitle)
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule()
+                                .fill(Color.white.opacity(0.25))
+                                .frame(height: 6)
+                            Capsule()
+                                .fill(Color.red)
+                                .frame(width: geo.size.width * epg.progress, height: 6)
+                        }
+                    }
+                    .frame(height: 6)
+                } else {
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule()
+                                .fill(Color.white.opacity(0.25))
+                                .frame(height: 6)
+                            Capsule()
+                                .fill(Color.accentColor)
+                                .frame(width: playerManager.duration > 0 ? geo.size.width * CGFloat(sliderValue / playerManager.duration) : 0, height: 6)
+                        }
+                    }
+                    .frame(height: 6)
+                }
+                
+                Text(formatTime(playerManager.duration))
+                    .font(.system(size: 18, weight: .bold, design: .monospaced))
+                    .foregroundColor(.white.opacity(0.9))
+                    .frame(width: 80, alignment: .trailing)
+            }
+            .padding(.horizontal, 60)
+            
+            // tvOS hint: show what Menu button does
+            HStack(spacing: 0) {
+                Spacer()
+                if let onPlayNext = onPlayNext {
+                    Button(action: { onPlayNext() }) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "forward.end.fill")
+                                .font(.system(size: 18))
+                            Text("Next Episode")
+                                .font(.system(size: 16, weight: .bold))
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 14)
+                        .background(Color.white.opacity(0.15))
+                        .cornerRadius(14)
+                    }
+                    .buttonStyle(PressScaleButtonStyle())
+                    .padding(.trailing, 60)
+                }
+            }
+        }
+        .padding(.bottom, 50)
+        #else
+        // iOS: Full controls
         VStack(spacing: 16) {
             if streamType == .liveTV {
                 let epg = getMockEPG(for: currentTitle)
@@ -504,7 +743,6 @@ struct StreamingPlayerView: View {
                     ProgressView(value: epg.progress, total: 1.0)
                         .progressViewStyle(LinearProgressViewStyle(tint: Color.red))
                 } else {
-                    #if os(iOS)
                     Slider(value: $sliderValue, in: 0...max(1, playerManager.duration), onEditingChanged: { editing in
                         playerManager.isUserSeeking = editing
                         if !editing {
@@ -517,10 +755,6 @@ struct StreamingPlayerView: View {
                         }
                     })
                     .tint(Color.accentColor)
-                    #else
-                    ProgressView(value: sliderValue, total: max(1, playerManager.duration))
-                        .progressViewStyle(LinearProgressViewStyle(tint: Color.accentColor))
-                    #endif
                 }
                 
                 Text(formatTime(playerManager.duration))
@@ -562,10 +796,8 @@ struct StreamingPlayerView: View {
                 
                 // Lock Button
                 Button(action: {
-                    #if os(iOS)
                     let gen = UIImpactFeedbackGenerator(style: .medium)
                     gen.impactOccurred()
-                    #endif
                     withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                         isLocked = true
                         showControls = false
@@ -582,9 +814,7 @@ struct StreamingPlayerView: View {
                 Spacer()
                 
                 if let onPlayNext = onPlayNext {
-                    Button(action: {
-                        onPlayNext()
-                    }) {
+                    Button(action: { onPlayNext() }) {
                         Image(systemName: "forward.end.fill")
                             .font(.system(size: 18))
                             .foregroundColor(.white)
@@ -597,6 +827,7 @@ struct StreamingPlayerView: View {
             .padding(.horizontal, 40)
         }
         .padding(.bottom, 30)
+        #endif
     }
     
     private func skipIndicator(icon: String) -> some View {
@@ -891,7 +1122,12 @@ struct StreamingPlayerView: View {
     private func resetTimer() {
         hideControlsTask?.cancel()
         hideControlsTask = Task {
+            #if os(tvOS)
+            // tvOS: longer timeout — Siri Remote requires more deliberate interaction
+            try? await Task.sleep(for: .seconds(5))
+            #else
             try? await Task.sleep(for: .seconds(3))
+            #endif
             guard !Task.isCancelled else { return }
             withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) { showControls = false }
         }
