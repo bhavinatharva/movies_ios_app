@@ -341,7 +341,7 @@ struct XtreamSeries: Codable {
     }
 }
 
-struct XtreamEpisode: Codable {
+struct XtreamEpisode: Codable, Hashable {
     let id: String
     let episodeNum: Int?
     let title: String
@@ -389,7 +389,7 @@ struct XtreamEpisode: Codable {
     }
 }
 
-struct XtreamEpisodeInfo: Codable {
+struct XtreamEpisodeInfo: Codable, Hashable {
     let movieImage: String?
     let plot: String?
     let releaseDate: String?
