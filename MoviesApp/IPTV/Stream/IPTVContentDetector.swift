@@ -15,6 +15,11 @@ struct IPTVContentDetector {
         if ext == "ts" { return .ts }
         if ext == "mp4" { return .mp4 }
         if ext == "mkv" { return .mkv }
+        if ext == "avi" { return .avi }
+        if ext == "webm" { return .webm }
+        if ext == "flv" { return .flv }
+        if ext == "wmv" { return .wmv }
+        if ext == "mov" { return .mov }
         
         // If extension is not definitive, do a HEAD request to check Content-Type
         var request = URLRequest(url: url)
